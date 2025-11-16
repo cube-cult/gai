@@ -2,58 +2,91 @@
   description = "gai";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    flake-parts.url = "github:hercules-ci/flake-parts";
+
     rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-utils.url = "github:numtide/flake-utils";
+
     sussg.url = "github:nuttycream/sussg";
   };
 
   outputs =
     {
-      sussg,
       nixpkgs,
-      rust-overlay,
-      flake-utils,
+      flake-parts,
       ...
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs {
-          inherit system overlays;
+    }@inputs:
+
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = nixpkgs.lib.systems.flakeExposed;
+
+      perSystem =
+        { pkgs, system, ... }:
+        {
+          _module.args = {
+            pkgs = import nixpkgs {
+              inherit system;
+              overlays = [
+                (import inputs.rust-overlay)
+              ];
+            };
+          };
+
+          packages =
+            let
+              gai =
+                let
+                  inherit (pkgs)
+                    rustPlatform
+                    openssl
+                    pkg-config
+                    ;
+                in
+                rustPlatform.buildRustPackage {
+                  name = "gai";
+                  src = ./.;
+
+                  buildInputs = [
+                    openssl
+                  ];
+
+                  nativeBuildInputs = [
+                    pkg-config
+                  ];
+
+                  cargoHash = "sha256-7reFi36k8a707QmtcsBqlQ712TBSKjFWGnBU0NE8/uw=";
+                };
+            in
+            {
+              inherit gai;
+              default = gai;
+            };
+
+          devShells.default =
+            let
+              inherit (pkgs)
+                mkShell
+                just
+                rust-bin
+                openssl
+                pkg-config
+                ;
+              sussg = (inputs.sussg.packages.${system}.default);
+            in
+            mkShell {
+              name = "gai-shell";
+              packages = [
+                just
+                rust-bin.stable.latest.default
+                sussg
+              ];
+
+              nativeBuildInputs = [
+                openssl
+                pkg-config
+              ];
+            };
         };
-      in
-      with pkgs;
-      {
-        packages.default = pkgs.rustPlatform.buildRustPackage {
-          name = "gai";
-          src = ./.;
-
-          buildInputs = [
-            openssl
-          ];
-
-          nativeBuildInputs = [
-            pkg-config
-          ];
-
-          cargoHash = "sha256-7reFi36k8a707QmtcsBqlQ712TBSKjFWGnBU0NE8/uw=";
-        };
-
-        devShells.default = mkShell {
-          name = "gai";
-          packages = with pkgs; [
-            just
-            rust-bin.stable.latest.default
-            sussg.packages.${system}.default
-          ];
-
-          buildInputs = [
-            openssl
-            pkg-config
-          ];
-        };
-      }
-    );
+    };
 }
