@@ -6,9 +6,17 @@
 
     flake-parts.url = "github:hercules-ci/flake-parts";
 
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
 
-    sussg.url = "github:nuttycream/sussg";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    sussg = {
+      url = "github:nuttycream/sussg";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -23,40 +31,36 @@
 
       perSystem =
         { pkgs, system, ... }:
-        {
-          _module.args = {
-            pkgs = import nixpkgs {
-              inherit system;
-              overlays = [
-                (import inputs.rust-overlay)
-              ];
-            };
+        let
+          rustToolchain = inputs.fenix.packages.${system}.stable.toolchain;
+
+          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+          versionInfo = craneLib.crateNameFromCargoToml { cargoToml = ./Cargo.toml; };
+          src = craneLib.cleanCargoSource ./.;
+
+          commonArgs = {
+            inherit (versionInfo) pname version;
+            inherit src;
+            buildInputs = [
+              pkgs.openssl
+              pkgs.pkg-config
+            ];
           };
 
+          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+        in
+        {
           packages =
             let
-              gai =
-                let
-                  inherit (pkgs)
-                    rustPlatform
-                    openssl
-                    pkg-config
-                    ;
-                in
-                rustPlatform.buildRustPackage {
-                  name = "gai";
-                  src = ./.;
+              gai = craneLib.buildPackage (
+                commonArgs
+                // {
+                  inherit cargoArtifacts src;
+                }
+              );
 
-                  buildInputs = [
-                    openssl
-                  ];
-
-                  nativeBuildInputs = [
-                    pkg-config
-                  ];
-
-                  cargoHash = "sha256-7reFi36k8a707QmtcsBqlQ712TBSKjFWGnBU0NE8/uw=";
-                };
             in
             {
               inherit gai;
@@ -68,7 +72,6 @@
               inherit (pkgs)
                 mkShell
                 just
-                rust-bin
                 openssl
                 pkg-config
                 ;
@@ -78,7 +81,7 @@
               name = "gai-shell";
               packages = [
                 just
-                rust-bin.stable.latest.default
+                rustToolchain
                 sussg
               ];
 
