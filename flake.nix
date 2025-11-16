@@ -8,49 +8,52 @@
     sussg.url = "github:nuttycream/sussg";
   };
 
-  outputs = {
-    sussg,
-    nixpkgs,
-    rust-overlay,
-    flake-utils,
-    ...
-  }:
+  outputs =
+    {
+      sussg,
+      nixpkgs,
+      rust-overlay,
+      flake-utils,
+      ...
+    }:
     flake-utils.lib.eachDefaultSystem (
-      system: let
-        overlays = [(import rust-overlay)];
+      system:
+      let
+        overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs {
           inherit system overlays;
         };
       in
-        with pkgs; {
-          packages.default = pkgs.rustPlatform.buildRustPackage {
-            name = "gai";
-            src = ./.;
+      with pkgs;
+      {
+        packages.default = pkgs.rustPlatform.buildRustPackage {
+          name = "gai";
+          src = ./.;
 
-            buildInputs = [
-              openssl
-            ];
+          buildInputs = [
+            openssl
+          ];
 
-            nativeBuildInputs = [
-              pkg-config
-            ];
+          nativeBuildInputs = [
+            pkg-config
+          ];
 
-            cargoHash = "sha256-7reFi36k8a707QmtcsBqlQ712TBSKjFWGnBU0NE8/uw=";
-          };
+          cargoHash = "sha256-7reFi36k8a707QmtcsBqlQ712TBSKjFWGnBU0NE8/uw=";
+        };
 
-          devShells.default = mkShell {
-            name = "gai";
-            packages = with pkgs; [
-              just
-              rust-bin.stable.latest.default
-              sussg.packages.${system}.default
-            ];
+        devShells.default = mkShell {
+          name = "gai";
+          packages = with pkgs; [
+            just
+            rust-bin.stable.latest.default
+            sussg.packages.${system}.default
+          ];
 
-            buildInputs = [
-              openssl
-              pkg-config
-            ];
-          };
-        }
+          buildInputs = [
+            openssl
+            pkg-config
+          ];
+        };
+      }
     );
 }
