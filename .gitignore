@@ -1,4 +1,10 @@
+# Nix-related files
+/result*
+/.direnv/
+
+# Rust/Cargo artifacts
 /target
 .env
-/result
+
+# Documentation artifacts
 /docs/public

@@ -2,55 +2,94 @@
   description = "gai";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    flake-utils.url = "github:numtide/flake-utils";
-    sussg.url = "github:nuttycream/sussg";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    flake-parts.url = "github:hercules-ci/flake-parts";
+
+    crane.url = "github:ipetkov/crane";
+
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    sussg = {
+      url = "github:nuttycream/sussg";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = {
-    sussg,
-    nixpkgs,
-    rust-overlay,
-    flake-utils,
-    ...
-  }:
-    flake-utils.lib.eachDefaultSystem (
-      system: let
-        overlays = [(import rust-overlay)];
-        pkgs = import nixpkgs {
-          inherit system overlays;
+  outputs =
+    {
+      nixpkgs,
+      flake-parts,
+      ...
+    }@inputs:
+
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = nixpkgs.lib.systems.flakeExposed;
+
+      perSystem =
+        { pkgs, system, ... }:
+        let
+          rustToolchain = inputs.fenix.packages.${system}.stable.toolchain;
+
+          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+          versionInfo = craneLib.crateNameFromCargoToml { cargoToml = ./Cargo.toml; };
+          src = craneLib.cleanCargoSource ./.;
+
+          commonArgs = {
+            inherit (versionInfo) pname version;
+            inherit src;
+            buildInputs = [
+              pkgs.openssl
+              pkgs.pkg-config
+            ];
+          };
+
+          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+        in
+        {
+          packages =
+            let
+              gai = craneLib.buildPackage (
+                commonArgs
+                // {
+                  inherit cargoArtifacts src;
+                }
+              );
+
+            in
+            {
+              inherit gai;
+              default = gai;
+            };
+
+          devShells.default =
+            let
+              inherit (pkgs)
+                mkShell
+                just
+                openssl
+                pkg-config
+                ;
+              sussg = (inputs.sussg.packages.${system}.default);
+            in
+            mkShell {
+              name = "gai-shell";
+              packages = [
+                just
+                rustToolchain
+                sussg
+              ];
+
+              nativeBuildInputs = [
+                openssl
+                pkg-config
+              ];
+            };
         };
-      in
-        with pkgs; {
-          packages.default = pkgs.rustPlatform.buildRustPackage {
-            name = "gai";
-            src = ./.;
-
-            buildInputs = [
-              openssl
-            ];
-
-            nativeBuildInputs = [
-              pkg-config
-            ];
-
-            cargoHash = "sha256-7reFi36k8a707QmtcsBqlQ712TBSKjFWGnBU0NE8/uw=";
-          };
-
-          devShells.default = mkShell {
-            name = "gai";
-            packages = with pkgs; [
-              just
-              rust-bin.stable.latest.default
-              sussg.packages.${system}.default
-            ];
-
-            buildInputs = [
-              openssl
-              pkg-config
-            ];
-          };
-        }
-    );
+    };
 }
