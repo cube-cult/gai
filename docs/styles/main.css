@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital@0;1&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=IBM+Plex+Serif:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap");
 
 /*
 * https://coolors.co/22223b-4a4e69-9a8c98-c9ada7-f2e9e4-f8f4f1
@@ -13,7 +13,7 @@
 }
 
 * {
-  font-family: "IBM Plex Mono";
+  font-family: "IBM Plex Sans";
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -75,6 +75,23 @@ a:hover {
 .hero h1 {
   font-size: 3rem;
   font-weight: 700;
+}
+
+.hero .ai-lul {
+  font-size: 4rem;
+  background-image: -webkit-linear-gradient(92deg, #f35626, #feab3a);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: hue 10s infinite linear;
+}
+
+@keyframes hue {
+  from {
+    -webkit-filter: hue-rotate(0deg);
+  }
+  to {
+    -webkit-filter: hue-rotate(-360deg);
+  }
 }
 
 .hero .logo-text a {
@@ -206,11 +223,11 @@ a:hover {
   display: block;
   border-radius: 20px;
   transition: transform 0.2s ease;
-  transform-origin: left center;
+  /* transform-origin: left center; */
 }
 
 .gif:hover img {
-  transform: scale(1.05);
+  /* transform: scale(1.05);*/
 }
 
 .cli-overlay {
@@ -219,7 +236,7 @@ a:hover {
   right: 0;
   background: rgba(74, 78, 105, 0.8);
   backdrop-filter: blur(10px);
-  padding: 1.5rem;
+  padding: 1.25rem;
   padding-top: 1rem;
   border-radius: 20px 0 20px 0;
   max-width: 500px;
@@ -294,19 +311,21 @@ a:hover {
   }
 
   .gif {
-    border-radius: 12px;
+    border-radius: 0px;
   }
 
   .gif img {
-    border-radius: 12px;
-    transform: scale(1.25);
+    border-radius: 0;
+    transform: scale(1.5);
+    transform-origin: top left;
+    overflow: hidden;
   }
 
   .cli-overlay {
     position: static;
     max-width: 100%;
     border-radius: 0 0 12px 12px;
-    padding: 1.25rem;
+    padding: 0.5rem;
   }
 
   .cli-overlay h3 {

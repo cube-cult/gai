@@ -2,23 +2,53 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<!-- Primary Meta Tags -->
 		<title>{{ title }}</title>
+		<meta name="title" content="gai - AI Powered Version Control">
+		<meta name="description" content="Automate your Git workflow using the intelligence of Large Language Models">
+
+		<!-- Open Graph / Facebook -->
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://gai.fyi/">
+		<meta property="og:title" content="gai - AI Powered Version Control">
+		<meta property="og:description" content="Automate your Git workflow using the intelligence of Large Language Models">
+		<meta property="og:image" content="{{ site_url }}gai_logo_squared.png">
+
+		<!-- X (Twitter) -->
+		<meta property="twitter:card" content="summary_large_image">
+		<meta property="twitter:url" content="https://gai.fyi/">
+		<meta property="twitter:title" content="gai - AI Powered Version Control">
+		<meta property="twitter:description" content="Automate your Git workflow using the intelligence of Large Language Models">
+		<meta property="twitter:image" content="{{ site_url }}gai_logo_squared.png">
+
+		<!-- Meta Tags Generated with https://metatags.io -->
+
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 	</head>
 	<body>
 		<a href="https://github.com/cube-cult/gai" class="homepage-header">
 			<i class="fab fa-github"></i>
-			<h3>v0.0.1</h3>
+			<h3 id="version">v0.0.1</h3>
 		</a>
 		<section class="hero">
 			<img src="{{ site_url }}gai_logo_light.svg" alt="logo">
 			<div class="logo-text">
-				<h1>AI</h1>
-				<h1>Powered</h1>
-				<h1>Version</h1>
-				<h1>Control</h1>
+				<h1 class="ai-lul">AI Powered</h1>
+				<h1>Version Control</h1>
 			</div>
 		</section>
+
+		<script>
+			fetch('https://api.github.com/repos/cube-cult/gai/releases/latest')
+			.then(response => response.json())
+			.then(data => {
+				document.getElementById('version').textContent = data.tag_name;
+				})
+				.catch(error => {
+					document.getElementById('version').textContent = 'v0.1.0';
+					console.error(error);
+					});
+		</script>
 
 		<div class="is-da-best">
 			Automate your Git workflow using the intelligence of Large Language Models
@@ -38,21 +68,7 @@
 						<h3>as a CLI</h3>
 						<p>Use as a
 							drop-in replacement for common git actions,
-							using just the CLI, and similar git commands:</p>
-						<ul>
-							<li><strong>Commit</strong></li>
-							<li><strong>Rebase</strong>
-							(In-Development)</li>
-							<li><strong>Find</strong>
-							(In-Development)</li>
-							<li><strong>Bisect</strong>
-							(In-Development)</li>
-						</ul>
-						<p>
-							Override config with flags and/or use
-							<code>--hint</code>
-							to steer AI responses.
-						</p>
+							using just the CLI</p>
 						<p>
 							Visit <a href="/usage">Usage</a>
 							to
@@ -62,6 +78,29 @@
 				</div>
 			</div>
 		</section>
+
+		<script>
+			const gifContainer = document.querySelector('.gif');
+			const giffy = document.querySelector('.gif img');
+			
+			if (gifContainer && giffy) {
+				gifContainer.addEventListener('mousemove', (e) => {
+					const rect = gifContainer.getBoundingClientRect();
+					const x = e.clientX - rect.left;
+					const y = e.clientY - rect.top;
+					
+					const xPer = (x / rect.width) * 100;
+					const yPer = (y / rect.height) * 100;
+					
+					giffy.style.transformOrigin = `${xPer}% ${yPer}%`;
+					giffy.style.transform = 'scale(1.25)';
+					});
+					
+					gifContainer.addEventListener('mouseleave', () => {
+						giffy.style.transform = 'scale(1)';
+						});
+					}
+		</script>
 	</body>
 	<footer>
 		{% include "footer" %}
