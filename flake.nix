@@ -30,7 +30,12 @@
       systems = nixpkgs.lib.systems.flakeExposed;
 
       perSystem =
-        { pkgs, system, ... }:
+        {
+          pkgs,
+          system,
+          lib,
+          ...
+        }:
         let
           rustToolchain = inputs.fenix.packages.${system}.stable.toolchain;
 
@@ -83,12 +88,19 @@
                 just
                 rustToolchain
                 sussg
-              ];
-
-              nativeBuildInputs = [
-                openssl
                 pkg-config
               ];
+
+              buildInputs = [
+                openssl
+              ];
+
+              # This fixes issues with `cargo run` not being to find
+              # OpenSSL libraries at runtime in certain cases during
+              # development.
+              #
+              # Relevant thread: https://discourse.nixos.org/t/program-compiled-with-rust-cannot-find-libssl-so-3-at-runtime/27196
+              LD_LIBRARY_PATH = lib.makeLibraryPath [ openssl ];
             };
         };
     };
