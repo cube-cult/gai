@@ -77,6 +77,23 @@ a:hover {
   font-weight: 700;
 }
 
+.hero .ai-lul {
+  font-size: 4rem;
+  background-image: -webkit-linear-gradient(92deg, #f35626, #feab3a);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: hue 10s infinite linear;
+}
+
+@keyframes hue {
+  from {
+    -webkit-filter: hue-rotate(0deg);
+  }
+  to {
+    -webkit-filter: hue-rotate(-360deg);
+  }
+}
+
 .hero .logo-text a {
   margin-top: 1rem;
   display: inline-block;
@@ -206,11 +223,11 @@ a:hover {
   display: block;
   border-radius: 20px;
   transition: transform 0.2s ease;
-  transform-origin: left center;
+  /* transform-origin: left center; */
 }
 
 .gif:hover img {
-  transform: scale(1.05);
+  /* transform: scale(1.05);*/
 }
 
 .cli-overlay {

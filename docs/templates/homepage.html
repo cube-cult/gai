@@ -13,8 +13,7 @@
 		<section class="hero">
 			<img src="{{ site_url }}gai_logo_light.svg" alt="logo">
 			<div class="logo-text">
-				<h1>AI</h1>
-				<h1>Powered</h1>
+				<h1 class="ai-lul">AI Powered</h1>
 				<h1>Version</h1>
 				<h1>Control</h1>
 			</div>
@@ -74,6 +73,29 @@
 				</div>
 			</div>
 		</section>
+
+		<script>
+			const gifContainer = document.querySelector('.gif');
+			const giffy = document.querySelector('.gif img');
+			
+			if (gifContainer && giffy) {
+				gifContainer.addEventListener('mousemove', (e) => {
+					const rect = gifContainer.getBoundingClientRect();
+					const x = e.clientX - rect.left;
+					const y = e.clientY - rect.top;
+					
+					const xPer = (x / rect.width) * 100;
+					const yPer = (y / rect.height) * 100;
+					
+					giffy.style.transformOrigin = `${xPer}% ${yPer}%`;
+					giffy.style.transform = 'scale(1.25)';
+					});
+					
+					gifContainer.addEventListener('mouseleave', () => {
+						giffy.style.transform = 'scale(1)';
+						});
+					}
+		</script>
 	</body>
 	<footer>
 		{% include "footer" %}
