@@ -109,8 +109,11 @@ impl App {
             .clone();
 
         // inexpensive clone?
-        let req = self.request.clone();
         self.is_loading = true;
+
+        let mut req = Request::default();
+        req.build_prompt(&self.cfg, &self.gai);
+        req.build_diffs_string(self.gai.get_file_diffs_as_str());
 
         tokio::spawn(async move {
             let resp =

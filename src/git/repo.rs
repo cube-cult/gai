@@ -6,6 +6,9 @@ use walkdir::WalkDir;
 pub struct GaiGit {
     /// Diffs
     pub files: Vec<GaiFile>,
+    /// ideally this can be configured as well for global
+    /// ignores that are not part of .gitignore.
+    pub ignored: Vec<String>,
 
     /// git2 based Repo
     pub repo: Repository,
@@ -82,6 +85,7 @@ impl GaiGit {
         Ok(GaiGit {
             repo,
             files: Vec::new(),
+            ignored: Vec::new(),
             status,
             only_staged,
             stage_hunks,
@@ -115,8 +119,13 @@ impl GaiGit {
             if let Ok(rel_path) = e.path().strip_prefix(repo_root)
                 && !self.repo.status_should_ignore(rel_path).unwrap()
             {
-                repo_tree
-                    .push_str(&format!("{}\n", rel_path.display()));
+                let path = rel_path.display().to_string();
+
+                if self.ignored.contains(&path) {
+                    continue;
+                }
+
+                repo_tree.push_str(&format!("{}\n", path));
             }
         }
 
@@ -127,36 +136,57 @@ impl GaiGit {
         let mut staged = String::new();
         let mut unstaged = String::new();
 
+        // oh lord of repetition grant me the power of the LLM!!
         for path in &self.status.s_new {
-            staged.push_str(&format!("A  {}\n", path));
+            if !self.ignored.contains(path) {
+                staged.push_str(&format!("A  {}\n", path));
+            }
         }
 
         for path in &self.status.s_modified {
-            staged.push_str(&format!("M  {}\n", path));
+            if !self.ignored.contains(path) {
+                staged.push_str(&format!("M  {}\n", path));
+            }
         }
 
         for path in &self.status.s_deleted {
-            staged.push_str(&format!("D  {}\n", path));
+            if !self.ignored.contains(path) {
+                staged.push_str(&format!("D  {}\n", path));
+            }
         }
 
         for (old, new) in &self.status.s_renamed {
-            staged.push_str(&format!("R  {} -> {}\n", old, new));
+            if !self.ignored.contains(old)
+                && !self.ignored.contains(new)
+            {
+                staged.push_str(&format!("R  {} -> {}\n", old, new));
+            }
         }
 
         for path in &self.status.u_new {
-            unstaged.push_str(&format!("? {}\n", path));
+            if !self.ignored.contains(path) {
+                unstaged.push_str(&format!("? {}\n", path));
+            }
         }
 
         for path in &self.status.u_modified {
-            unstaged.push_str(&format!("M {}\n", path));
+            if !self.ignored.contains(path) {
+                unstaged.push_str(&format!("M {}\n", path));
+            }
         }
 
         for path in &self.status.u_deleted {
-            unstaged.push_str(&format!("D {}\n", path));
+            if !self.ignored.contains(path) {
+                unstaged.push_str(&format!("D {}\n", path));
+            }
         }
 
         for (old, new) in &self.status.u_renamed {
-            unstaged.push_str(&format!("R {} -> {}\n", old, new));
+            if !self.ignored.contains(old)
+                && !self.ignored.contains(new)
+            {
+                unstaged.push_str(&format!("R {} -> {}\n", old, new));
+            }
         }
 
         let mut status_str = String::new();
