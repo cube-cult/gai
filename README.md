@@ -1,10 +1,6 @@
-<div align="center"> 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/cube-cult/gai/blob/main/docs/static/gai_logo_light.svg">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/cube-cult/gai/blob/main/docs/static/gai_logo_dark.svg">
-  <img align="center" alt="logo" src="https://github.com/cube-cult/gai/blob/main/docs/static/gai_logo_light.svg">
-</picture>
-</div>
+<p align="center">
+  <img src="https://github.com/cube-cult/gai/blob/main/docs/static/gai_logo.svg" alt="logo"/>
+</p>
 
 # 
 
