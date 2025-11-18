@@ -47,14 +47,20 @@
           commonArgs = {
             inherit (versionInfo) pname version;
             inherit src;
-            buildInputs = [
-              pkgs.openssl
+
+            nativeBuildInputs = [
               pkgs.pkg-config
+              pkgs.libclang.lib
+            ];
+
+            buildInputs = [
+              pkgs.openssl.dev
             ];
           };
 
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
+          inherit (pkgs.stdenv) isLinux;
         in
         {
           packages =
@@ -63,9 +69,13 @@
                 commonArgs
                 // {
                   inherit cargoArtifacts src;
+                  nativeBuildInputs =
+                    commonArgs.nativeBuildInputs
+                    ++ lib.optional isLinux [
+                      pkgs.autoPatchelfHook
+                    ];
                 }
               );
-
             in
             {
               inherit gai;
