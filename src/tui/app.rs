@@ -292,6 +292,27 @@ impl App {
                 )),
             SelectedTab::Commits => {
                 if let Some(resp) = &self.response {
+                    // man this is a temp fix ok?
+                    // this whole gosh darn thing needs to
+                    // be on the choppin block
+                    let model = self
+                        .cfg
+                        .ai
+                        .providers
+                        .get(&self.cfg.ai.provider)
+                        .expect(
+                            "somehow failed to find provider config",
+                        )
+                        .model
+                        .to_owned();
+
+                    if self.is_loading {
+                        return TabContent::Description(format!(
+                            "Awaiting response from {} using {}",
+                            self.cfg.ai.provider, model
+                        ));
+                    }
+
                     let res = match &resp.result {
                         Ok(r) => r,
                         Err(e) => {
