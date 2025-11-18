@@ -6,7 +6,7 @@ use ratatui::{
     style::{Modifier, Style, Stylize, palette::tailwind},
     text::Line,
     widgets::{
-        Block, Borders, List, ListItem, ListState, Padding,
+        Block, Borders, Clear, List, ListItem, ListState, Padding,
         Paragraph, StatefulWidget, Widget, Wrap,
     },
 };
@@ -255,6 +255,7 @@ impl SelectedTab {
         scroll: u16,
         mode: &UIMode,
     ) {
+        Clear.render(area, buf);
         let border_style = if matches!(mode, UIMode::Content) {
             self.palette().c400
         } else {
@@ -447,6 +448,7 @@ impl SelectedTab {
         message: &str,
         throbber_state: &mut ThrobberState,
     ) {
+        Clear.render(area, buf);
         let block = Block::bordered()
             .title("Loading...")
             .borders(Borders::ALL)
