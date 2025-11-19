@@ -112,20 +112,18 @@ impl Provider {
 
                 let schema_value = serde_json::to_value(&schema)?;
 
-                let content_text = format!("{}\n\n{}", prompt, diffs);
+                #[derive(Serialize, Debug)]
+                struct FromUser {
+                    schema: serde_json::Value,
+                    prompt: String,
+                    diffs: String,
+                }
 
-                let request_body = serde_json::json!({
-                    "contents": [{
-                        "parts": [{
-                            "text": content_text
-                        }]
-                    }],
-                    "generationConfig": {
-                        "responseMimeType": "application/json",
-                        "responseSchema": schema_value,
-                        "maxOutputTokens": max_tokens
-                    }
-                });
+                let request_body = FromUser {
+                    schema: schema_value,
+                    prompt: prompt.to_string(),
+                    diffs: diffs.to_string(),
+                };
 
                 let auth_token = get_token()?;
 
