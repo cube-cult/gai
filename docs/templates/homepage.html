@@ -62,13 +62,14 @@
 
 		<section id="features" class="features">
 			<div class="feature-card">
-				<div class="gif">
+				<div class="demo">
 					<link rel="stylesheet" type="text/css" href="/asciinema-player.css">
-					<div id="demo" class="demo"></div>
+					<div id="demo"></div>
 					<script src="/asciinema-player.min.js"></script>
 					<script>
 						AsciinemaPlayer.create('/demo.cast', document.getElementById('demo'), {
 							speed: 1.5,
+							preload: true,
 							autoPlay: true,
 							loop: true,
 							fit: false,

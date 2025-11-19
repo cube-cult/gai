@@ -226,28 +226,17 @@ a:hover {
 .features {
   margin: auto;
   max-width: 1200px;
-  padding: 2rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
   animation: fadeInUp 0.5s ease-out;
 }
 
-.feature-card {
-  padding: 5px;
-  size: 100%;
-}
-
-.gif {
+.demo {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
-}
-
-.gif img {
-  width: 100%;
-  display: block;
-  border-radius: 20px;
 }
 
 .cli-overlay {
@@ -273,16 +262,8 @@ a:hover {
     font-size: 0.9rem;
   }
 
-  ul {
-    margin: 0.5rem 0 0.5rem 1.5rem;
-    font-size: 0.9rem;
-  }
-
-  code {
+  a {
     color: var(--text-tertiary);
-    background: rgba(0, 0, 0, 0.2);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
   }
 }
 
@@ -330,7 +311,7 @@ a:hover {
     padding: 0;
   }
 
-  .gif {
+  .demo {
     border-radius: 10px;
   }
 
@@ -345,10 +326,5 @@ a:hover {
 
   .cli-overlay h3 {
     font-size: 1.25rem;
-  }
-
-  .cli-overlay p,
-  .cli-overlay ul {
-    font-size: 0.85rem;
   }
 }
