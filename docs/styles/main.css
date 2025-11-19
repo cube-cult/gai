@@ -1,4 +1,30 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital@0;1&family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=IBM+Plex+Serif:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap");
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/BlexMonoNerdFont-Bold.ttf") format("truetype");
+  font-stretch: normal;
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/BlexMonoNerdFont-Regular.ttf") format("truetype");
+  font-stretch: normal;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Bold.ttf") format("truetype");
+  font-stretch: normal;
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans.ttf") format("truetype");
+  font-stretch: normal;
+}
 
 /*
 * https://coolors.co/22223b-4a4e69-9a8c98-c9ada7-f2e9e4-f8f4f1
@@ -13,13 +39,13 @@
 }
 
 * {
-  font-family: "IBM Plex Sans";
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
 body {
+  font-family: "IBM Plex Sans";
   background-color: var(--bg-primary);
   background-attachment: fixed;
   color: var(--text-primary);
@@ -222,24 +248,18 @@ a:hover {
   width: 100%;
   display: block;
   border-radius: 20px;
-  transition: transform 0.2s ease;
-  /* transform-origin: left center; */
-}
-
-.gif:hover img {
-  /* transform: scale(1.05);*/
 }
 
 .cli-overlay {
   position: absolute;
-  bottom: 0;
+  top: 0;
   right: 0;
-  background: rgba(74, 78, 105, 0.8);
+  background: rgba(74, 78, 105, 0.5);
   backdrop-filter: blur(10px);
-  padding: 1.25rem;
+  padding: 1rem;
   padding-top: 1rem;
-  border-radius: 20px 0 20px 0;
-  max-width: 500px;
+  border-radius: 0 20px 0 20px;
+  max-width: 350px;
   color: var(--text-primary);
 
   h3 {
@@ -311,21 +331,16 @@ a:hover {
   }
 
   .gif {
-    border-radius: 0px;
-  }
-
-  .gif img {
-    border-radius: 0;
-    transform: scale(1.5);
-    transform-origin: top left;
-    overflow: hidden;
+    border-radius: 10px;
   }
 
   .cli-overlay {
-    position: static;
+    position: absolute;
+    top: auto;
+    bottom: 0;
     max-width: 100%;
     border-radius: 0 0 12px 12px;
-    padding: 0.5rem;
+    padding: 1rem;
   }
 
   .cli-overlay h3 {

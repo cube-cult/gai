@@ -63,7 +63,19 @@
 		<section id="features" class="features">
 			<div class="feature-card">
 				<div class="gif">
-					<img src="{{ site_url }}cli.gif" alt="cli-demo">
+					<link rel="stylesheet" type="text/css" href="/asciinema-player.css">
+					<div id="demo" class="demo"></div>
+					<script src="/asciinema-player.min.js"></script>
+					<script>
+						AsciinemaPlayer.create('/demo.cast', document.getElementById('demo'), {
+							speed: 1.5,
+							autoPlay: true,
+							loop: true,
+							fit: false,
+							terminalFontSize: "small",
+							terminalFontFamily: "'IBM Plex Mono', monospace",
+							});
+					</script>
 					<div class="cli-overlay">
 						<h3>as a CLI</h3>
 						<p>Use as a
@@ -78,29 +90,6 @@
 				</div>
 			</div>
 		</section>
-
-		<script>
-			const gifContainer = document.querySelector('.gif');
-			const giffy = document.querySelector('.gif img');
-			
-			if (gifContainer && giffy) {
-				gifContainer.addEventListener('mousemove', (e) => {
-					const rect = gifContainer.getBoundingClientRect();
-					const x = e.clientX - rect.left;
-					const y = e.clientY - rect.top;
-					
-					const xPer = (x / rect.width) * 100;
-					const yPer = (y / rect.height) * 100;
-					
-					giffy.style.transformOrigin = `${xPer}% ${yPer}%`;
-					giffy.style.transform = 'scale(1.25)';
-					});
-					
-					gifContainer.addEventListener('mouseleave', () => {
-						giffy.style.transform = 'scale(1)';
-						});
-					}
-		</script>
 	</body>
 	<footer>
 		{% include "footer" %}
