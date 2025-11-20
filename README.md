@@ -1,13 +1,16 @@
 <p align="center">
   <img src="https://github.com/cube-cult/gai/blob/main/docs/static/gai_logo.svg" alt="logo"/>
+  <hr>
 </p>
-
-# 
 
 gai, is a git + AI powered TUI that uses the intelligence of LLM's to simplify
 the process of creating entire commits. From staging files or chunks of code, to
 creating a verbose and well defined commit message. It simplifies the process of
 version control with the added benefit of a clean commit history.
+
+<p align="center">
+  <img src="https://github.com/cube-cult/gai/blob/main/docs/static/demo.gif" width=40% alt="gif"/>
+</p>
 
 ## Planned features
 
