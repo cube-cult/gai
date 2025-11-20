@@ -48,6 +48,11 @@ async fn main() -> Result<()> {
 
             gai.create_diffs(&cfg.ai.files_to_truncate)?;
 
+            if gai.files.is_empty() {
+                pretty_print_status(&gai, args.compact)?;
+                return Ok(());
+            }
+
             if args.interactive {
                 let req = build_request(&cfg, &gai, &spinner);
                 run_tui(req, cfg, gai, None).await?;
