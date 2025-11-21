@@ -1,4 +1,4 @@
-name: Cargo clippy/fmt/test
+name: Cargo CI
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
         run: |
           echo "matrix=$(grep -v '//' $MATRIX_FILE | jq -c '.')" >> "$GITHUB_OUTPUT"
 
-  build-and-test:
+  ci:
     needs: make_matrix
     runs-on: ${{ matrix.os }}
     strategy:
