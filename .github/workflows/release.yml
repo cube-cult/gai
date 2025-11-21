@@ -1,4 +1,4 @@
-name: Build and Release gai
+name: Release gai
 on:
   workflow_dispatch:
   push:
@@ -12,25 +12,30 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  make_matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    env:
+      MATRIX_FILE: matrix.jsonc
 
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Cache deps
-        uses: actions/cache@v4
+      - name: Clone repo
+        uses: actions/checkout@v5
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          fetch-depth: 1
 
-      - name: Build binaries 
-        run: cargo build --release
+      - id: set-matrix
+        run: |
+          echo "matrix=$(grep -v '//' $MATRIX_FILE | jq -c '.')" >> "$GITHUB_OUTPUT"
 
+  create_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
       - name: Create release
+        if: ${{ !env.ACT }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref_name }}
@@ -39,4 +44,32 @@ jobs:
             --repo="$GITHUB_REPOSITORY" \
             --title="${tag#v}" \
             --generate-notes \
-            target/release/gai
+
+  upload_assets:
+    needs: [make_matrix, create_release]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix: ${{ fromJson(needs.make_matrix.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: ${{ matrix.target }}
+          runner: none
+        if: startsWith(matrix.os, 'ubuntu')
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: gai
+          target: ${{ matrix.target }}
+          archive: $bin-${{ github.ref_name }}-$target
+          include: LICENSE,README.md
+          token: ${{ secrets.GITHUB_TOKEN }}
