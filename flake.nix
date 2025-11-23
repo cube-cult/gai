@@ -12,11 +12,6 @@
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    sussg = {
-      url = "github:nuttycream/sussg";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
@@ -90,14 +85,12 @@
                 openssl
                 pkg-config
                 ;
-              sussg = (inputs.sussg.packages.${system}.default);
             in
             mkShell {
               name = "gai-shell";
               packages = [
                 just
                 rustToolchain
-                sussg
                 pkg-config
               ];
 
