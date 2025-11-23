@@ -1,9 +1,0 @@
-[general]
-url = "https://gai.fyi/"
-output_dir = "public"
-
-[style]
-main = ["main"]
-
-[template]
-base = "base"
