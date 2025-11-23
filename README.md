@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/cube-cult/gai/blob/main/docs/static/gai_logo.svg" alt="logo"/>
+  <img src="https://github.com/cube-cult/gai-site/blob/main/static/gai_logo.svg" alt="logo"/>
   <hr>
 </p>
 
@@ -9,7 +9,7 @@ creating a verbose and well defined commit message. It simplifies the process of
 version control with the added benefit of a clean commit history.
 
 <p align="center">
-  <img src="https://github.com/cube-cult/gai/blob/main/docs/static/demo.gif" width=40% alt="gif"/>
+  <img src="https://github.com/cube-cult/gai-site/blob/main/static/demo.gif" width=60% alt="gif"/>
 </p>
 
 ## Planned features
