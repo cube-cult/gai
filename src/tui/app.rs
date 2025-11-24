@@ -16,7 +16,6 @@ use crate::{
 
 pub struct App {
     pub running: bool,
-    pub state: State,
     pub cfg: Config,
     pub gai: GaiGit,
     pub ui: UI,
@@ -27,8 +26,12 @@ pub struct App {
     pub applied_commits: bool,
 }
 
-pub enum State {
-    Running,
+#[derive(Debug)]
+pub enum TUIMode {
+    // Only show diffs
+    None,
+    Commit,
+    All,
 }
 
 /// various ui actions
@@ -66,7 +69,6 @@ impl App {
     ) -> Self {
         Self {
             running: true,
-            state: State::Running,
             cfg,
             gai,
             ui: UI::new(),
