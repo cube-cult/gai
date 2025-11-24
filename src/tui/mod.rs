@@ -5,15 +5,37 @@ use crate::{
     tui::app::{Action, App},
 };
 use anyhow::Result;
+use ratatui::{
+    layout::{Constraint, Flex, Rect},
+    prelude::Layout,
+    style::Style,
+    widgets::ListState,
+};
+use throbber_widgets_tui::{Set, ThrobberState, WhichUse};
 use tokio::sync::mpsc;
 
 pub mod app;
+pub mod commit;
 pub mod events;
 pub mod keys;
 pub mod tabs;
 pub mod ui;
 
 use events::{Event, EventHandler};
+
+pub struct TUIState {
+    pub selected: usize,
+    pub selected_state: ListState,
+
+    pub primary_text_style: Style,
+    pub secondary_text_style: Style,
+    pub highlight_text_style: Style,
+
+    pub throbber_state: ThrobberState,
+    pub throbber_set: Set,
+    pub throbber_type: WhichUse,
+    pub throbber_style: Style,
+}
 
 pub async fn run_tui(
     req: Request,
@@ -113,4 +135,17 @@ async fn handle_action(
 
         _ => {}
     }
+}
+
+pub fn center(
+    area: Rect,
+    horizontal: Constraint,
+    vertical: Constraint,
+) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(Flex::Center)
+        .areas(area);
+    let [area] =
+        Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+    area
 }
