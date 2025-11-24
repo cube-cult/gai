@@ -9,6 +9,7 @@ use crate::{
     config::Config,
     git::{commit::GaiCommit, repo::GaiGit},
     tui::{
+        TUIMode,
         tabs::{SelectedTab, TabContent, TabList},
         ui::UI,
     },
@@ -20,18 +21,11 @@ pub struct App {
     pub gai: GaiGit,
     pub ui: UI,
 
+    pub tui_mode: TUIMode,
     pub request: Request,
     pub response: Option<Response>,
     pub is_loading: bool,
     pub applied_commits: bool,
-}
-
-#[derive(Debug)]
-pub enum TUIMode {
-    // Only show diffs
-    None,
-    Commit,
-    All,
 }
 
 /// various ui actions
@@ -65,6 +59,7 @@ impl App {
         request: Request,
         cfg: Config,
         gai: GaiGit,
+        tui_mode: TUIMode,
         response: Option<Response>,
     ) -> Self {
         Self {
@@ -72,6 +67,7 @@ impl App {
             cfg,
             gai,
             ui: UI::new(),
+            tui_mode,
             request,
             response,
             is_loading: false,
@@ -124,7 +120,7 @@ impl App {
         });
     }
 
-    pub fn display_response(&mut self, resp: Response) {
+    pub fn response_received(&mut self, resp: Response) {
         self.response = Some(resp);
         self.is_loading = false;
     }

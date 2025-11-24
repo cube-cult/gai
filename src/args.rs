@@ -54,6 +54,9 @@ pub enum Commands {
         verbose: bool,
     },
 
+    /// Launch the Text-based/Terminal User Interface
+    TUI {},
+
     /// Create commits from the diffs in the working tree
     Commit {
         /// Skips the confirmation prompt and applies

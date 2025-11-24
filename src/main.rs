@@ -62,6 +62,7 @@ async fn main() -> Result<()> {
             pretty_print_status(&gai, args.compact)?;
 
             match args.command {
+                Commands::TUI { .. } => {}
                 Commands::Commit {
                     skip_confirmation,
                     config,
