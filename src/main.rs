@@ -11,7 +11,6 @@ pub mod tui;
 use anyhow::Result;
 use clap::Parser;
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
-use dotenv::dotenv;
 
 use crate::{
     ai::{request::Request, response::get_response},
@@ -23,9 +22,7 @@ use crate::{
     tui::run_tui,
 };
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    dotenv().ok();
+fn main() -> Result<()> {
     let mut cfg = config::Config::init()?;
 
     let args = Args::parse();
@@ -35,7 +32,7 @@ async fn main() -> Result<()> {
 
     match args.command {
         Commands::Auth { ref auth } => {
-            run_auth(auth, &spinner).await?;
+            run_auth(auth, &spinner)?;
         }
 
         _ => {
@@ -55,7 +52,7 @@ async fn main() -> Result<()> {
 
             if args.interactive {
                 let req = build_request(&cfg, &gai, &spinner);
-                run_tui(req, cfg, gai, None).await?;
+                run_tui(req, cfg, gai, None)?;
                 return Ok(());
             }
 
@@ -82,8 +79,7 @@ async fn main() -> Result<()> {
                         gai,
                         skip_confirmation,
                         args.compact,
-                    )
-                    .await?
+                    )?;
                 }
                 Commands::Status { verbose } => {
                     if verbose {
@@ -112,17 +108,17 @@ fn build_request(
     req
 }
 
-async fn run_auth(auth: &Auth, spinner: &SpinDeez) -> Result<()> {
+fn run_auth(auth: &Auth, spinner: &SpinDeez) -> Result<()> {
     match auth {
         Auth::Login => auth_login()?,
-        Auth::Status => auth_status(spinner).await?,
+        Auth::Status => auth_status(spinner)?,
         Auth::Logout => clear_auth()?,
     }
 
     Ok(())
 }
 
-async fn run_commit(
+fn run_commit(
     spinner: &SpinDeez,
     req: Request,
     cfg: Config,
@@ -144,8 +140,7 @@ async fn run_commit(
         ));
 
         let response =
-            get_response(&req, provider, provider_cfg.to_owned())
-                .await;
+            get_response(&req, provider, provider_cfg.to_owned());
 
         let result = match response.result.clone() {
             Ok(r) => r,
@@ -221,7 +216,7 @@ async fn run_commit(
             println!("Applying Commits...");
             gai.apply_commits(&commits);
         } else if selection == 1 {
-            let _ = run_tui(req, cfg, gai, Some(response)).await;
+            let _ = run_tui(req, cfg, gai, Some(response));
         } else if selection == 2 {
             println!("Retrying...");
             continue;
