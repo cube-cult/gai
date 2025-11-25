@@ -98,7 +98,7 @@ impl ResponseCommit {
     }
 }
 
-pub async fn get_response(
+pub fn get_response(
     req: &Request,
     provider: Provider,
     provider_cfg: ProviderConfig,
@@ -110,7 +110,6 @@ pub async fn get_response(
             provider_cfg.max_tokens,
             &req.diffs,
         )
-        .await
         .map_err(|e| format!("{:#}", e));
 
     Response { result: res }

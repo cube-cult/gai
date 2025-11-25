@@ -1,21 +1,9 @@
 use anyhow::{Result, anyhow};
-use rig::{
-    client::{CompletionClient, ProviderClient},
-    providers::{
-        anthropic,
-        gemini::{
-            self,
-            completion::gemini_api_types::{
-                AdditionalParameters, GenerationConfig,
-            },
-        },
-        openai,
-    },
-};
 use schemars::generate::SchemaSettings;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 use strum::{Display, EnumIter, IntoEnumIterator};
+use ureq::Agent;
 
 use crate::{
     ai::response::ResponseSchema,
@@ -75,7 +63,7 @@ impl Provider {
         providers
     }
 
-    pub async fn extract(
+    pub fn extract(
         &self,
         prompt: &str,
         model: &str,
@@ -129,43 +117,24 @@ impl Provider {
 
                 let endpoint = "https://cli.gai.fyi/generate";
 
-                let client = reqwest::Client::new();
-                let response = client
+                // todo move this out for reuse
+                let config = Agent::config_builder()
+                    .timeout_global(Some(Duration::from_secs(5)))
+                    .build();
+
+                let agent: Agent = config.into();
+                let resp = agent
                     .post(endpoint)
                     .header(
                         "Authorization",
                         format!("Bearer {}", auth_token),
                     )
                     .header("Content-Type", "application/json")
-                    .json(&request_body)
-                    .send()
-                    .await
-                    .map_err(|e| {
-                        anyhow!("failed to send request: {}", e)
-                    })?;
+                    .send_json(&request_body)?
+                    .body_mut()
+                    .read_json::<serde_json::Value>()?;
 
-                if !response.status().is_success() {
-                    let status = response.status();
-                    let error_text =
-                        response.text().await.unwrap_or_else(|_| {
-                            "Unknown error".to_string()
-                        });
-                    return Err(anyhow!(
-                        "request failed with status {}: {}",
-                        status,
-                        error_text
-                    ));
-                }
-
-                let response_json: serde_json::Value =
-                    response.json().await.map_err(|e| {
-                        anyhow!(
-                            "Failed to parse response JSON: {}",
-                            e
-                        )
-                    })?;
-
-                let generated_text = response_json
+                let generated_text = resp
                     .get("candidates")
                     .and_then(|c| c.get(0))
                     .and_then(|c| c.get("content"))
@@ -192,46 +161,13 @@ impl Provider {
                 Ok(result)
             }
             Provider::OpenAI => {
-                let client = openai::Client::from_env();
-
-                let extractor = client
-                    .extractor::<ResponseSchema>(model)
-                    .max_tokens(max_tokens)
-                    .preamble(prompt)
-                    .build();
-
-                Ok(extractor.extract(diffs).await?)
+                todo!()
             }
             Provider::Gemini => {
-                let client = gemini::Client::from_env();
-                let gen_cfg = GenerationConfig {
-                    max_output_tokens: Some(max_tokens),
-                    ..Default::default()
-                };
-
-                let cfg = AdditionalParameters::default()
-                    .with_config(gen_cfg);
-
-                let extractor = client
-                    .extractor::<ResponseSchema>(model)
-                    .preamble(prompt)
-                    .additional_params(
-                        serde_json::to_value(cfg).unwrap(),
-                    )
-                    .build();
-
-                Ok(extractor.extract(diffs).await?)
+                todo!()
             }
             Provider::Claude => {
-                let client = anthropic::Client::from_env();
-
-                let extractor = client
-                    .extractor::<ResponseSchema>(model)
-                    .max_tokens(max_tokens)
-                    .preamble(prompt)
-                    .build();
-
-                Ok(extractor.extract(diffs).await?)
+                todo!()
             }
         }
     }

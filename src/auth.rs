@@ -17,16 +17,9 @@ pub fn auth_login() -> Result<()> {
     Ok(())
 }
 
-pub async fn auth_status(spinner: &SpinDeez) -> Result<()> {
+pub fn auth_status(spinner: &SpinDeez) -> Result<()> {
     spinner.start("Fetching User Status");
     let token = get_token()?;
-
-    let client = reqwest::Client::new();
-    let resp = client
-        .get("https://cli.gai.fyi/status")
-        .bearer_auth(token)
-        .send()
-        .await?;
 
     #[derive(serde::Deserialize, serde::Serialize, Debug)]
     struct Status {
@@ -34,20 +27,23 @@ pub async fn auth_status(spinner: &SpinDeez) -> Result<()> {
         expiration: u64,
     }
 
-    let status = resp.json::<Status>().await?;
+    let resp = ureq::get("https://cli.gai.fyi/status")
+        .header("Authorization", &format!("Bearer {}", token))
+        .call()?
+        .body_mut()
+        .read_json::<Status>()?;
 
     spinner.stop(None);
 
     if let Some(date) = chrono::DateTime::from_timestamp(
-        status.expiration.try_into()?,
+        resp.expiration.try_into()?,
         0,
     ) {
-        println!("Requests made: {}/10", status.requests_made);
+        println!("Requests made: {}/10", resp.requests_made);
         println!("Resets at {}", date);
     } else {
         println!("Failed to convert expiration to datetime");
     }
-
     Ok(())
 }
 
