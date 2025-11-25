@@ -12,7 +12,6 @@ use ratatui::{
     widgets::ListState,
 };
 use throbber_widgets_tui::{Set, ThrobberState, WhichUse};
-use tokio::sync::mpsc;
 
 pub mod app;
 pub mod commit;
@@ -76,7 +75,7 @@ impl Default for TUIState {
     }
 }
 
-pub async fn run_tui(
+pub fn run_tui(
     req: Request,
     cfg: Config,
     gai: GaiGit,
@@ -84,14 +83,10 @@ pub async fn run_tui(
 ) -> Result<()> {
     let mut app = App::new(req, cfg, gai, TUIMode::None, response);
 
-    let (resp_tx, mut resp_rx) = mpsc::channel(1);
-
     // todo remove this deprecated thingy
     // i doubt users are gonna use the tui
     // for auto requests
-    if app.cfg.tui.auto_request {
-        app.send_request(resp_tx.clone()).await;
-    }
+    if app.cfg.tui.auto_request {}
 
     let mut terminal = ratatui::init();
     let mut event_handler = EventHandler::new(81);
@@ -99,21 +94,8 @@ pub async fn run_tui(
 
     while app.running {
         terminal.draw(|f| app.run(f))?;
-
-        tokio::select! {
-            Some(event) = event_handler.next() => {
-                handle_event(&mut app, event, resp_tx.clone()).await;
-            }
-
-            // i think receiving a response should be an event
-            // that's handled by the handle_event
-            Some(resp) = resp_rx.recv() => {
-                app.response_received(resp);
-            }
-        }
     }
 
-    event_handler.stop().await?;
     ratatui::restore();
 
     if app.applied_commits {
@@ -123,17 +105,9 @@ pub async fn run_tui(
     Ok(())
 }
 
-async fn handle_event(
-    app: &mut App,
-    event: Event,
-    response_tx: mpsc::Sender<Response>,
-) {
+async fn handle_event(app: &mut App, event: Event) {
     match event {
-        Event::Key(key) => {
-            if let Some(action) = keys::get_tui_action(key) {
-                handle_action(app, action, response_tx).await;
-            }
-        }
+        Event::Key(key) => {}
         Event::AppTick => {
             app.on_tick();
         }
@@ -144,11 +118,7 @@ async fn handle_event(
     }
 }
 
-async fn handle_action(
-    app: &mut App,
-    action: Action,
-    response_tx: mpsc::Sender<Response>,
-) {
+async fn handle_action(app: &mut App, action: Action) {
     let ui = &mut app.ui;
 
     match action {
@@ -162,9 +132,7 @@ async fn handle_action(
         Action::OpenAITab => ui.goto_tab(2),
         Action::ClaudeTab => ui.goto_tab(3),
         Action::GeminiTab => ui.goto_tab(4),
-        Action::SendRequest => {
-            app.send_request(response_tx).await;
-        }
+        Action::SendRequest => {}
         Action::ApplyCommits => {
             app.apply_commits();
             app.applied_commits = true;
