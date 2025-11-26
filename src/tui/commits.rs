@@ -16,6 +16,7 @@ use super::{
 use crate::{
     ai::response::{PrefixType, ResponseCommit},
     config::{AiConfig, CommitConfig},
+    tui::events::Event,
 };
 
 pub struct CommitScreen {
@@ -52,6 +53,8 @@ impl CommitScreen {
             is_waiting: false,
         }
     }
+
+    pub fn handle_event(&mut self, event: Event) {}
 }
 
 impl<'screen> Widget for CommitScreenWidget<'screen> {
