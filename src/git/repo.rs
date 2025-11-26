@@ -38,7 +38,7 @@ pub struct GaiStatus {
 }
 
 /// a sort of DiffDelta struct
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GaiFile {
     pub path: String,
     pub should_truncate: bool,
