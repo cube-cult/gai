@@ -1,21 +1,21 @@
 use anyhow::Result;
-use ratatui::Frame;
-use ratatui::widgets::Widget;
+use crossterm::event::KeyCode;
 use ratatui::{
-    style::{Modifier, Style, palette::tailwind},
-    widgets::ListState,
+    Frame,
+    layout::{Constraint, Layout},
+    style::{Modifier, Style, Styled, Stylize, palette::tailwind},
+    text::Line,
+    widgets::{ListState, Widget},
 };
 use std::{sync::mpsc, time::Duration};
-use throbber_widgets_tui::{Set, ThrobberState, WhichUse};
+use strum::{Display, EnumIter, FromRepr, IntoEnumIterator};
+use throbber_widgets_tui::{Set, WhichUse};
 
 use super::{
-    commit::CommitScreen,
+    commits::{CommitScreen, CommitScreenWidget},
     events::{Event, poll_event},
 };
-use crate::tui::commit::CommitScreenWidget;
-use crate::{
-    ai::request::Request, config::Config, git::repo::GaiGit,
-};
+use crate::{config::Config, git::repo::GaiGit};
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
@@ -44,10 +44,12 @@ pub struct TextStyles {
     pub highlight_text_style: Style,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Display, EnumIter, FromRepr, PartialEq)]
 pub enum CurrentScreen {
     Diffs,
     Commits,
+    Logs,
+    Options,
 }
 
 pub struct App {
@@ -62,17 +64,6 @@ pub struct App {
 
     pub throbber_styles: ThrobberStyles,
     pub text_styles: TextStyles,
-}
-
-impl Default for TUIState {
-    fn default() -> Self {
-        let mut selected_state = ListState::default();
-        selected_state.select_first();
-
-        Self {
-            selected_screen: selected_state,
-        }
-    }
 }
 
 impl Default for TextStyles {
@@ -107,9 +98,14 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
         terminal.draw(|f| app.run(f))?;
 
         if let Some(event) = poll_event(&rx, timeout)? {
+            if app.handle_main_events(event) {
+                break;
+            }
+
             match app.current_screen {
-                CurrentScreen::Commits => todo!(),
-                CurrentScreen::Diffs => todo!(),
+                CurrentScreen::Commits => {}
+                CurrentScreen::Diffs => {}
+                _ => {}
             }
         }
     }
@@ -127,8 +123,13 @@ impl App {
     ) -> Self {
         let current_screen = match curr_screen {
             Some(c) => c,
-            None => CurrentScreen::Commits,
+            None => CurrentScreen::Diffs,
         };
+
+        let mut selected_screen = ListState::default();
+        selected_screen.select(Some(0));
+
+        let tui_state = TUIState { selected_screen };
 
         let commit_screen =
             CommitScreen::new(&cfg.ai, &cfg.gai.commit_config);
@@ -139,13 +140,23 @@ impl App {
             gai,
             current_screen,
             commit_screen,
-            tui_state: TUIState::default(),
+            tui_state,
             throbber_styles: ThrobberStyles::default(),
             text_styles: TextStyles::default(),
         }
     }
 
     pub fn run(&mut self, frame: &mut Frame) {
+        let horizontal = Layout::horizontal([
+            Constraint::Percentage(10),
+            Constraint::Percentage(90),
+        ]);
+
+        let [screen_list_area, screen_area] =
+            horizontal.areas(frame.area());
+
+        self.render_screen_list(screen_list_area, frame.buffer_mut());
+
         match self.current_screen {
             CurrentScreen::Diffs => {}
             CurrentScreen::Commits => {
@@ -154,8 +165,119 @@ impl App {
                     throbber_styles: &self.throbber_styles,
                     text_styles: &self.text_styles,
                 }
-                .render(frame.area(), frame.buffer_mut());
+                .render(screen_area, frame.buffer_mut());
             }
+            _ => {}
+        }
+    }
+
+    fn handle_main_events(&mut self, event: Event) -> bool {
+        match event {
+            Event::Mouse(_) => {}
+            Event::Key(k) => match k.code {
+                KeyCode::Esc => return true,
+                KeyCode::Up | KeyCode::BackTab => self.go_up(),
+                KeyCode::Down | KeyCode::Tab => self.go_down(),
+                _ => {}
+            },
+            _ => {}
+        }
+
+        false
+    }
+
+    fn go_up(&mut self) {
+        if let Some(selected) =
+            self.tui_state.selected_screen.selected()
+        {
+            if selected == 0 {
+                self.tui_state.selected_screen.select_last();
+            } else {
+                self.tui_state.selected_screen.select_previous();
+            }
+
+            self.set_current_screen(
+                self.tui_state.selected_screen.selected(),
+            );
+        }
+    }
+
+    fn go_down(&mut self) {
+        if let Some(selected) =
+            self.tui_state.selected_screen.selected()
+        {
+            if selected + 1 >= CurrentScreen::iter().len() {
+                self.tui_state.selected_screen.select_first();
+            } else {
+                self.tui_state.selected_screen.select_next();
+            }
+
+            self.set_current_screen(
+                self.tui_state.selected_screen.selected(),
+            );
+        }
+    }
+
+    fn set_current_screen(
+        &mut self,
+        tui_state_selected: Option<usize>,
+    ) {
+        if let Some(selected) = tui_state_selected
+            && let Some(screen) = CurrentScreen::from_repr(selected)
+        {
+            self.current_screen = screen;
+        }
+    }
+
+    fn render_screen_list(
+        &mut self,
+        area: ratatui::prelude::Rect,
+        buf: &mut ratatui::prelude::Buffer,
+    ) {
+        let screens: Vec<CurrentScreen> =
+            CurrentScreen::iter().collect();
+        let selected_idx = self.tui_state.selected_screen.selected();
+
+        let total_height = screens.len() as u16;
+
+        let centered_area = super::utils::center(
+            area,
+            Constraint::Length(area.width),
+            Constraint::Length(total_height),
+        );
+
+        let constraints: Vec<Constraint> =
+            screens.iter().map(|_| Constraint::Length(1)).collect();
+
+        let layout =
+            Layout::vertical(constraints).split(centered_area);
+
+        for (i, screen) in screens.iter().enumerate() {
+            let item_area = layout[i];
+            let is_selected = Some(i) == selected_idx;
+
+            let line = if is_selected {
+                Line::from(vec![
+                    " ↪ ".set_style(
+                        self.text_styles.secondary_text_style,
+                    ),
+                    screen.to_string().set_style(
+                        self.text_styles.highlight_text_style,
+                    ),
+                ])
+            } else {
+                Line::from(vec![
+                    "   ".into(),
+                    screen.to_string().fg(tailwind::SLATE.c600),
+                ])
+            };
+
+            buf.set_line(
+                item_area.x,
+                item_area.y,
+                &line,
+                item_area.width,
+            );
         }
     }
 }
