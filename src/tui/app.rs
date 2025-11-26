@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ratatui::Frame;
-use ratatui::widgets::StatefulWidget;
+use ratatui::widgets::Widget;
 use ratatui::{
     style::{Modifier, Style, palette::tailwind},
     widgets::ListState,
@@ -8,8 +8,11 @@ use ratatui::{
 use std::{sync::mpsc, time::Duration};
 use throbber_widgets_tui::{Set, ThrobberState, WhichUse};
 
-use super::events::{Event, poll_event};
-use crate::tui::commit::CommitScreen;
+use super::{
+    commit::CommitScreen,
+    events::{Event, poll_event},
+};
+use crate::tui::commit::CommitScreenWidget;
 use crate::{
     ai::request::Request, config::Config, git::repo::GaiGit,
 };
@@ -26,23 +29,25 @@ const THROBBER_SET: Set = throbber_widgets_tui::BRAILLE_EIGHT_DOUBLE;
 const THROBBER_TYPE: WhichUse = throbber_widgets_tui::WhichUse::Spin;
 
 pub struct TUIState {
-    pub selected: usize,
-    pub selected_state: ListState,
+    pub selected_screen: ListState,
+}
 
-    pub primary_text_style: Style,
-    pub secondary_text_style: Style,
-    pub highlight_text_style: Style,
-
-    pub throbber_state: ThrobberState,
+pub struct ThrobberStyles {
     pub throbber_style: Style,
     pub throbber_set: Set,
     pub throbber_type: WhichUse,
 }
 
+pub struct TextStyles {
+    pub primary_text_style: Style,
+    pub secondary_text_style: Style,
+    pub highlight_text_style: Style,
+}
+
 #[derive(Debug)]
 pub enum CurrentScreen {
     Diffs,
-    Commit,
+    Commits,
 }
 
 pub struct App {
@@ -51,8 +56,12 @@ pub struct App {
     pub gai: GaiGit,
 
     pub tui_state: TUIState,
-
     pub current_screen: CurrentScreen,
+
+    pub commit_screen: CommitScreen,
+
+    pub throbber_styles: ThrobberStyles,
+    pub text_styles: TextStyles,
 }
 
 impl Default for TUIState {
@@ -61,13 +70,24 @@ impl Default for TUIState {
         selected_state.select_first();
 
         Self {
-            selected: 0,
-            selected_state,
+            selected_screen: selected_state,
+        }
+    }
+}
+
+impl Default for TextStyles {
+    fn default() -> Self {
+        Self {
             primary_text_style: PRIMARY_TEXT,
             secondary_text_style: SECONDARY_TEXT,
             highlight_text_style: HIGHLIGHT_STYLE,
+        }
+    }
+}
 
-            throbber_state: ThrobberState::default(),
+impl Default for ThrobberStyles {
+    fn default() -> Self {
+        Self {
             throbber_style: THROBBER_STYLE,
             throbber_set: THROBBER_SET,
             throbber_type: THROBBER_TYPE,
@@ -78,7 +98,6 @@ impl Default for TUIState {
 pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
     let mut terminal = ratatui::init();
     let timeout = Duration::from_millis(50);
-    let mut tui_state = TUIState::default();
 
     let (tx, rx) = mpsc::channel::<Event>();
 
@@ -89,7 +108,7 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
 
         if let Some(event) = poll_event(&rx, timeout)? {
             match app.current_screen {
-                CurrentScreen::Commit => todo!(),
+                CurrentScreen::Commits => todo!(),
                 CurrentScreen::Diffs => todo!(),
             }
         }
@@ -108,62 +127,35 @@ impl App {
     ) -> Self {
         let current_screen = match curr_screen {
             Some(c) => c,
-            None => CurrentScreen::Commit,
+            None => CurrentScreen::Commits,
         };
+
+        let commit_screen =
+            CommitScreen::new(&cfg.ai, &cfg.gai.commit_config);
 
         Self {
             running: true,
             cfg,
             gai,
-            tui_state: TUIState::default(),
             current_screen,
+            commit_screen,
+            tui_state: TUIState::default(),
+            throbber_styles: ThrobberStyles::default(),
+            text_styles: TextStyles::default(),
         }
     }
 
     pub fn run(&mut self, frame: &mut Frame) {
         match self.current_screen {
             CurrentScreen::Diffs => {}
-            CurrentScreen::Commit => {
-                let commit_screen = CommitScreen {
-                    provider: self.cfg.ai.provider.to_string(),
-                    model: "todo: implement provider".to_owned(),
-                    capitalize_prefix: self
-                        .cfg
-                        .gai
-                        .commit_config
-                        .capitalize_prefix,
-                    include_scope: self
-                        .cfg
-                        .gai
-                        .commit_config
-                        .include_scope,
-                    commits: Vec::new(),
-                    request_sent: false,
-                    is_waiting: false,
-                };
-
-                commit_screen.render(
-                    frame.area(),
-                    frame.buffer_mut(),
-                    &mut self.tui_state,
-                );
+            CurrentScreen::Commits => {
+                CommitScreenWidget {
+                    screen: &self.commit_screen,
+                    throbber_styles: &self.throbber_styles,
+                    text_styles: &self.text_styles,
+                }
+                .render(frame.area(), frame.buffer_mut());
             }
         }
-    }
-
-    pub async fn send_request(&mut self) -> Result<()> {
-        let ai = &self.cfg.ai;
-        let provider = ai.provider;
-        let provider_cfg =
-            ai.providers.get(&provider).ok_or(anyhow::anyhow!(
-                "Somehow did not find a valid provider config.",
-            ))?;
-
-        let mut req = Request::default();
-
-        req.build_prompt(&self.cfg, &self.gai);
-        req.build_diffs_string(self.gai.get_file_diffs_as_str());
-
-        Ok(())
     }
 }

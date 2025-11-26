@@ -3,15 +3,20 @@ use ratatui::{
     style::{Stylize, palette::tailwind},
     text::{Line, Text},
     widgets::{
-        Block, Borders, List, ListItem, Padding, Paragraph,
-        StatefulWidget, Widget, Wrap,
+        Block, Borders, List, ListItem, ListState, Padding,
+        Paragraph, StatefulWidget, Widget, Wrap,
     },
 };
-use throbber_widgets_tui::Throbber;
+use throbber_widgets_tui::{Throbber, ThrobberState};
 
-use super::{app::TUIState, utils::center};
-
-use crate::ai::response::{PrefixType, ResponseCommit};
+use super::{
+    app::{TextStyles, ThrobberStyles},
+    utils::center,
+};
+use crate::{
+    ai::response::{PrefixType, ResponseCommit},
+    config::{AiConfig, CommitConfig},
+};
 
 pub struct CommitScreen {
     pub provider: String,
@@ -26,40 +31,61 @@ pub struct CommitScreen {
     pub is_waiting: bool,
 }
 
-impl StatefulWidget for CommitScreen {
-    type State = TUIState;
+pub struct CommitScreenWidget<'screen> {
+    pub screen: &'screen CommitScreen,
+    pub throbber_styles: &'screen ThrobberStyles,
+    pub text_styles: &'screen TextStyles,
+}
 
+impl CommitScreen {
+    pub fn new(
+        ai_config: &AiConfig,
+        commit_cfg: &CommitConfig,
+    ) -> Self {
+        Self {
+            provider: ai_config.provider.to_string(),
+            model: "todo: implement provider".to_owned(),
+            capitalize_prefix: commit_cfg.capitalize_prefix,
+            include_scope: commit_cfg.include_scope,
+            commits: Vec::new(),
+            request_sent: false,
+            is_waiting: false,
+        }
+    }
+}
+
+impl<'screen> Widget for CommitScreenWidget<'screen> {
     fn render(
         self,
         area: ratatui::prelude::Rect,
         buf: &mut ratatui::prelude::Buffer,
-        state: &mut Self::State,
     ) {
-        if !self.request_sent {
-            render_send_prompt(area, buf, state);
+        if !self.screen.request_sent {
+            render_send_prompt(area, buf, self.text_styles);
         }
 
-        if self.is_waiting {
+        if self.screen.is_waiting {
             render_still_loading(
                 area,
                 buf,
-                state,
-                &self.provider,
-                &self.model,
+                &self.screen.provider,
+                &self.screen.model,
+                self.text_styles,
+                self.throbber_styles,
             );
         }
 
-        if !self.commits.is_empty()
-            && !self.is_waiting
-            && self.request_sent
+        if !self.screen.commits.is_empty()
+            && !self.screen.is_waiting
+            && self.screen.request_sent
         {
             render_commits(
                 area,
                 buf,
-                state,
-                self.capitalize_prefix,
-                self.include_scope,
-                &self.commits,
+                self.screen.capitalize_prefix,
+                self.screen.include_scope,
+                &self.screen.commits,
+                self.text_styles,
             );
         }
     }
@@ -68,10 +94,10 @@ impl StatefulWidget for CommitScreen {
 fn render_commits(
     area: ratatui::prelude::Rect,
     buf: &mut ratatui::prelude::Buffer,
-    state: &mut TUIState,
     capitalize_prefix: bool,
     include_scope: bool,
     commits: &[ResponseCommit],
+    text_styles: &TextStyles,
 ) {
     let horizontal = Layout::horizontal([
         Constraint::Percentage(25),
@@ -81,6 +107,7 @@ fn render_commits(
     let [commit_list_area, commit_message_area] =
         horizontal.areas(area);
 
+    let mut state = ListState::default();
     let mut commit_list = Vec::new();
 
     for commit in commits {
@@ -101,16 +128,11 @@ fn render_commits(
                 .borders(Borders::ALL)
                 .padding(Padding::horizontal(1)),
         )
-        .highlight_style(state.highlight_text_style);
+        .highlight_style(text_styles.highlight_text_style);
 
-    StatefulWidget::render(
-        list,
-        commit_list_area,
-        buf,
-        &mut state.selected_state,
-    );
+    StatefulWidget::render(list, commit_list_area, buf, &mut state);
 
-    if let Some(selected) = state.selected_state.selected()
+    if let Some(selected) = state.selected()
         && selected < commits.len()
     {
         let commit = commits[selected].to_owned();
@@ -216,11 +238,11 @@ fn render_commit_message(
 fn render_send_prompt(
     area: ratatui::prelude::Rect,
     buf: &mut ratatui::prelude::Buffer,
-    state: &mut TUIState,
+    text_styles: &TextStyles,
 ) {
     let text = Text::styled(
         "Press 'P' to Generate Commits",
-        state.primary_text_style,
+        text_styles.primary_text_style,
     );
 
     let text_area = center(
@@ -235,26 +257,24 @@ fn render_send_prompt(
 fn render_still_loading(
     area: ratatui::prelude::Rect,
     buf: &mut ratatui::prelude::Buffer,
-    state: &mut TUIState,
     provider: &str,
     model: &str,
+    text_styles: &TextStyles,
+    throbber_styles: &ThrobberStyles,
 ) {
     let message = format!(
         "Awaiting Response from {} using {}...",
         provider, model
     );
 
+    let mut throbber_state = ThrobberState::default();
+
     let throbber = Throbber::default()
         .label(message)
-        .style(state.secondary_text_style)
-        .throbber_style(state.throbber_style)
-        .throbber_set(state.throbber_set.to_owned())
-        .use_type(state.throbber_type.to_owned());
+        .style(text_styles.secondary_text_style)
+        .throbber_style(throbber_styles.throbber_style)
+        .throbber_set(throbber_styles.throbber_set.to_owned())
+        .use_type(throbber_styles.throbber_type.to_owned());
 
-    StatefulWidget::render(
-        throbber,
-        area,
-        buf,
-        &mut state.throbber_state,
-    );
+    StatefulWidget::render(throbber, area, buf, &mut throbber_state);
 }
