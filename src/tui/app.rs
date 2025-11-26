@@ -13,7 +13,9 @@ use throbber_widgets_tui::{Set, WhichUse};
 
 use super::{
     commits::{CommitScreen, CommitScreenWidget},
+    diffs::{DiffScreen, DiffScreenWidget},
     events::{Event, poll_event},
+    utils::center,
 };
 use crate::{config::Config, git::repo::GaiGit};
 
@@ -22,6 +24,7 @@ const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
 const HIGHLIGHT_STYLE: Style = Style::new()
     .bg(tailwind::CYAN.c800)
     .add_modifier(Modifier::BOLD);
+const BORDER_STYLE: Style = Style::new().bg(tailwind::SLATE.c800);
 const THROBBER_STYLE: Style = Style::new()
     .fg(ratatui::style::Color::Cyan)
     .add_modifier(Modifier::BOLD);
@@ -42,6 +45,7 @@ pub struct TextStyles {
     pub primary_text_style: Style,
     pub secondary_text_style: Style,
     pub highlight_text_style: Style,
+    pub border_style: Style,
 }
 
 #[derive(Debug, Display, EnumIter, FromRepr, PartialEq)]
@@ -49,7 +53,6 @@ pub enum CurrentScreen {
     Diffs,
     Commits,
     Logs,
-    Options,
 }
 
 pub struct App {
@@ -61,6 +64,7 @@ pub struct App {
     pub current_screen: CurrentScreen,
 
     pub commit_screen: CommitScreen,
+    pub diff_screen: DiffScreen,
 
     pub throbber_styles: ThrobberStyles,
     pub text_styles: TextStyles,
@@ -72,6 +76,7 @@ impl Default for TextStyles {
             primary_text_style: PRIMARY_TEXT,
             secondary_text_style: SECONDARY_TEXT,
             highlight_text_style: HIGHLIGHT_STYLE,
+            border_style: BORDER_STYLE,
         }
     }
 }
@@ -103,8 +108,12 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
             }
 
             match app.current_screen {
-                CurrentScreen::Commits => {}
-                CurrentScreen::Diffs => {}
+                CurrentScreen::Commits => {
+                    app.commit_screen.handle_event(event)
+                }
+                CurrentScreen::Diffs => {
+                    app.diff_screen.handle_event(event)
+                }
                 _ => {}
             }
         }
@@ -131,6 +140,7 @@ impl App {
 
         let tui_state = TUIState { selected_screen };
 
+        let diff_screen = DiffScreen::new(&gai.files);
         let commit_screen =
             CommitScreen::new(&cfg.ai, &cfg.gai.commit_config);
 
@@ -140,6 +150,7 @@ impl App {
             gai,
             current_screen,
             commit_screen,
+            diff_screen,
             tui_state,
             throbber_styles: ThrobberStyles::default(),
             text_styles: TextStyles::default(),
@@ -158,7 +169,13 @@ impl App {
         self.render_screen_list(screen_list_area, frame.buffer_mut());
 
         match self.current_screen {
-            CurrentScreen::Diffs => {}
+            CurrentScreen::Diffs => {
+                DiffScreenWidget {
+                    screen: &mut self.diff_screen,
+                    text_styles: &self.text_styles,
+                }
+                .render(screen_area, frame.buffer_mut());
+            }
             CurrentScreen::Commits => {
                 CommitScreenWidget {
                     screen: &self.commit_screen,
@@ -240,7 +257,7 @@ impl App {
 
         let total_height = screens.len() as u16;
 
-        let centered_area = super::utils::center(
+        let centered_area = center(
             area,
             Constraint::Length(area.width),
             Constraint::Length(total_height),
