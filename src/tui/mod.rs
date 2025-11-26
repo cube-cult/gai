@@ -1,4 +1,4 @@
 pub mod app;
-pub mod commit;
+pub mod commits;
 pub mod events;
 pub mod utils;
