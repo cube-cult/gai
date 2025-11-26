@@ -9,14 +9,14 @@ use ratatui::{
 };
 use throbber_widgets_tui::Throbber;
 
-use crate::{
-    ai::response::{PrefixType, ResponseCommit},
-    tui::TUIState,
-};
+use super::{app::TUIState, utils::center};
 
-pub struct TUICommit {
+use crate::ai::response::{PrefixType, ResponseCommit};
+
+pub struct CommitScreen {
     pub provider: String,
     pub model: String,
+
     pub capitalize_prefix: bool,
     pub include_scope: bool,
 
@@ -26,7 +26,7 @@ pub struct TUICommit {
     pub is_waiting: bool,
 }
 
-impl StatefulWidget for TUICommit {
+impl StatefulWidget for CommitScreen {
     type State = TUIState;
 
     fn render(
@@ -223,7 +223,7 @@ fn render_send_prompt(
         state.primary_text_style,
     );
 
-    let text_area = super::center(
+    let text_area = center(
         area,
         Constraint::Length(text.width() as u16),
         Constraint::Length(1),

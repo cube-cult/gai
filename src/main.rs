@@ -19,7 +19,7 @@ use crate::{
     config::Config,
     git::{commit::GaiCommit, repo::GaiGit},
     print::{SpinDeez, pretty_print_commits, pretty_print_status},
-    tui::run_tui,
+    tui::app::run_tui,
 };
 
 fn main() -> Result<()> {
@@ -52,14 +52,16 @@ fn main() -> Result<()> {
 
             if args.interactive {
                 let req = build_request(&cfg, &gai, &spinner);
-                run_tui(req, cfg, gai, None)?;
+                run_tui(cfg, gai)?;
                 return Ok(());
             }
 
             pretty_print_status(&gai, args.compact)?;
 
             match args.command {
-                Commands::TUI { .. } => {}
+                Commands::TUI { .. } => {
+                    run_tui(cfg, gai)?;
+                }
                 Commands::Commit {
                     skip_confirmation,
                     config,
@@ -216,7 +218,7 @@ fn run_commit(
             println!("Applying Commits...");
             gai.apply_commits(&commits);
         } else if selection == 1 {
-            let _ = run_tui(req, cfg, gai, Some(response));
+            let _ = run_tui(cfg, gai);
         } else if selection == 2 {
             println!("Retrying...");
             continue;
