@@ -37,7 +37,7 @@ impl DiffScreen {
         }
     }
 
-    pub fn handle_event(&mut self, event: Event) {
+    pub fn handle_event(&mut self, event: &Event) {
         match event {
             Event::Key(k) => match k.code {
                 KeyCode::Char('k') => {
