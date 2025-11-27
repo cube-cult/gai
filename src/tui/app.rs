@@ -18,7 +18,6 @@ use super::{
     commits::{CommitScreen, CommitScreenWidget},
     diffs::{DiffScreen, DiffScreenWidget},
     events::{Event, poll_event},
-    utils::center,
 };
 use crate::{
     ai::provider::Provider::Gai, config::Config, git::repo::GaiGit,
@@ -173,13 +172,13 @@ impl App {
     }
 
     pub fn run(&mut self, frame: &mut Frame) {
-        let horizontal = Layout::horizontal([
+        let vertical = Layout::vertical([
             Constraint::Percentage(10),
             Constraint::Percentage(90),
         ]);
 
         let [screen_list_area, screen_area] =
-            horizontal.areas(frame.area());
+            vertical.areas(frame.area());
 
         self.render_screen_list(screen_list_area, frame.buffer_mut());
 
@@ -208,8 +207,11 @@ impl App {
             Event::Mouse(_) => {}
             Event::Key(k) => match k.code {
                 KeyCode::Esc => return true,
-                KeyCode::Up | KeyCode::BackTab => self.go_up(),
-                KeyCode::Down | KeyCode::Tab => self.go_down(),
+                KeyCode::Left | KeyCode::BackTab => self.go_back(),
+                KeyCode::Right | KeyCode::Tab => self.go_next(),
+                KeyCode::Char('1') => self.go_tab(1),
+                KeyCode::Char('2') => self.go_tab(2),
+                KeyCode::Char('3') => self.go_tab(3),
                 _ => {}
             },
             _ => {}
@@ -218,7 +220,19 @@ impl App {
         false
     }
 
-    fn go_up(&mut self) {
+    fn go_tab(&mut self, num: usize) {
+        if num > CurrentScreen::iter().len() + 1 {
+            return;
+        }
+
+        self.tui_state.selected_screen.select(Some(num - 1));
+
+        self.set_current_screen(
+            self.tui_state.selected_screen.selected(),
+        );
+    }
+
+    fn go_back(&mut self) {
         if let Some(selected) =
             self.tui_state.selected_screen.selected()
         {
@@ -234,7 +248,7 @@ impl App {
         }
     }
 
-    fn go_down(&mut self) {
+    fn go_next(&mut self) {
         if let Some(selected) =
             self.tui_state.selected_screen.selected()
         {
@@ -270,39 +284,26 @@ impl App {
             CurrentScreen::iter().collect();
         let selected_idx = self.tui_state.selected_screen.selected();
 
-        let total_height = screens.len() as u16;
+        let constraints: Vec<Constraint> = screens
+            .iter()
+            .map(|_| Constraint::Ratio(1, screens.len() as u32))
+            .collect();
 
-        let centered_area = center(
-            area,
-            Constraint::Length(area.width),
-            Constraint::Length(total_height),
-        );
-
-        let constraints: Vec<Constraint> =
-            screens.iter().map(|_| Constraint::Length(1)).collect();
-
-        let layout =
-            Layout::vertical(constraints).split(centered_area);
+        let layout = Layout::horizontal(constraints).split(area);
 
         for (i, screen) in screens.iter().enumerate() {
             let item_area = layout[i];
             let is_selected = Some(i) == selected_idx;
+            let screen = format!(" [{}]{} ", i + 1, screen);
 
-            let line = if is_selected {
-                Line::from(vec![
-                    " ↪ ".set_style(
-                        self.text_styles.secondary_text_style,
-                    ),
-                    screen.to_string().set_style(
+            let line =
+                if is_selected {
+                    Line::from(screen.set_style(
                         self.text_styles.highlight_text_style,
-                    ),
-                ])
-            } else {
-                Line::from(vec![
-                    "   ".into(),
-                    screen.to_string().fg(tailwind::SLATE.c600),
-                ])
-            };
+                    ))
+                } else {
+                    Line::from(screen.fg(tailwind::SLATE.c600))
+                };
 
             buf.set_line(
                 item_area.x,
