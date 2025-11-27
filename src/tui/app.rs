@@ -233,18 +233,17 @@ impl App {
     }
 
     fn go_back(&mut self) {
+        let screens = CurrentScreen::iter().len();
         if let Some(selected) =
             self.tui_state.selected_screen.selected()
         {
-            if selected == 0 {
-                self.tui_state.selected_screen.select_last();
+            let new_selected = if selected == 0 {
+                screens - 1
             } else {
-                self.tui_state.selected_screen.select_previous();
-            }
-
-            self.set_current_screen(
-                self.tui_state.selected_screen.selected(),
-            );
+                selected - 1
+            };
+            self.tui_state.selected_screen.select(Some(new_selected));
+            self.set_current_screen(Some(new_selected));
         }
     }
 
