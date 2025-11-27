@@ -1,3 +1,6 @@
+use std::{sync::mpsc::Sender, thread};
+
+use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Constraint, Layout},
     style::{Stylize, palette::tailwind},
@@ -11,29 +14,40 @@ use throbber_widgets_tui::{Throbber, ThrobberState};
 
 use super::{
     app::{TextStyles, ThrobberStyles},
+    events::Event,
     utils::center,
 };
 use crate::{
-    ai::response::{PrefixType, ResponseCommit},
-    config::{AiConfig, CommitConfig},
-    tui::events::Event,
+    ai::{
+        provider::Provider::Gai,
+        request::Request,
+        response::{PrefixType, ResponseCommit, get_response},
+    },
+    config::{AiConfig, CommitConfig, Config, ProviderConfig},
+    git::repo::GaiGit,
 };
 
 pub struct CommitScreen {
     pub provider: String,
+    pub provider_cfg: ProviderConfig,
     pub model: String,
 
     pub capitalize_prefix: bool,
     pub include_scope: bool,
 
     pub commits: Vec<ResponseCommit>,
+    pub error: Option<String>,
 
     pub request_sent: bool,
     pub is_waiting: bool,
+    pub is_error: bool,
+
+    pub selected_commit_state: ListState,
+    pub throbber_state: ThrobberState,
 }
 
 pub struct CommitScreenWidget<'screen> {
-    pub screen: &'screen CommitScreen,
+    pub screen: &'screen mut CommitScreen,
     pub throbber_styles: &'screen ThrobberStyles,
     pub text_styles: &'screen TextStyles,
 }
@@ -42,19 +56,98 @@ impl CommitScreen {
     pub fn new(
         ai_config: &AiConfig,
         commit_cfg: &CommitConfig,
+        provider_cfg: &ProviderConfig,
     ) -> Self {
+        let selected_commit_state = ListState::default();
+
         Self {
             provider: ai_config.provider.to_string(),
+            provider_cfg: provider_cfg.to_owned(),
             model: "todo: implement provider".to_owned(),
             capitalize_prefix: commit_cfg.capitalize_prefix,
             include_scope: commit_cfg.include_scope,
             commits: Vec::new(),
+            is_error: false,
+            error: None,
             request_sent: false,
             is_waiting: false,
+            selected_commit_state,
+            throbber_state: ThrobberState::default(),
         }
     }
 
-    pub fn handle_event(&mut self, event: Event) {}
+    pub fn handle_event(
+        &mut self,
+        event: &Event,
+        tx: &Sender<Event>,
+        cfg: &Config,
+        gai: &GaiGit,
+    ) {
+        match event {
+            Event::AppTick => {
+                if self.is_waiting {
+                    self.throbber_state.calc_next();
+                }
+            }
+            Event::ProviderResponse(commits) => {
+                self.is_waiting = false;
+                self.is_error = false;
+                if !commits.is_empty() {
+                    self.selected_commit_state.select_first();
+                    self.commits = commits.to_owned();
+                }
+            }
+            Event::ProviderError(error) => {
+                self.is_waiting = false;
+                self.is_error = true;
+                self.error = Some(error.to_owned());
+            }
+            Event::Key(k) => match k.code {
+                KeyCode::Char('p') | KeyCode::Char('P') => {
+                    if !self.is_waiting {
+                        self.send_request(tx.clone(), cfg, gai);
+                    }
+                }
+                KeyCode::Char('k') => {
+                    self.selected_commit_state.select_previous();
+                }
+                KeyCode::Char('j') => {
+                    self.selected_commit_state.select_next();
+                }
+                _ => {}
+            },
+            Event::Mouse(_) => {}
+            _ => {}
+        }
+    }
+
+    fn send_request(
+        &mut self,
+        tx: Sender<Event>,
+        cfg: &Config,
+        gai: &GaiGit,
+    ) {
+        self.request_sent = true;
+        self.is_waiting = true;
+
+        let provider_cfg = self.provider_cfg.to_owned();
+        let mut request = Request::default();
+        request.build_prompt(cfg, gai);
+        request.build_diffs_string(gai.get_file_diffs_as_str());
+
+        thread::spawn(move || {
+            let response = get_response(&request, Gai, provider_cfg);
+            match response.result {
+                Ok(res) => {
+                    tx.send(Event::ProviderResponse(res.commits))
+                        .ok();
+                }
+                Err(e) => {
+                    tx.send(Event::ProviderError(e.to_string())).ok();
+                }
+            }
+        });
+    }
 }
 
 impl<'screen> Widget for CommitScreenWidget<'screen> {
@@ -68,14 +161,23 @@ impl<'screen> Widget for CommitScreenWidget<'screen> {
         }
 
         if self.screen.is_waiting {
-            render_still_loading(
+            render_loading(
                 area,
                 buf,
                 &self.screen.provider,
                 &self.screen.model,
                 self.text_styles,
                 self.throbber_styles,
+                &mut self.screen.throbber_state,
             );
+        }
+
+        if let Some(error) = &self.screen.error
+            && !self.screen.is_waiting
+            && self.screen.request_sent
+            && self.screen.is_error
+        {
+            render_error(area, buf, error, self.text_styles);
         }
 
         if !self.screen.commits.is_empty()
@@ -85,6 +187,7 @@ impl<'screen> Widget for CommitScreenWidget<'screen> {
             render_commits(
                 area,
                 buf,
+                &mut self.screen.selected_commit_state,
                 self.screen.capitalize_prefix,
                 self.screen.include_scope,
                 &self.screen.commits,
@@ -94,9 +197,27 @@ impl<'screen> Widget for CommitScreenWidget<'screen> {
     }
 }
 
+fn render_error(
+    area: ratatui::prelude::Rect,
+    buf: &mut ratatui::prelude::Buffer,
+    error: &str,
+    text_styles: &TextStyles,
+) {
+    let text = Text::styled(error, text_styles.primary_text_style);
+
+    let text_area = center(
+        area,
+        Constraint::Length(text.width() as u16),
+        Constraint::Length(1),
+    );
+
+    text.render(text_area, buf);
+}
+
 fn render_commits(
     area: ratatui::prelude::Rect,
     buf: &mut ratatui::prelude::Buffer,
+    state: &mut ListState,
     capitalize_prefix: bool,
     include_scope: bool,
     commits: &[ResponseCommit],
@@ -110,7 +231,6 @@ fn render_commits(
     let [commit_list_area, commit_message_area] =
         horizontal.areas(area);
 
-    let mut state = ListState::default();
     let mut commit_list = Vec::new();
 
     for commit in commits {
@@ -133,7 +253,7 @@ fn render_commits(
         )
         .highlight_style(text_styles.highlight_text_style);
 
-    StatefulWidget::render(list, commit_list_area, buf, &mut state);
+    StatefulWidget::render(list, commit_list_area, buf, state);
 
     if let Some(selected) = state.selected()
         && selected < commits.len()
@@ -257,20 +377,25 @@ fn render_send_prompt(
     text.render(text_area, buf);
 }
 
-fn render_still_loading(
+fn render_loading(
     area: ratatui::prelude::Rect,
     buf: &mut ratatui::prelude::Buffer,
     provider: &str,
     model: &str,
     text_styles: &TextStyles,
     throbber_styles: &ThrobberStyles,
+    throbber_state: &mut ThrobberState,
 ) {
     let message = format!(
         "Awaiting Response from {} using {}...",
         provider, model
     );
 
-    let mut throbber_state = ThrobberState::default();
+    let centered_load_area = center(
+        area,
+        Constraint::Length(message.len() as u16 + 2),
+        Constraint::Length(1),
+    );
 
     let throbber = Throbber::default()
         .label(message)
@@ -279,5 +404,10 @@ fn render_still_loading(
         .throbber_set(throbber_styles.throbber_set.to_owned())
         .use_type(throbber_styles.throbber_type.to_owned());
 
-    StatefulWidget::render(throbber, area, buf, &mut throbber_state);
+    StatefulWidget::render(
+        throbber,
+        centered_load_area,
+        buf,
+        throbber_state,
+    );
 }

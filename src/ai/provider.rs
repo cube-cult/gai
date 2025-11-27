@@ -118,9 +118,7 @@ impl Provider {
                 let endpoint = "https://cli.gai.fyi/generate";
 
                 // todo move this out for reuse
-                let config = Agent::config_builder()
-                    .timeout_global(Some(Duration::from_secs(5)))
-                    .build();
+                let config = Agent::config_builder().build();
 
                 let agent: Agent = config.into();
                 let resp = agent

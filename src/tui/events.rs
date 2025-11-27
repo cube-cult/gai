@@ -1,27 +1,28 @@
-use std::{sync::mpsc::Receiver, time::Duration};
-
 use anyhow::Result;
 use crossterm::event::{
     Event as CrosstermEvent, KeyEvent, KeyEventKind, MouseEvent,
 };
+use std::{sync::mpsc::Receiver, time::Duration};
 
-#[derive(Clone, Copy, Debug)]
+use crate::ai::response::ResponseCommit;
+
+#[derive(Clone, Debug)]
 pub enum Event {
     Error,
     AppTick,
     Key(KeyEvent),
     Mouse(MouseEvent),
 
-    ProviderResponse,
-    ProviderError,
+    ProviderResponse(Vec<ResponseCommit>),
+    ProviderError(String),
 }
 
 pub fn poll_event(
     rx: &Receiver<Event>,
     timeout: Duration,
-) -> Result<Option<Event>> {
+) -> Result<Event> {
     if let Ok(event) = rx.try_recv() {
-        return Ok(Some(event));
+        return Ok(event);
     }
 
     if crossterm::event::poll(timeout)? {
@@ -32,11 +33,11 @@ pub fn poll_event(
                 Event::Key(key)
             }
             CrosstermEvent::Mouse(mouse) => Event::Mouse(mouse),
-            _ => return Ok(None),
+            _ => return Ok(Event::AppTick),
         };
 
-        return Ok(Some(event));
+        return Ok(event);
     }
 
-    Ok(None)
+    Ok(Event::AppTick)
 }

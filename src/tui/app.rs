@@ -7,7 +7,10 @@ use ratatui::{
     text::Line,
     widgets::{ListState, Widget},
 };
-use std::{sync::mpsc, time::Duration};
+use std::{
+    sync::mpsc::{self, Sender},
+    time::Duration,
+};
 use strum::{Display, EnumIter, FromRepr, IntoEnumIterator};
 use throbber_widgets_tui::{Set, WhichUse};
 
@@ -17,7 +20,9 @@ use super::{
     events::{Event, poll_event},
     utils::center,
 };
-use crate::{config::Config, git::repo::GaiGit};
+use crate::{
+    ai::provider::Provider::Gai, config::Config, git::repo::GaiGit,
+};
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
@@ -68,6 +73,8 @@ pub struct App {
 
     pub throbber_styles: ThrobberStyles,
     pub text_styles: TextStyles,
+
+    pub event_tx: mpsc::Sender<Event>,
 }
 
 impl Default for TextStyles {
@@ -97,25 +104,28 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
 
     let (tx, rx) = mpsc::channel::<Event>();
 
-    let mut app = App::new(cfg, gai, None);
+    let mut app = App::new(cfg, gai, None, tx);
 
     while app.running {
         terminal.draw(|f| app.run(f))?;
 
-        if let Some(event) = poll_event(&rx, timeout)? {
-            if app.handle_main_events(event) {
-                break;
-            }
+        let event = poll_event(&rx, timeout)?;
 
-            match app.current_screen {
-                CurrentScreen::Commits => {
-                    app.commit_screen.handle_event(event)
-                }
-                CurrentScreen::Diffs => {
-                    app.diff_screen.handle_event(event)
-                }
-                _ => {}
+        if app.handle_main_events(&event) {
+            break;
+        }
+
+        match app.current_screen {
+            CurrentScreen::Commits => app.commit_screen.handle_event(
+                &event,
+                &app.event_tx,
+                &app.cfg,
+                &app.gai,
+            ),
+            CurrentScreen::Diffs => {
+                app.diff_screen.handle_event(&event)
             }
+            _ => {}
         }
     }
 
@@ -129,6 +139,7 @@ impl App {
         cfg: Config,
         gai: GaiGit,
         curr_screen: Option<CurrentScreen>,
+        event_tx: Sender<Event>,
     ) -> Self {
         let current_screen = match curr_screen {
             Some(c) => c,
@@ -141,8 +152,11 @@ impl App {
         let tui_state = TUIState { selected_screen };
 
         let diff_screen = DiffScreen::new(&gai.files);
-        let commit_screen =
-            CommitScreen::new(&cfg.ai, &cfg.gai.commit_config);
+        let commit_screen = CommitScreen::new(
+            &cfg.ai,
+            &cfg.gai.commit_config,
+            cfg.ai.providers.get(&Gai).unwrap(),
+        );
 
         Self {
             running: true,
@@ -154,6 +168,7 @@ impl App {
             tui_state,
             throbber_styles: ThrobberStyles::default(),
             text_styles: TextStyles::default(),
+            event_tx,
         }
     }
 
@@ -178,7 +193,7 @@ impl App {
             }
             CurrentScreen::Commits => {
                 CommitScreenWidget {
-                    screen: &self.commit_screen,
+                    screen: &mut self.commit_screen,
                     throbber_styles: &self.throbber_styles,
                     text_styles: &self.text_styles,
                 }
@@ -188,7 +203,7 @@ impl App {
         }
     }
 
-    fn handle_main_events(&mut self, event: Event) -> bool {
+    fn handle_main_events(&mut self, event: &Event) -> bool {
         match event {
             Event::Mouse(_) => {}
             Event::Key(k) => match k.code {
