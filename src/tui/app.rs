@@ -3,9 +3,7 @@ use crossterm::event::KeyCode;
 use ratatui::{
     Frame,
     layout::{Constraint, Layout, Margin},
-    style::{
-        Color, Modifier, Style, Styled, Stylize, palette::tailwind,
-    },
+    style::{Modifier, Style, Styled, Stylize, palette::tailwind},
     text::Line,
     widgets::{Block, Borders, ListState, Widget},
 };
@@ -124,7 +122,7 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
                 &app.gai,
             ),
             CurrentScreen::Diffs => {
-                app.diff_screen.handle_event(&event)
+                app.diff_screen.handle_event(&event, &mut app.gai)
             }
             _ => {}
         }
@@ -175,7 +173,7 @@ impl App {
 
     pub fn run(&mut self, frame: &mut Frame) {
         let vertical = Layout::vertical([
-            Constraint::Length(1),
+            Constraint::Length(3),
             Constraint::Fill(1),
         ]);
 
@@ -186,8 +184,10 @@ impl App {
             .border_style(self.text_styles.border_style)
             .borders(Borders::ALL);
 
-        frame.render_widget(b, screen_area);
-        let screen_area = screen_area.inner(Margin::new(1, 1));
+        frame.render_widget(&b, screen_list_area);
+
+        let screen_list_area =
+            screen_list_area.inner(Margin::new(1, 1));
 
         self.render_screen_list(screen_list_area, frame.buffer_mut());
 
@@ -221,6 +221,8 @@ impl App {
                 KeyCode::Char('1') => self.go_tab(1),
                 KeyCode::Char('2') => self.go_tab(2),
                 KeyCode::Char('3') => self.go_tab(3),
+                KeyCode::Char('4') => self.go_tab(4),
+                KeyCode::Char('5') => self.go_tab(5),
                 _ => {}
             },
             _ => {}
@@ -230,7 +232,7 @@ impl App {
     }
 
     fn go_tab(&mut self, num: usize) {
-        if num > CurrentScreen::iter().len() + 1 {
+        if num > CurrentScreen::iter().len() {
             return;
         }
 

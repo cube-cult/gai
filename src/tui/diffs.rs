@@ -4,13 +4,13 @@ use ratatui::{
     style::{Stylize, palette::tailwind},
     text::Line,
     widgets::{
-        Block, Borders, List, ListItem, ListState, Padding,
-        Paragraph, StatefulWidget, Widget, Wrap,
+        Block, List, ListItem, ListState, Paragraph, StatefulWidget,
+        Widget, Wrap,
     },
 };
 
 use crate::{
-    git::repo::{DiffType, GaiFile},
+    git::repo::{DiffType, GaiFile, GaiGit},
     tui::{events::Event, utils::center},
 };
 
@@ -37,7 +37,7 @@ impl DiffScreen {
         }
     }
 
-    pub fn handle_event(&mut self, event: &Event) {
+    pub fn handle_event(&mut self, event: &Event, gai: &mut GaiGit) {
         match event {
             Event::Key(k) => match k.code {
                 KeyCode::Char('k') => {
@@ -46,10 +46,22 @@ impl DiffScreen {
                 KeyCode::Char('j') => {
                     self.selected_file_state.select_next();
                 }
+                KeyCode::Char('d') => {
+                    self.remove_selected(gai);
+                }
                 _ => {}
             },
             Event::Mouse(_) => {}
             _ => {}
+        }
+    }
+
+    fn remove_selected(&mut self, gai: &mut GaiGit) {
+        if let Some(selected) = self.selected_file_state.selected()
+            && selected < gai.files.len()
+        {
+            gai.files.remove(selected);
+            self.files.remove(selected);
         }
     }
 }
@@ -61,8 +73,8 @@ impl<'screen> Widget for DiffScreenWidget<'screen> {
         buf: &mut ratatui::prelude::Buffer,
     ) {
         let horizontal = Layout::horizontal([
-            Constraint::Percentage(40),
-            Constraint::Percentage(60),
+            Constraint::Percentage(30),
+            Constraint::Percentage(70),
         ]);
 
         let [diff_file_list_area, selected_diffs_area] =
@@ -126,8 +138,8 @@ fn render_selected_diff(
     let paragraph = Paragraph::new(lines)
         .block(
             Block::bordered()
-                .padding(Padding::horizontal(1))
-                .borders(Borders::LEFT)
+                .title_top("Changes")
+                .title_style(text_styles.primary_text_style)
                 .border_style(text_styles.border_style),
         )
         .wrap(Wrap { trim: false });
@@ -142,21 +154,38 @@ fn render_list(
     files: &[GaiFile],
     text_styles: &TextStyles,
 ) {
+    let [diff_files_area, help_area] = Layout::vertical([
+        Constraint::Fill(1),
+        Constraint::Length(1),
+    ])
+    .areas(area);
+
     let diff_files: Vec<ListItem> = files
         .iter()
         .map(|item| ListItem::new(item.path.to_owned()))
         .collect();
 
     let list = List::new(diff_files)
+        .block(
+            Block::bordered()
+                .title_top("Files")
+                .title_style(text_styles.primary_text_style)
+                .border_style(text_styles.border_style),
+        )
         .highlight_style(text_styles.highlight_text_style);
 
-    let total_height = list.len() as u16;
+    StatefulWidget::render(list, diff_files_area, buf, state);
 
-    let centered_diff_list_area = center(
-        area,
-        Constraint::Length(area.width),
-        Constraint::Length(total_height),
+    let text = Line::styled(
+        "↑|k Previous  ↓|j Next",
+        text_styles.secondary_text_style,
     );
 
-    StatefulWidget::render(list, centered_diff_list_area, buf, state);
+    let text_area = center(
+        help_area,
+        Constraint::Length(text.width() as u16),
+        Constraint::Length(1),
+    );
+
+    text.render(text_area, buf);
 }
