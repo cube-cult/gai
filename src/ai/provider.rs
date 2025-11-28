@@ -1,7 +1,7 @@
 use anyhow::{Result, anyhow};
 use schemars::generate::SchemaSettings;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 use strum::{Display, EnumIter, IntoEnumIterator};
 use ureq::Agent;
 
