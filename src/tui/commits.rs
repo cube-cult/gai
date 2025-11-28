@@ -24,7 +24,7 @@ use crate::{
         response::{PrefixType, ResponseCommit, get_response},
     },
     config::{AiConfig, CommitConfig, Config, ProviderConfig},
-    git::repo::GaiGit,
+    git::{commit::GaiCommit, repo::GaiGit},
 };
 
 pub struct CommitScreen {
@@ -114,6 +114,9 @@ impl CommitScreen {
                 KeyCode::Char('j') => {
                     self.selected_commit_state.select_next();
                 }
+                KeyCode::Char('x') => {
+                    self.apply_commits(cfg, gai);
+                }
                 _ => {}
             },
             Event::Mouse(_) => {}
@@ -147,6 +150,27 @@ impl CommitScreen {
                 }
             }
         });
+    }
+
+    fn apply_commits(&self, cfg: &Config, gai: &GaiGit) {
+        if self.commits.is_empty() {
+            return;
+        }
+
+        let commits: Vec<GaiCommit> = self
+            .commits
+            .iter()
+            .map(|r_c| {
+                GaiCommit::from_response(
+                    r_c,
+                    cfg.gai.commit_config.capitalize_prefix,
+                    cfg.gai.commit_config.include_scope,
+                )
+            })
+            .collect();
+
+        gai.apply_commits(&commits);
+        // todo: impl popup
     }
 }
 
