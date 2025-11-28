@@ -61,8 +61,8 @@ impl<'screen> Widget for DiffScreenWidget<'screen> {
         buf: &mut ratatui::prelude::Buffer,
     ) {
         let horizontal = Layout::horizontal([
-            Constraint::Percentage(20),
-            Constraint::Percentage(80),
+            Constraint::Percentage(40),
+            Constraint::Percentage(60),
         ]);
 
         let [diff_file_list_area, selected_diffs_area] =
@@ -148,12 +148,6 @@ fn render_list(
         .collect();
 
     let list = List::new(diff_files)
-        .block(
-            Block::bordered()
-                .borders(Borders::LEFT)
-                .padding(Padding::horizontal(1))
-                .border_style(text_styles.border_style),
-        )
         .highlight_style(text_styles.highlight_text_style);
 
     let total_height = list.len() as u16;

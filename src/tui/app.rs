@@ -2,10 +2,12 @@ use anyhow::Result;
 use crossterm::event::KeyCode;
 use ratatui::{
     Frame,
-    layout::{Constraint, Layout},
-    style::{Modifier, Style, Styled, Stylize, palette::tailwind},
+    layout::{Constraint, Layout, Margin},
+    style::{
+        Color, Modifier, Style, Styled, Stylize, palette::tailwind,
+    },
     text::Line,
-    widgets::{ListState, Widget},
+    widgets::{Block, Borders, ListState, Widget},
 };
 use std::{
     sync::mpsc::{self, Sender},
@@ -28,7 +30,7 @@ const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
 const HIGHLIGHT_STYLE: Style = Style::new()
     .bg(tailwind::CYAN.c800)
     .add_modifier(Modifier::BOLD);
-const BORDER_STYLE: Style = Style::new().bg(tailwind::SLATE.c800);
+const BORDER_STYLE: Style = Style::new().fg(tailwind::SLATE.c800);
 const THROBBER_STYLE: Style = Style::new()
     .fg(ratatui::style::Color::Cyan)
     .add_modifier(Modifier::BOLD);
@@ -173,12 +175,19 @@ impl App {
 
     pub fn run(&mut self, frame: &mut Frame) {
         let vertical = Layout::vertical([
-            Constraint::Percentage(10),
-            Constraint::Percentage(90),
+            Constraint::Length(1),
+            Constraint::Fill(1),
         ]);
 
         let [screen_list_area, screen_area] =
             vertical.areas(frame.area());
+
+        let b = Block::default()
+            .border_style(self.text_styles.border_style)
+            .borders(Borders::ALL);
+
+        frame.render_widget(b, screen_area);
+        let screen_area = screen_area.inner(Margin::new(1, 1));
 
         self.render_screen_list(screen_list_area, frame.buffer_mut());
 
