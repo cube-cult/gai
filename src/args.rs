@@ -22,10 +22,6 @@ pub struct Args {
     #[arg(short = 'c', long)]
     pub compact: bool,
 
-    /// Show the TUI
-    #[arg(short = 'i', long)]
-    pub interactive: bool,
-
     /// Override the current provider
     #[arg(short = 'p', long)]
     pub provider: Option<Provider>,

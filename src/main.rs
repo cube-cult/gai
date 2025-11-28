@@ -50,12 +50,6 @@ fn main() -> Result<()> {
                 return Ok(());
             }
 
-            if args.interactive {
-                let req = build_request(&cfg, &gai, &spinner);
-                run_tui(cfg, gai)?;
-                return Ok(());
-            }
-
             pretty_print_status(&gai, args.compact)?;
 
             match args.command {
