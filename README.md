@@ -14,13 +14,13 @@ version control with the added benefit of a clean commit history.
 
 ## Planned features
 
-- [x] Per File Staging [#4](https://github.com/nuttycream/gai/issues/4)
-- [x] CLI [#8](https://github.com/nuttycream/gai/issues/8)
-- [x] Per Hunk Staging [#5](https://github.com/nuttycream/gai/issues/5)
-- [ ] Magic Rebasing [#6](https://github.com/nuttycream/gai/issues/6)
-- [ ] Magic Bisect [#12](https://github.com/nuttycream/gai/issues/12)
-- [ ] Magic Sync [#29](https://github.com/nuttycream/gai/issues/29)
+- [x] Per File Staging [#4](https://github.com/cube-cult/gai/issues/4)
+- [x] CLI [#8](https://github.com/cube-cult/gai/issues/8)
+- [x] Per Hunk Staging [#5](https://github.com/cube-cult/gai/issues/5)
+- [ ] Magic Rebasing [#6](https://github.com/cube-cult/gai/issues/6)
+- [ ] Magic Bisect [#12](https://github.com/cube-cult/gai/issues/12)
+- [ ] Magic Sync [#29](https://github.com/cube-cult/gai/issues/29)
 - [ ] Recreate/Amend Existing Commits
-      [#7](https://github.com/nuttycream/gai/issues/7)
-- [ ] GitHub Marketplace App [#9](https://github.com/nuttycream/gai/issues/9)
-- [ ] IDE extensions [#10](https://github.com/nuttycream/gai/issues/10)
+      [#7](https://github.com/cube-cult/gai/issues/7)
+- [ ] GitHub Marketplace App [#9](https://github.com/cube-cult/gai/issues/9)
+- [ ] IDE extensions [#10](https://github.com/cube-cult/gai/issues/10)
