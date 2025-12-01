@@ -1,7 +1,9 @@
+use llmao::extract::{Error, ErrorKind};
+
 use anyhow::{Result, anyhow};
 use schemars::generate::SchemaSettings;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 use strum::{Display, EnumIter, IntoEnumIterator};
 use ureq::Agent;
 
@@ -168,5 +170,77 @@ impl Provider {
                 todo!()
             }
         }
+    }
+}
+
+pub enum ProviderKind {
+    Gai,
+    OpenAI,
+    Gemini,
+    Claude,
+}
+
+pub struct ProviderConfigNew {
+    pub provider_kind: ProviderKind,
+    pub model: String,
+    pub max_tokens: u64,
+}
+
+#[derive(Debug)]
+pub enum ProviderError {
+    HttpError(ureq::Error),
+    ParseError(serde_json::Error),
+    NoContent,
+    InvalidSchema,
+    NotAuthenticated,
+}
+
+impl Display for ProviderError {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        match self {
+            ProviderError::HttpError(e) => {
+                write!(f, "HTTP error: {}", e)
+            }
+            ProviderError::ParseError(e) => {
+                write!(f, "Parse error: {}", e)
+            }
+            ProviderError::NoContent => {
+                write!(f, "No content in response")
+            }
+            ProviderError::InvalidSchema => {
+                write!(f, "Invalid schema")
+            }
+            ProviderError::NotAuthenticated => {
+                write!(f, "Not authenticated")
+            }
+        }
+    }
+}
+
+impl Error for ProviderError {
+    fn kind(&self) -> ErrorKind {
+        match self {
+            ProviderError::NoContent => ErrorKind::NoData,
+            ProviderError::ParseError(_) => {
+                ErrorKind::DeserializationFailed
+            }
+            ProviderError::InvalidSchema => ErrorKind::BadSchema,
+            _ => ErrorKind::NoData,
+        }
+    }
+}
+
+impl From<ureq::Error> for ProviderError {
+    fn from(e: ureq::Error) -> Self {
+        ProviderError::HttpError(e)
+    }
+}
+
+impl From<serde_json::Error> for ProviderError {
+    fn from(e: serde_json::Error) -> Self {
+        ProviderError::ParseError(e)
     }
 }
