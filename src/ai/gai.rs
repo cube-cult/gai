@@ -1,6 +1,6 @@
 use llmao::{Provider, extract::Extract};
 use schemars::generate::SchemaSettings;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use ureq::Agent;
 
 use crate::{
@@ -10,18 +10,34 @@ use crate::{
 
 #[derive(Debug)]
 pub struct GaiProvider {
-    pub model: String,
     pub diffs: String,
     agent: ureq::Agent,
+
+    config: GaiConfig,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GaiConfig {
+    // todo more so for the worker
+    // allow for different models
+    pub model: String,
+}
+
+impl Default for GaiConfig {
+    fn default() -> Self {
+        Self {
+            model: "gemini-flash-2.5".to_owned(),
+        }
+    }
 }
 
 // create this as we create our request
 impl GaiProvider {
-    pub fn new(model: &str, diffs: &str) -> Self {
+    pub fn new(diffs: &str) -> Self {
         Self {
-            model: model.to_owned(),
             diffs: diffs.to_owned(),
             agent: Agent::new_with_defaults(),
+            config: GaiConfig::default(),
         }
     }
 }

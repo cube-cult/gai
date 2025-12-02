@@ -1,11 +1,5 @@
-use llmao::extract::Extract;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use crate::{
-    ai::{gai::GaiProvider, provider::Provider, request::Request},
-    config::ProviderConfig,
-};
 
 /// response object along with any errors
 #[derive(Debug, Serialize, Deserialize)]
@@ -97,16 +91,4 @@ impl ResponseCommit {
 
         format!("{}{}{}", prefix, breaking, scope)
     }
-}
-
-pub fn get_response(
-    req: &Request,
-    provider: Provider,
-    provider_cfg: ProviderConfig,
-) -> Response {
-    let mut gai = GaiProvider::new(&provider_cfg.model, &req.diffs);
-    let res =
-        gai.extract(&req.prompt).map_err(|e| format!("{:#}", e));
-
-    Response { result: res }
 }

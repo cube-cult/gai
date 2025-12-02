@@ -2,9 +2,9 @@ use anyhow::Result;
 use config::{Config as ConfigBuilder, File};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs, io::ErrorKind};
+use std::{fs, io::ErrorKind};
 
-use crate::ai::provider::Provider;
+use crate::ai::provider::{ProviderConfigs, ProviderKind};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
@@ -126,9 +126,10 @@ pub struct TuiConfig {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AiConfig {
     /// Enabled provider
-    pub provider: Provider,
+    pub provider: ProviderKind,
+
     /// provider specific configuration
-    pub providers: HashMap<Provider, ProviderConfig>,
+    pub provider_configs: ProviderConfigs,
 
     /// this is what tells the llm
     /// how to behave
@@ -204,16 +205,10 @@ pub struct RuleConfig {
     pub max_body_length: u16,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ProviderConfig {
-    pub model: String,
-    pub max_tokens: u64,
-}
-
 impl Default for AiConfig {
     fn default() -> Self {
         Self {
-            provider: Provider::Gai,
+            provider: ProviderKind::Gai,
             system_prompt: None,
             commit_convention: None,
             include_convention: true,
@@ -222,7 +217,7 @@ impl Default for AiConfig {
             include_untracked: true,
             files_to_truncate: vec![],
             rules: RuleConfig::default(),
-            providers: Provider::create_defaults(),
+            provider_configs: ProviderConfigs::default(),
             hint: None,
         }
     }
@@ -251,15 +246,6 @@ impl Default for CommitConfig {
             include_scope: true,
             include_breaking: true,
             breaking_symbol: None,
-        }
-    }
-}
-
-impl ProviderConfig {
-    pub fn new(model_name: &str) -> Self {
-        Self {
-            model: model_name.to_owned(),
-            max_tokens: 5000,
         }
     }
 }
