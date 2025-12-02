@@ -11,9 +11,13 @@ pub mod tui;
 use anyhow::Result;
 use clap::Parser;
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use llmao::extract::Extract;
 
 use crate::{
-    ai::{request::Request, response::get_response},
+    ai::{
+        provider::{ProviderKind, get_provider},
+        request::Request,
+    },
     args::{Args, Auth, Commands},
     auth::{auth_login, auth_status, clear_auth},
     config::Config,
@@ -122,23 +126,18 @@ fn run_commit(
     skip_confirmation: bool,
     compact: bool,
 ) -> Result<()> {
-    let provider = cfg.ai.provider;
-    let provider_cfg = cfg
-        .ai
-        .providers
-        .get(&provider)
-        .expect("somehow did not find provider config");
-
     loop {
         spinner.start(&format!(
             "Awaiting response from {} using {}",
-            cfg.ai.provider, provider_cfg.model
+            cfg.ai.provider, "todo!"
         ));
 
-        let response =
-            get_response(&req, provider, provider_cfg.to_owned());
+        let mut provider =
+            get_provider(&ProviderKind::Gai, &req.diffs);
 
-        let result = match response.result.clone() {
+        let response = provider.extract(&req.prompt);
+
+        let result = match response {
             Ok(r) => r,
             Err(e) => {
                 spinner.stop(Some(
