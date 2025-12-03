@@ -11,9 +11,10 @@ pub mod tui;
 use anyhow::Result;
 use clap::Parser;
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use dotenv::dotenv;
 
 use crate::{
-    ai::{request::Request, response::get_response},
+    ai::{provider::extract_from_provider, request::Request},
     args::{Args, Auth, Commands},
     auth::{auth_login, auth_status, clear_auth},
     config::Config,
@@ -23,6 +24,7 @@ use crate::{
 };
 
 fn main() -> Result<()> {
+    dotenv().ok();
     let mut cfg = config::Config::init()?;
 
     let args = Args::parse();
@@ -122,23 +124,19 @@ fn run_commit(
     skip_confirmation: bool,
     compact: bool,
 ) -> Result<()> {
-    let provider = cfg.ai.provider;
-    let provider_cfg = cfg
-        .ai
-        .providers
-        .get(&provider)
-        .expect("somehow did not find provider config");
-
     loop {
         spinner.start(&format!(
             "Awaiting response from {} using {}",
-            cfg.ai.provider, provider_cfg.model
+            cfg.ai.provider, "todo!"
         ));
 
-        let response =
-            get_response(&req, provider, provider_cfg.to_owned());
+        let response = extract_from_provider(
+            &cfg.ai.provider,
+            &req.prompt,
+            &req.diffs,
+        );
 
-        let result = match response.result.clone() {
+        let result = match response {
             Ok(r) => r,
             Err(e) => {
                 spinner.stop(Some(

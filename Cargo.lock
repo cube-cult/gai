@@ -387,6 +387,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dotenv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+
+[[package]]
 name = "dyn-clone"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -458,8 +464,10 @@ dependencies = [
  "crossterm 0.29.0",
  "dialoguer",
  "directories",
+ "dotenv",
  "git2",
  "indicatif",
+ "llmao",
  "open",
  "ratatui",
  "schemars",
@@ -822,6 +830,11 @@ name = "litrs"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
+
+[[package]]
+name = "llmao"
+version = "0.0.0"
+source = "git+https://github.com/nuttycream/llmao?branch=main#f262821174197ce8d7d1f6eac06b987c493a5e6b"
 
 [[package]]
 name = "lock_api"

@@ -19,17 +19,16 @@ use super::{
 };
 use crate::{
     ai::{
-        provider::Provider::Gai,
+        provider::{ProviderKind::Gai, extract_from_provider},
         request::Request,
-        response::{PrefixType, ResponseCommit, get_response},
+        response::{PrefixType, ResponseCommit},
     },
-    config::{AiConfig, CommitConfig, Config, ProviderConfig},
+    config::{AiConfig, CommitConfig, Config},
     git::{commit::GaiCommit, repo::GaiGit},
 };
 
 pub struct CommitScreen {
     pub provider: String,
-    pub provider_cfg: ProviderConfig,
     pub model: String,
 
     pub capitalize_prefix: bool,
@@ -56,13 +55,11 @@ impl CommitScreen {
     pub fn new(
         ai_config: &AiConfig,
         commit_cfg: &CommitConfig,
-        provider_cfg: &ProviderConfig,
     ) -> Self {
         let selected_commit_state = ListState::default();
 
         Self {
             provider: ai_config.provider.to_string(),
-            provider_cfg: provider_cfg.to_owned(),
             model: "todo: implement provider".to_owned(),
             capitalize_prefix: commit_cfg.capitalize_prefix,
             include_scope: commit_cfg.include_scope,
@@ -133,14 +130,18 @@ impl CommitScreen {
         self.request_sent = true;
         self.is_waiting = true;
 
-        let provider_cfg = self.provider_cfg.to_owned();
         let mut request = Request::default();
         request.build_prompt(cfg, gai);
         request.build_diffs_string(gai.get_file_diffs_as_str());
 
         thread::spawn(move || {
-            let response = get_response(&request, Gai, provider_cfg);
-            match response.result {
+            let response = extract_from_provider(
+                &Gai,
+                &request.prompt,
+                &request.diffs,
+            );
+
+            match response {
                 Ok(res) => {
                     tx.send(Event::ProviderResponse(res.commits))
                         .ok();

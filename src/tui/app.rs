@@ -19,9 +19,7 @@ use super::{
     diffs::{DiffScreen, DiffScreenWidget},
     events::{Event, poll_event},
 };
-use crate::{
-    ai::provider::Provider::Gai, config::Config, git::repo::GaiGit,
-};
+use crate::{config::Config, git::repo::GaiGit};
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
@@ -151,11 +149,8 @@ impl App {
         let tui_state = TUIState { selected_screen };
 
         let diff_screen = DiffScreen::new(&gai.files);
-        let commit_screen = CommitScreen::new(
-            &cfg.ai,
-            &cfg.gai.commit_config,
-            cfg.ai.providers.get(&Gai).unwrap(),
-        );
+        let commit_screen =
+            CommitScreen::new(&cfg.ai, &cfg.gai.commit_config);
 
         Self {
             running: true,
