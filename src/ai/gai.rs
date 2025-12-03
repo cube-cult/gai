@@ -10,9 +10,9 @@ use crate::{
 
 #[derive(Debug)]
 pub struct GaiProvider {
-    pub diffs: String,
     agent: ureq::Agent,
 
+    #[allow(dead_code)]
     config: GaiConfig,
 }
 
@@ -33,12 +33,17 @@ impl Default for GaiConfig {
 
 // create this as we create our request
 impl GaiProvider {
-    pub fn new(diffs: &str) -> Self {
+    pub fn new() -> Self {
         Self {
-            diffs: diffs.to_owned(),
             agent: Agent::new_with_defaults(),
             config: GaiConfig::default(),
         }
+    }
+}
+
+impl Default for GaiProvider {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -47,9 +52,13 @@ impl Provider for GaiProvider {
 }
 
 impl Extract<ResponseSchema> for GaiProvider {
+    type Prompt = String;
+    type Content = String;
+
     fn extract(
         &mut self,
-        prompt: &str,
+        prompt: String,
+        diffs: String,
     ) -> Result<ResponseSchema, ProviderError> {
         let generator = SchemaSettings::draft2020_12()
             .with(|s| {
@@ -69,11 +78,9 @@ impl Extract<ResponseSchema> for GaiProvider {
             diffs: String,
         }
 
-        let diffs = self.diffs.to_owned();
-
         let request_body = FromUser {
             schema,
-            prompt: prompt.to_owned(),
+            prompt,
             diffs,
         };
 

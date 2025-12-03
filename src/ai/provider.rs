@@ -5,6 +5,7 @@ use strum::{Display, EnumIter};
 
 use crate::ai::{
     gai::{GaiConfig, GaiProvider},
+    openai::{OpenAIConfig, OpenAIProvider},
     response::ResponseSchema,
 };
 
@@ -31,6 +32,7 @@ pub enum ProviderKind {
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct ProviderConfigs {
     pub gai: GaiConfig,
+    pub openai: OpenAIConfig,
 }
 
 #[derive(Debug)]
@@ -92,12 +94,20 @@ impl From<serde_json::Error> for ProviderError {
     }
 }
 
-pub fn get_provider(
+pub fn extract_from_provider(
     provider: &ProviderKind,
+    prompt: &str,
     diffs: &str,
-) -> impl Extract<ResponseSchema, Error = ProviderError> {
+) -> Result<ResponseSchema, ProviderError> {
     match provider {
-        ProviderKind::Gai => GaiProvider::new(diffs),
+        ProviderKind::Gai => {
+            let mut gai = GaiProvider::new();
+            gai.extract(prompt.to_owned(), diffs.to_owned())
+        }
+        ProviderKind::OpenAI => {
+            let mut openai = OpenAIProvider::new();
+            openai.extract(prompt.to_owned(), diffs.to_owned())
+        }
         _ => todo!(),
     }
 }
