@@ -83,10 +83,10 @@ impl Extract<ResponseSchema> for OpenAIProvider {
             generator.into_root_schema_for::<ResponseSchema>(),
         )?;
 
-        println!(
+        /* println!(
             "{}",
             serde_json::to_string_pretty(&schema).unwrap()
-        );
+        ); */
 
         let request_body = serde_json::json!({
             "model": self.config.model,
@@ -110,10 +110,10 @@ impl Extract<ResponseSchema> for OpenAIProvider {
             }
         });
 
-        println!(
+        /* println!(
             "{}",
             serde_json::to_string_pretty(&request_body).unwrap()
-        );
+        ); */
 
         let response = self
             .agent
@@ -130,7 +130,7 @@ impl Extract<ResponseSchema> for OpenAIProvider {
         // converting the response into a valid serde_json Value
         let response_json: serde_json::Value = response;
 
-        println!("{:#}", response_json);
+        //println!("{:#}", response_json);
 
         // extract the content from the OpenAI api response format
         // https://platform.openai.com/docs/guides/structured-outputs
@@ -139,7 +139,7 @@ impl Extract<ResponseSchema> for OpenAIProvider {
                 .as_str()
                 .ok_or(ProviderError::NoContent)?;
 
-        println!("content:\n{:#?}", content);
+        //println!("content:\n{:#?}", content);
 
         let extracted: ResponseSchema =
             serde_json::from_str(content)?;
