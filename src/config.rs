@@ -129,6 +129,7 @@ pub struct AiConfig {
     pub provider: ProviderKind,
 
     /// provider specific configuration
+    #[serde(rename = "provider-config")]
     pub provider_configs: ProviderConfigs,
 
     /// this is what tells the llm
