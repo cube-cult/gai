@@ -24,6 +24,7 @@ use crate::{config::Config, git::repo::GaiGit};
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
 const HIGHLIGHT_STYLE: Style = Style::new()
+    .fg(tailwind::WHITE)
     .bg(tailwind::CYAN.c800)
     .add_modifier(Modifier::BOLD);
 const BORDER_STYLE: Style = Style::new().fg(tailwind::SLATE.c800);

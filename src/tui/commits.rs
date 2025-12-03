@@ -273,9 +273,11 @@ fn render_commits(
         .block(
             Block::bordered()
                 .title("Commits")
+                .title_style(text_styles.primary_text_style)
                 .borders(Borders::ALL)
                 .padding(Padding::horizontal(1)),
         )
+        .style(text_styles.border_style)
         .highlight_style(text_styles.highlight_text_style);
 
     StatefulWidget::render(list, commit_list_area, buf, state);
@@ -284,7 +286,12 @@ fn render_commits(
         && selected < commits.len()
     {
         let commit = commits[selected].to_owned();
-        render_commit_message(commit_message_area, buf, &commit);
+        render_commit_message(
+            commit_message_area,
+            buf,
+            &commit,
+            text_styles,
+        );
     }
 }
 
@@ -292,6 +299,7 @@ fn render_commit_message(
     area: ratatui::prelude::Rect,
     buf: &mut ratatui::prelude::Buffer,
     commit: &ResponseCommit,
+    text_styles: &TextStyles,
 ) {
     let mut lines: Vec<Line> = Vec::new();
 
@@ -375,9 +383,11 @@ fn render_commit_message(
         .block(
             Block::bordered()
                 .title("Commit Info")
+                .title_style(text_styles.primary_text_style)
                 .borders(Borders::ALL)
                 .padding(Padding::horizontal(1)),
         )
+        .style(text_styles.border_style)
         .wrap(Wrap { trim: false });
 
     paragraph.render(area, buf);
