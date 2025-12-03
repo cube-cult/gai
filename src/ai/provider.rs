@@ -5,6 +5,7 @@ use strum::{Display, EnumIter};
 
 use crate::ai::{
     gai::{GaiConfig, GaiProvider},
+    gemini::{GeminiConfig, GeminiProvider},
     openai::{OpenAIConfig, OpenAIProvider},
     response::ResponseSchema,
 };
@@ -33,6 +34,7 @@ pub enum ProviderKind {
 pub struct ProviderConfigs {
     pub gai: GaiConfig,
     pub openai: OpenAIConfig,
+    pub gemini: GeminiConfig,
 }
 
 #[derive(Debug)]
@@ -107,6 +109,10 @@ pub fn extract_from_provider(
         ProviderKind::OpenAI => {
             let mut openai = OpenAIProvider::new();
             openai.extract(prompt.to_owned(), diffs.to_owned())
+        }
+        ProviderKind::Gemini => {
+            let mut gemini = GeminiProvider::new();
+            gemini.extract(prompt.to_owned(), diffs.to_owned())
         }
         _ => todo!(),
     }
