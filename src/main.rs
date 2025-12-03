@@ -11,13 +11,10 @@ pub mod tui;
 use anyhow::Result;
 use clap::Parser;
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
-use llmao::extract::Extract;
+use dotenv::dotenv;
 
 use crate::{
-    ai::{
-        provider::{ProviderKind, get_provider},
-        request::Request,
-    },
+    ai::{provider::extract_from_provider, request::Request},
     args::{Args, Auth, Commands},
     auth::{auth_login, auth_status, clear_auth},
     config::Config,
@@ -27,6 +24,7 @@ use crate::{
 };
 
 fn main() -> Result<()> {
+    dotenv().ok();
     let mut cfg = config::Config::init()?;
 
     let args = Args::parse();
@@ -132,10 +130,11 @@ fn run_commit(
             cfg.ai.provider, "todo!"
         ));
 
-        let mut provider =
-            get_provider(&ProviderKind::Gai, &req.diffs);
-
-        let response = provider.extract(&req.prompt);
+        let response = extract_from_provider(
+            &cfg.ai.provider,
+            &req.prompt,
+            &req.diffs,
+        );
 
         let result = match response {
             Ok(r) => r,

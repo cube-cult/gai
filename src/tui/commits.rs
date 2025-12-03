@@ -1,7 +1,6 @@
 use std::{sync::mpsc::Sender, thread};
 
 use crossterm::event::KeyCode;
-use llmao::extract::Extract;
 use ratatui::{
     layout::{Constraint, Layout},
     style::{Stylize, palette::tailwind},
@@ -20,7 +19,7 @@ use super::{
 };
 use crate::{
     ai::{
-        provider::{ProviderKind::Gai, get_provider},
+        provider::{ProviderKind::Gai, extract_from_provider},
         request::Request,
         response::{PrefixType, ResponseCommit},
     },
@@ -136,9 +135,11 @@ impl CommitScreen {
         request.build_diffs_string(gai.get_file_diffs_as_str());
 
         thread::spawn(move || {
-            let mut provider = get_provider(&Gai, &request.diffs);
-
-            let response = provider.extract(&request.prompt);
+            let response = extract_from_provider(
+                &Gai,
+                &request.prompt,
+                &request.diffs,
+            );
 
             match response {
                 Ok(res) => {
