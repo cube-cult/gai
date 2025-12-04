@@ -47,9 +47,15 @@ pub struct PopupWidget<'popup> {
 
 impl<'popup> Widget for PopupWidget<'popup> {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let hint = match self.popup.popup_type {
+            PopupType::Confirm => "Press Enter/Esc to Continue",
+            _ => "",
+        };
+
         let text_len = self.popup.content.len().min(60) as u16;
-        let width = text_len + 4;
-        let height = 4;
+        let hint_len = hint.len() as u16;
+        let width = text_len.max(hint_len) + 4;
+        let height = if hint.is_empty() { 4 } else { 5 };
 
         let centered_area = center(
             area,
@@ -65,7 +71,13 @@ impl<'popup> Widget for PopupWidget<'popup> {
             .fg(tailwind::WHITE)
             .border_style(self.text_styles.border_style);
 
-        Paragraph::new(self.popup.content.to_owned())
+        let text = if hint.is_empty() {
+            self.popup.content.clone()
+        } else {
+            format!("{}\n\n{}", self.popup.content, hint)
+        };
+
+        Paragraph::new(text)
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true })
             .style(self.text_styles.primary_text_style)
