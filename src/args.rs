@@ -4,7 +4,7 @@ use clap::{
     builder::styling::{self, AnsiColor},
 };
 
-use crate::{ai::provider::Provider, config::Config};
+use crate::{ai::provider::ProviderKind, config::Config};
 
 pub const STYLING: styling::Styles = clap::builder::Styles::styled()
     .header(AnsiColor::White.on_default().bold())
@@ -22,13 +22,9 @@ pub struct Args {
     #[arg(short = 'c', long)]
     pub compact: bool,
 
-    /// Show the TUI
-    #[arg(short = 'i', long)]
-    pub interactive: bool,
-
     /// Override the current provider
     #[arg(short = 'p', long)]
-    pub provider: Option<Provider>,
+    pub provider: Option<ProviderKind>,
 
     /// Provide an additional 'hint' to the LLM
     #[arg(short = 'H', long)]
@@ -53,6 +49,9 @@ pub enum Commands {
         #[arg(short = 'v', long)]
         verbose: bool,
     },
+
+    /// Launch the Text-based/Terminal User Interface
+    TUI {},
 
     /// Create commits from the diffs in the working tree
     Commit {

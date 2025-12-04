@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::path::Path;
 
 use crate::git::{
@@ -6,14 +7,17 @@ use crate::git::{
 };
 
 impl GaiGit {
-    pub fn apply_commits(&self, commits: &[GaiCommit]) {
+    pub fn apply_commits(&self, commits: &[GaiCommit]) -> Result<()> {
         //println!("{:#?}", self.commits);
         for commit in commits {
-            self.commit(commit);
+            self.commit(commit)?;
         }
+
+        Ok(())
     }
 
-    fn commit(&self, commit: &GaiCommit) {
+    // todo rid of unwraps
+    fn commit(&self, commit: &GaiCommit) -> Result<()> {
         let mut index = self.repo.index().unwrap();
 
         index.clear().unwrap();
@@ -64,6 +68,8 @@ impl GaiGit {
                 &parents[..],
             )
             .unwrap();
+
+        Ok(())
     }
 
     pub fn stage_hunks(&self, commit: &GaiCommit) {

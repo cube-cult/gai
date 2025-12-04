@@ -14,17 +14,16 @@ use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 use dotenv::dotenv;
 
 use crate::{
-    ai::{request::Request, response::get_response},
+    ai::{provider::extract_from_provider, request::Request},
     args::{Args, Auth, Commands},
     auth::{auth_login, auth_status, clear_auth},
     config::Config,
     git::{commit::GaiCommit, repo::GaiGit},
     print::{SpinDeez, pretty_print_commits, pretty_print_status},
-    tui::run_tui,
+    tui::app::run_tui,
 };
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     dotenv().ok();
     let mut cfg = config::Config::init()?;
 
@@ -35,7 +34,7 @@ async fn main() -> Result<()> {
 
     match args.command {
         Commands::Auth { ref auth } => {
-            run_auth(auth, &spinner).await?;
+            run_auth(auth, &spinner)?;
         }
 
         _ => {
@@ -53,15 +52,12 @@ async fn main() -> Result<()> {
                 return Ok(());
             }
 
-            if args.interactive {
-                let req = build_request(&cfg, &gai, &spinner);
-                run_tui(req, cfg, gai, None).await?;
-                return Ok(());
-            }
-
             pretty_print_status(&gai, args.compact)?;
 
             match args.command {
+                Commands::TUI { .. } => {
+                    run_tui(cfg, gai)?;
+                }
                 Commands::Commit {
                     skip_confirmation,
                     config,
@@ -81,8 +77,7 @@ async fn main() -> Result<()> {
                         gai,
                         skip_confirmation,
                         args.compact,
-                    )
-                    .await?
+                    )?;
                 }
                 Commands::Status { verbose } => {
                     if verbose {
@@ -111,17 +106,17 @@ fn build_request(
     req
 }
 
-async fn run_auth(auth: &Auth, spinner: &SpinDeez) -> Result<()> {
+fn run_auth(auth: &Auth, spinner: &SpinDeez) -> Result<()> {
     match auth {
         Auth::Login => auth_login()?,
-        Auth::Status => auth_status(spinner).await?,
+        Auth::Status => auth_status(spinner)?,
         Auth::Logout => clear_auth()?,
     }
 
     Ok(())
 }
 
-async fn run_commit(
+fn run_commit(
     spinner: &SpinDeez,
     req: Request,
     cfg: Config,
@@ -129,24 +124,19 @@ async fn run_commit(
     skip_confirmation: bool,
     compact: bool,
 ) -> Result<()> {
-    let provider = cfg.ai.provider;
-    let provider_cfg = cfg
-        .ai
-        .providers
-        .get(&provider)
-        .expect("somehow did not find provider config");
-
     loop {
         spinner.start(&format!(
             "Awaiting response from {} using {}",
-            cfg.ai.provider, provider_cfg.model
+            cfg.ai.provider, "todo!"
         ));
 
-        let response =
-            get_response(&req, provider, provider_cfg.to_owned())
-                .await;
+        let response = extract_from_provider(
+            &cfg.ai.provider,
+            &req.prompt,
+            &req.diffs,
+        );
 
-        let result = match response.result.clone() {
+        let result = match response {
             Ok(r) => r,
             Err(e) => {
                 spinner.stop(Some(
@@ -203,8 +193,29 @@ async fn run_commit(
 
         if skip_confirmation {
             println!("Skipping confirmation and applying commits...");
-            gai.apply_commits(&commits);
-            break;
+            match gai.apply_commits(&commits) {
+                Ok(_) => break,
+                Err(e) => {
+                    println!("Failed to Apply Commits: {}", e);
+
+                    let options = ["Retry", "Exit"];
+                    let selection =
+                        Select::with_theme(&ColorfulTheme::default())
+                            .with_prompt("Select an option:")
+                            .items(options)
+                            .default(0)
+                            .interact()
+                            .unwrap();
+
+                    if selection == 0 {
+                        println!("Retrying...");
+                        continue;
+                    } else if selection == 1 {
+                        println!("Exiting");
+                        break;
+                    }
+                }
+            };
         }
 
         let options = ["Apply All", "Show in TUI", "Retry", "Exit"];
@@ -218,9 +229,31 @@ async fn run_commit(
 
         if selection == 0 {
             println!("Applying Commits...");
-            gai.apply_commits(&commits);
+            match gai.apply_commits(&commits) {
+                Ok(_) => break,
+                Err(e) => {
+                    println!("Failed to Apply Commits: {}", e);
+
+                    let options = ["Retry", "Exit"];
+                    let selection =
+                        Select::with_theme(&ColorfulTheme::default())
+                            .with_prompt("Select an option:")
+                            .items(options)
+                            .default(0)
+                            .interact()
+                            .unwrap();
+
+                    if selection == 0 {
+                        println!("Retrying...");
+                        continue;
+                    } else if selection == 1 {
+                        println!("Exiting");
+                        break;
+                    }
+                }
+            }
         } else if selection == 1 {
-            let _ = run_tui(req, cfg, gai, Some(response)).await;
+            let _ = run_tui(cfg, gai);
         } else if selection == 2 {
             println!("Retrying...");
             continue;
