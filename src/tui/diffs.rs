@@ -139,7 +139,7 @@ fn render_selected_diff(
         .block(
             Block::bordered()
                 .title_top("Changes")
-                .title_style(text_styles.primary_text_style)
+                .title_style(text_styles.secondary_text_style)
                 .border_style(text_styles.border_style),
         )
         .wrap(Wrap { trim: false });
@@ -169,9 +169,10 @@ fn render_list(
         .block(
             Block::bordered()
                 .title_top("Files")
-                .title_style(text_styles.primary_text_style)
+                .title_style(text_styles.secondary_text_style)
                 .border_style(text_styles.border_style),
         )
+        .style(text_styles.primary_text_style)
         .highlight_style(text_styles.highlight_text_style);
 
     StatefulWidget::render(list, diff_files_area, buf, state);

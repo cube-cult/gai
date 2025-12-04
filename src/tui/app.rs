@@ -3,7 +3,7 @@ use crossterm::event::KeyCode;
 use ratatui::{
     Frame,
     layout::{Constraint, Layout, Margin},
-    style::{Modifier, Style, Styled, Stylize, palette::tailwind},
+    style::{Modifier, Style, Styled, palette::tailwind},
     text::Line,
     widgets::{Block, Borders, ListState, Widget},
 };
@@ -350,7 +350,8 @@ impl App {
                         self.text_styles.highlight_text_style,
                     ))
                 } else {
-                    Line::from(screen.fg(tailwind::SLATE.c600))
+                    Line::from(screen)
+                        .style(self.text_styles.primary_text_style)
                 };
 
             buf.set_line(

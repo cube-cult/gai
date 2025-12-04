@@ -290,11 +290,12 @@ fn render_commits(
         .block(
             Block::bordered()
                 .title("Commits")
-                .title_style(text_styles.primary_text_style)
+                .title_style(text_styles.secondary_text_style)
                 .borders(Borders::ALL)
-                .padding(Padding::horizontal(1)),
+                .padding(Padding::horizontal(1))
+                .style(text_styles.border_style),
         )
-        .style(text_styles.border_style)
+        .style(text_styles.primary_text_style)
         .highlight_style(text_styles.highlight_text_style);
 
     StatefulWidget::render(list, commit_list_area, buf, state);
@@ -400,7 +401,7 @@ fn render_commit_message(
         .block(
             Block::bordered()
                 .title("Commit Info")
-                .title_style(text_styles.primary_text_style)
+                .title_style(text_styles.secondary_text_style)
                 .borders(Borders::ALL)
                 .padding(Padding::horizontal(1)),
         )
