@@ -112,7 +112,7 @@ impl CommitScreen {
                     self.selected_commit_state.select_next();
                 }
                 KeyCode::Char('x') => {
-                    self.apply_commits(cfg, gai);
+                    self.apply_commits(tx, cfg, gai);
                 }
                 _ => {}
             },
@@ -153,7 +153,12 @@ impl CommitScreen {
         });
     }
 
-    fn apply_commits(&self, cfg: &Config, gai: &GaiGit) {
+    fn apply_commits(
+        &self,
+        tx: &Sender<Event>,
+        cfg: &Config,
+        gai: &GaiGit,
+    ) {
         if self.commits.is_empty() {
             return;
         }
@@ -170,8 +175,20 @@ impl CommitScreen {
             })
             .collect();
 
-        gai.apply_commits(&commits);
-        // todo: impl popup
+        match gai.apply_commits(&commits) {
+            Ok(_) => tx
+                .send(Event::PopUp(
+                    "Successfully Applied Commits".to_owned(),
+                    super::popup::PopupType::Confirm,
+                ))
+                .ok(),
+            Err(e) => tx
+                .send(Event::PopUp(
+                    e.to_string(),
+                    super::popup::PopupType::Confirm,
+                ))
+                .ok(),
+        };
     }
 }
 
