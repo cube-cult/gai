@@ -245,7 +245,7 @@ impl App {
                         KeyCode::Right | KeyCode::Tab => {
                             self.go_next()
                         }
-                        KeyCode::Char('e') => {
+                        KeyCode::Char('z') => {
                             self.popup = Some(Popup::new(
                                 "LULW",
                                 &super::popup::PopupType::Confirm,
