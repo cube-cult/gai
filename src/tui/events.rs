@@ -4,7 +4,7 @@ use crossterm::event::{
 };
 use std::{sync::mpsc::Receiver, time::Duration};
 
-use crate::ai::response::ResponseCommit;
+use crate::{ai::response::ResponseCommit, tui::popup::PopupType};
 
 #[derive(Clone, Debug)]
 pub enum Event {
@@ -15,6 +15,8 @@ pub enum Event {
 
     ProviderResponse(Vec<ResponseCommit>),
     ProviderError(String),
+
+    PopUp(String, PopupType),
 }
 
 pub fn poll_event(

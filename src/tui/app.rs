@@ -19,7 +19,11 @@ use super::{
     diffs::{DiffScreen, DiffScreenWidget},
     events::{Event, poll_event},
 };
-use crate::{config::Config, git::repo::GaiGit};
+use crate::{
+    config::Config,
+    git::repo::GaiGit,
+    tui::popup::{Popup, PopupWidget},
+};
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
@@ -69,6 +73,8 @@ pub struct App {
     pub commit_screen: CommitScreen,
     pub diff_screen: DiffScreen,
 
+    pub popup: Option<Popup>,
+
     pub throbber_styles: ThrobberStyles,
     pub text_styles: TextStyles,
 
@@ -111,6 +117,13 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
 
         if app.handle_main_events(&event) {
             break;
+        }
+
+        if let Some(ref mut popup) = app.popup {
+            if popup.handle_event(&event) {
+                app.popup = None;
+            }
+            continue;
         }
 
         match app.current_screen {
@@ -160,6 +173,7 @@ impl App {
             current_screen,
             commit_screen,
             diff_screen,
+            popup: None,
             tui_state,
             throbber_styles: ThrobberStyles::default(),
             text_styles: TextStyles::default(),
@@ -205,22 +219,50 @@ impl App {
             }
             _ => {}
         }
+
+        // todo use popup content
+        // only render popup
+        // to avoid clone
+        if let Some(popup) = &self.popup {
+            PopupWidget {
+                popup: &Popup::new(&popup.content, &popup.popup_type),
+                text_styles: &self.text_styles,
+            }
+            .render(screen_area, frame.buffer_mut());
+        }
     }
 
     fn handle_main_events(&mut self, event: &Event) -> bool {
         match event {
             Event::Mouse(_) => {}
-            Event::Key(k) => match k.code {
-                KeyCode::Esc => return true,
-                KeyCode::Left | KeyCode::BackTab => self.go_back(),
-                KeyCode::Right | KeyCode::Tab => self.go_next(),
-                KeyCode::Char('1') => self.go_tab(1),
-                KeyCode::Char('2') => self.go_tab(2),
-                KeyCode::Char('3') => self.go_tab(3),
-                KeyCode::Char('4') => self.go_tab(4),
-                KeyCode::Char('5') => self.go_tab(5),
-                _ => {}
-            },
+            Event::Key(k) => {
+                if self.popup.is_none() {
+                    match k.code {
+                        KeyCode::Esc => return true,
+                        KeyCode::Left | KeyCode::BackTab => {
+                            self.go_back()
+                        }
+                        KeyCode::Right | KeyCode::Tab => {
+                            self.go_next()
+                        }
+                        KeyCode::Char('e') => {
+                            self.popup = Some(Popup::new(
+                                "LULW",
+                                &super::popup::PopupType::Confirm,
+                            ));
+                        }
+                        KeyCode::Char('1') => self.go_tab(1),
+                        KeyCode::Char('2') => self.go_tab(2),
+                        KeyCode::Char('3') => self.go_tab(3),
+                        KeyCode::Char('4') => self.go_tab(4),
+                        KeyCode::Char('5') => self.go_tab(5),
+                        _ => {}
+                    }
+                }
+            }
+            Event::PopUp(content, popup_type) => {
+                self.popup = Some(Popup::new(content, popup_type));
+            }
             _ => {}
         }
 
