@@ -15,6 +15,7 @@ use throbber_widgets_tui::{Throbber, ThrobberState};
 use super::{
     app::{TextStyles, ThrobberStyles},
     events::Event,
+    popup::PopupResult::{self, SelectedChoice},
     utils::center,
 };
 use crate::{
@@ -99,7 +100,30 @@ impl CommitScreen {
                 self.is_error = true;
                 self.error = Some(error.to_owned());
             }
+            Event::PopUpReturn(val) => match val {
+                PopupResult::SelectedChoice(choice) => {
+                    let choice = *choice;
+                    if choice == 0 {
+                        //prefix
+                        todo!()
+                    } else if choice == 1 {
+                        //header
+                        todo!()
+                    } else if choice == 2 {
+                        //body
+                        todo!()
+                    }
+                }
+                PopupResult::Confirmed => {}
+                _ => (),
+            },
             Event::Key(k) => match k.code {
+                KeyCode::Enter => {
+                    if self.selected_commit_state.selected().is_some()
+                    {
+                        self.edit_commit(tx);
+                    }
+                }
                 KeyCode::Char('p') | KeyCode::Char('P') => {
                     if !self.is_waiting {
                         self.send_request(tx.clone(), cfg, gai);
@@ -177,18 +201,35 @@ impl CommitScreen {
 
         match gai.apply_commits(&commits) {
             Ok(_) => tx
-                .send(Event::PopUp(
+                .send(Event::PopUp(super::popup::PopupType::Confirm(
                     "Successfully Applied Commits".to_owned(),
-                    super::popup::PopupType::Confirm,
-                ))
+                )))
                 .ok(),
             Err(e) => tx
-                .send(Event::PopUp(
+                .send(Event::PopUp(super::popup::PopupType::Confirm(
                     e.to_string(),
-                    super::popup::PopupType::Confirm,
-                ))
+                )))
                 .ok(),
         };
+    }
+
+    fn edit_commit(&self, tx: &Sender<Event>) {
+        if self.commits.is_empty() {
+            return;
+        }
+
+        if let Some(selected) = self.selected_commit_state.selected()
+            && selected < self.commits.len()
+        {
+            tx.send(Event::PopUp(super::popup::PopupType::Options(
+                vec![
+                    "Prefix".to_owned(),
+                    "Header".to_owned(),
+                    "Body".to_owned(),
+                ],
+            )))
+            .ok();
+        }
     }
 }
 

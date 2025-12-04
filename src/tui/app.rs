@@ -120,7 +120,7 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
         }
 
         if let Some(ref mut popup) = app.popup {
-            if popup.handle_event(&event) {
+            if popup.handle_event(&event, &app.event_tx) {
                 app.popup = None;
             }
             continue;
@@ -223,9 +223,9 @@ impl App {
         // todo use popup content
         // only render popup
         // to avoid clone
-        if let Some(popup) = &self.popup {
+        if let Some(ref mut popup) = self.popup {
             PopupWidget {
-                popup: &Popup::new(&popup.content, &popup.popup_type),
+                popup,
                 text_styles: &self.text_styles,
             }
             .render(screen_area, frame.buffer_mut());
@@ -247,8 +247,9 @@ impl App {
                         }
                         KeyCode::Char('z') => {
                             self.popup = Some(Popup::new(
-                                "LULW",
-                                &super::popup::PopupType::Confirm,
+                                &super::popup::PopupType::Confirm(
+                                    "LULW".to_owned(),
+                                ),
                             ));
                         }
                         KeyCode::Char('1') => self.go_tab(1),
@@ -260,8 +261,8 @@ impl App {
                     }
                 }
             }
-            Event::PopUp(content, popup_type) => {
-                self.popup = Some(Popup::new(content, popup_type));
+            Event::PopUp(popup_type) => {
+                self.popup = Some(Popup::new(popup_type));
             }
             _ => {}
         }
