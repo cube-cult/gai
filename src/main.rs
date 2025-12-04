@@ -193,8 +193,29 @@ fn run_commit(
 
         if skip_confirmation {
             println!("Skipping confirmation and applying commits...");
-            gai.apply_commits(&commits);
-            break;
+            match gai.apply_commits(&commits) {
+                Ok(_) => break,
+                Err(e) => {
+                    println!("Failed to Apply Commits: {}", e);
+
+                    let options = ["Retry", "Exit"];
+                    let selection =
+                        Select::with_theme(&ColorfulTheme::default())
+                            .with_prompt("Select an option:")
+                            .items(options)
+                            .default(0)
+                            .interact()
+                            .unwrap();
+
+                    if selection == 0 {
+                        println!("Retrying...");
+                        continue;
+                    } else if selection == 1 {
+                        println!("Exiting");
+                        break;
+                    }
+                }
+            };
         }
 
         let options = ["Apply All", "Show in TUI", "Retry", "Exit"];
@@ -208,7 +229,29 @@ fn run_commit(
 
         if selection == 0 {
             println!("Applying Commits...");
-            gai.apply_commits(&commits);
+            match gai.apply_commits(&commits) {
+                Ok(_) => break,
+                Err(e) => {
+                    println!("Failed to Apply Commits: {}", e);
+
+                    let options = ["Retry", "Exit"];
+                    let selection =
+                        Select::with_theme(&ColorfulTheme::default())
+                            .with_prompt("Select an option:")
+                            .items(options)
+                            .default(0)
+                            .interact()
+                            .unwrap();
+
+                    if selection == 0 {
+                        println!("Retrying...");
+                        continue;
+                    } else if selection == 1 {
+                        println!("Exiting");
+                        break;
+                    }
+                }
+            }
         } else if selection == 1 {
             let _ = run_tui(cfg, gai);
         } else if selection == 2 {
