@@ -15,7 +15,7 @@ use throbber_widgets_tui::{Throbber, ThrobberState};
 use super::{
     app::{TextStyles, ThrobberStyles},
     events::Event,
-    popup::PopupResult::{self, SelectedChoice},
+    popup::PopupResult,
     utils::center,
 };
 use crate::{
