@@ -10,12 +10,13 @@ use ratatui::{
         Paragraph, StatefulWidget, Widget, Wrap,
     },
 };
+use strum::IntoEnumIterator;
 use throbber_widgets_tui::{Throbber, ThrobberState};
 
 use super::{
     app::{TextStyles, ThrobberStyles},
     events::Event,
-    popup::PopupResult,
+    popup::{PopupResult, PopupType},
     utils::center,
 };
 use crate::{
@@ -49,7 +50,9 @@ pub struct CommitScreen {
 #[repr(u8)]
 pub enum CommitLayers {
     Initial = 0,
-    FieldToEdit = 1,
+    Prefixes = 1,
+    Header = 2,
+    Body = 3,
 }
 
 pub struct CommitScreenWidget<'screen> {
@@ -111,11 +114,39 @@ impl CommitScreen {
                     if *layer == CommitLayers::Initial as u8 {
                         let choice = *choice;
                         if choice == 0 {
-                            //prefix
-                            todo!()
+                            let prefix_opts: Vec<String> =
+                                PrefixType::iter()
+                                    .map(|prefix| {
+                                        format!("{:?}", prefix)
+                                    })
+                                    .collect();
+                            let event =
+                                Event::PopUp(PopupType::Options(
+                                    CommitLayers::Prefixes as u8,
+                                    prefix_opts,
+                                ));
+
+                            tx.send(event).ok();
                         } else if choice == 1 {
                             //header
-                            todo!()
+
+                            // asuming ones already selected
+                            // this wouldnt be proc'd otherwise
+                            let text = self.commits[self
+                                .selected_commit_state
+                                .selected()
+                                .unwrap()]
+                            .message
+                            .header
+                            .to_owned();
+
+                            let event =
+                                Event::PopUp(PopupType::Edit(
+                                    CommitLayers::Header as u8,
+                                    text,
+                                ));
+
+                            tx.send(event).ok();
                         } else if choice == 2 {
                             //body
                             todo!()
@@ -209,14 +240,12 @@ impl CommitScreen {
 
         match gai.apply_commits(&commits) {
             Ok(_) => tx
-                .send(Event::PopUp(super::popup::PopupType::Confirm(
+                .send(Event::PopUp(PopupType::Confirm(
                     "Successfully Applied Commits".to_owned(),
                 )))
                 .ok(),
             Err(e) => tx
-                .send(Event::PopUp(super::popup::PopupType::Confirm(
-                    e.to_string(),
-                )))
+                .send(Event::PopUp(PopupType::Confirm(e.to_string())))
                 .ok(),
         };
     }
@@ -229,7 +258,7 @@ impl CommitScreen {
         if let Some(selected) = self.selected_commit_state.selected()
             && selected < self.commits.len()
         {
-            tx.send(Event::PopUp(super::popup::PopupType::Options(
+            tx.send(Event::PopUp(PopupType::Options(
                 CommitLayers::Initial as u8,
                 vec![
                     "Prefix".to_owned(),
