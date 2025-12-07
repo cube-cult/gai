@@ -46,6 +46,12 @@ pub struct CommitScreen {
     pub throbber_state: ThrobberState,
 }
 
+#[repr(u8)]
+pub enum CommitLayers {
+    Initial = 0,
+    FieldToEdit = 1,
+}
+
 pub struct CommitScreenWidget<'screen> {
     pub screen: &'screen mut CommitScreen,
     pub throbber_styles: &'screen ThrobberStyles,
@@ -101,17 +107,19 @@ impl CommitScreen {
                 self.error = Some(error.to_owned());
             }
             Event::PopUpReturn(val) => match val {
-                PopupResult::SelectedChoice(choice) => {
-                    let choice = *choice;
-                    if choice == 0 {
-                        //prefix
-                        todo!()
-                    } else if choice == 1 {
-                        //header
-                        todo!()
-                    } else if choice == 2 {
-                        //body
-                        todo!()
+                PopupResult::SelectedChoice(layer, choice) => {
+                    if *layer == CommitLayers::Initial as u8 {
+                        let choice = *choice;
+                        if choice == 0 {
+                            //prefix
+                            todo!()
+                        } else if choice == 1 {
+                            //header
+                            todo!()
+                        } else if choice == 2 {
+                            //body
+                            todo!()
+                        }
                     }
                 }
                 PopupResult::Confirmed => {}
@@ -222,6 +230,7 @@ impl CommitScreen {
             && selected < self.commits.len()
         {
             tx.send(Event::PopUp(super::popup::PopupType::Options(
+                CommitLayers::Initial as u8,
                 vec![
                     "Prefix".to_owned(),
                     "Header".to_owned(),

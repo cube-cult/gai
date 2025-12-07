@@ -10,9 +10,7 @@ use ratatui::{
     },
 };
 
-use crate::tui::events::Event;
-
-use super::{app::TextStyles, utils::center};
+use super::{app::TextStyles, events::Event, utils::center};
 
 #[derive(Clone, Debug)]
 pub struct Popup {
@@ -23,22 +21,22 @@ pub struct Popup {
 
 #[derive(Clone, Debug)]
 pub enum PopupType {
-    Edit(String),
-    Options(Vec<String>),
+    Edit(u8, String),
+    Options(u8, Vec<String>),
     Confirm(String),
 }
 
 #[derive(Clone, Debug)]
 pub enum PopupResult {
     Confirmed,
-    Text(String),
-    SelectedChoice(usize),
+    Text(u8, String),
+    SelectedChoice(u8, usize),
 }
 
 impl Popup {
     pub fn new(popup_type: &PopupType) -> Self {
         let mut selected = ListState::default();
-        if matches!(popup_type, PopupType::Options(_)) {
+        if matches!(popup_type, PopupType::Options(..)) {
             selected.select_first();
         }
 
@@ -58,12 +56,14 @@ impl Popup {
                 KeyCode::Esc => true,
                 KeyCode::Enter => match self.popup_type {
                     PopupType::Confirm(_) => true,
-                    PopupType::Options(_) => {
+                    PopupType::Options(layer, _) => {
                         if let Some(selected) =
                             self.selected.selected()
                         {
                             tx.send(Event::PopUpReturn(
-                                PopupResult::SelectedChoice(selected),
+                                PopupResult::SelectedChoice(
+                                    layer, selected,
+                                ),
                             ))
                             .ok();
                         }
@@ -74,7 +74,7 @@ impl Popup {
                 KeyCode::Char('j') | KeyCode::Down => {
                     if matches!(
                         self.popup_type,
-                        PopupType::Options(_)
+                        PopupType::Options(..)
                     ) {
                         self.selected.select_next();
                     }
@@ -83,7 +83,7 @@ impl Popup {
                 KeyCode::Char('k') | KeyCode::Up => {
                     if matches!(
                         self.popup_type,
-                        PopupType::Options(_)
+                        PopupType::Options(..)
                     ) {
                         self.selected.select_previous();
                     }
@@ -109,7 +109,7 @@ impl<'popup> Widget for PopupWidget<'popup> {
             PopupType::Confirm(message) => {
                 render_confirm(area, buf, message, self.text_styles);
             }
-            PopupType::Options(options) => {
+            PopupType::Options(_, options) => {
                 render_options(
                     area,
                     buf,
