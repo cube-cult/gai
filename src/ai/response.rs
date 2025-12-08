@@ -1,5 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use strum::EnumIter;
 
 /// response object along with any errors
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,7 +44,9 @@ pub struct CommitMessage {
     pub body: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Clone, Debug, Serialize, Deserialize, JsonSchema, EnumIter,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum PrefixType {
     Feat,

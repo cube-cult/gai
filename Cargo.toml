@@ -25,6 +25,7 @@ serde_json = { version = "1.0.145", default-features = false, features = ["std"]
 strum = { version = "0.27.2", default-features = false, features = ["derive", "strum_macros"] }
 throbber-widgets-tui = { version = "0.9.0", default-features = false }
 toml = { version = "0.9.6", default-features = false, features = ["display", "parse", "serde"] }
+tui-textarea = { version = "0.7.0", default-features = false, features = ["crossterm", "ratatui"] }
 ureq = { version = "3.1.4", default-features = false, features = ["json", "rustls"] }
 walkdir = "2.5.0"
 
