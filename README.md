@@ -22,5 +22,3 @@ version control with the added benefit of a clean commit history.
 - [ ] Magic Sync [#29](https://github.com/cube-cult/gai/issues/29)
 - [ ] Recreate/Amend Existing Commits
       [#7](https://github.com/cube-cult/gai/issues/7)
-- [ ] GitHub Marketplace App [#9](https://github.com/cube-cult/gai/issues/9)
-- [ ] IDE extensions [#10](https://github.com/cube-cult/gai/issues/10)
