@@ -53,6 +53,8 @@ pub enum CommitLayers {
     Prefixes = 1,
     Header = 2,
     Body = 3,
+    Scope = 4,
+    Breaking = 5,
 }
 
 pub struct CommitScreenWidget<'screen> {
@@ -166,6 +168,30 @@ impl CommitScreen {
                                 ));
 
                             tx.send(event).ok();
+                        } else if choice == 3 {
+                            //scope
+                            let text = self.commits[selected_commit]
+                                .message
+                                .scope
+                                .to_owned();
+                            let event =
+                                Event::PopUp(PopupType::Edit(
+                                    CommitLayers::Scope as u8,
+                                    true,
+                                    text,
+                                ));
+                            tx.send(event).ok();
+                        } else if choice == 4 {
+                            //breaking
+                            let event =
+                                Event::PopUp(PopupType::Options(
+                                    CommitLayers::Breaking as u8,
+                                    vec![
+                                        "Breaking Change".to_owned(),
+                                        "Not".to_owned(),
+                                    ],
+                                ));
+                            tx.send(event).ok();
                         }
                     } else if layer == CommitLayers::Prefixes as u8 {
                         let new_prefix =
@@ -176,6 +202,10 @@ impl CommitScreen {
                         self.commits[selected_commit]
                             .message
                             .prefix = new_prefix;
+                    } else if layer == CommitLayers::Breaking as u8 {
+                        self.commits[selected_commit]
+                            .message
+                            .breaking = choice == 0;
                     }
                 }
                 PopupResult::Text(layer, result) => {
@@ -194,6 +224,11 @@ impl CommitScreen {
                             self.commits[selected_commit]
                                 .message
                                 .body = result.to_owned();
+                        }
+                        val if val == CommitLayers::Scope as u8 => {
+                            self.commits[selected_commit]
+                                .message
+                                .scope = result.to_owned();
                         }
                         _ => {}
                     }
@@ -308,6 +343,8 @@ impl CommitScreen {
                     "Prefix".to_owned(),
                     "Header".to_owned(),
                     "Body".to_owned(),
+                    "Scope".to_owned(),
+                    "Breaking".to_owned(),
                 ],
             )))
             .ok();
