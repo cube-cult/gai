@@ -58,6 +58,9 @@ fn main() -> Result<()> {
                 Commands::TUI { .. } => {
                     run_tui(cfg, gai)?;
                 }
+                Commands::Log {} => {
+                    let _ = gai.get_logs();
+                }
                 Commands::Commit {
                     skip_confirmation,
                     config,

@@ -77,6 +77,7 @@ pub enum Commands {
         #[arg(short = 'c', long, value_name = "KEY=VALUE")]
         config: Option<Vec<String>>,
     },
+    Log {},
     /* todo: implement, see feature tracking
     /// Rebase commits
     Rebase {},
