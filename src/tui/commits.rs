@@ -111,8 +111,17 @@ impl CommitScreen {
             }
             Event::PopUpReturn(val) => match val {
                 PopupResult::SelectedChoice(layer, choice) => {
-                    if *layer == CommitLayers::Initial as u8 {
-                        let choice = *choice;
+                    let layer = *layer;
+                    let choice = *choice;
+
+                    // asuming ones already selected
+                    // this wouldnt be proc'd otherwise
+                    let selected_commit = self
+                        .selected_commit_state
+                        .selected()
+                        .expect("somehow no commit selected");
+
+                    if layer == CommitLayers::Initial as u8 {
                         if choice == 0 {
                             let prefix_opts: Vec<String> =
                                 PrefixType::iter()
@@ -129,16 +138,10 @@ impl CommitScreen {
                             tx.send(event).ok();
                         } else if choice == 1 {
                             //header
-
-                            // asuming ones already selected
-                            // this wouldnt be proc'd otherwise
-                            let text = self.commits[self
-                                .selected_commit_state
-                                .selected()
-                                .unwrap()]
-                            .message
-                            .header
-                            .to_owned();
+                            let text = self.commits[selected_commit]
+                                .message
+                                .header
+                                .to_owned();
 
                             let event =
                                 Event::PopUp(PopupType::Edit(
@@ -150,12 +153,52 @@ impl CommitScreen {
                             tx.send(event).ok();
                         } else if choice == 2 {
                             //body
-                            todo!()
+                            let text = self.commits[selected_commit]
+                                .message
+                                .body
+                                .to_owned();
+
+                            let event =
+                                Event::PopUp(PopupType::Edit(
+                                    CommitLayers::Body as u8,
+                                    false,
+                                    text,
+                                ));
+
+                            tx.send(event).ok();
                         }
+                    } else if layer == CommitLayers::Prefixes as u8 {
+                        let new_prefix =
+                            PrefixType::iter().nth(choice).expect(
+                                "somehow couldn't find prefixtype",
+                            );
+
+                        self.commits[selected_commit]
+                            .message
+                            .prefix = new_prefix;
+                    }
+                }
+                PopupResult::Text(layer, result) => {
+                    let selected_commit = self
+                        .selected_commit_state
+                        .selected()
+                        .expect("somehow no commit selected");
+
+                    match *layer {
+                        val if val == CommitLayers::Header as u8 => {
+                            self.commits[selected_commit]
+                                .message
+                                .header = result.to_owned();
+                        }
+                        val if val == CommitLayers::Body as u8 => {
+                            self.commits[selected_commit]
+                                .message
+                                .body = result.to_owned();
+                        }
+                        _ => {}
                     }
                 }
                 PopupResult::Confirmed => {}
-                _ => (),
             },
             Event::Key(k) => match k.code {
                 KeyCode::Enter => {
