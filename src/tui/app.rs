@@ -1,7 +1,7 @@
 use anyhow::Result;
-use crossterm::event::KeyCode;
 use ratatui::{
     Frame,
+    crossterm::event::KeyCode,
     layout::{Constraint, Layout, Margin},
     style::{Modifier, Style, Styled, palette::tailwind},
     text::Line,

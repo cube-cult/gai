@@ -1,5 +1,5 @@
 use anyhow::Result;
-use crossterm::event::{
+use ratatui::crossterm::event::{
     Event as CrosstermEvent, KeyEvent, KeyEventKind, MouseEvent,
 };
 use std::{sync::mpsc::Receiver, time::Duration};
@@ -31,8 +31,8 @@ pub fn poll_event(
         return Ok(event);
     }
 
-    if crossterm::event::poll(timeout)? {
-        let event = match crossterm::event::read()? {
+    if ratatui::crossterm::event::poll(timeout)? {
+        let event = match ratatui::crossterm::event::read()? {
             CrosstermEvent::Key(key)
                 if key.kind == KeyEventKind::Press =>
             {

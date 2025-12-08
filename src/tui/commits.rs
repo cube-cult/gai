@@ -1,7 +1,7 @@
 use std::{sync::mpsc::Sender, thread};
 
-use crossterm::event::KeyCode;
 use ratatui::{
+    crossterm::event::KeyCode,
     layout::{Constraint, Layout},
     style::{Stylize, palette::tailwind},
     text::{Line, Text},
@@ -143,6 +143,7 @@ impl CommitScreen {
                             let event =
                                 Event::PopUp(PopupType::Edit(
                                     CommitLayers::Header as u8,
+                                    true,
                                     text,
                                 ));
 
