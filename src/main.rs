@@ -59,7 +59,9 @@ fn main() -> Result<()> {
                     run_tui(cfg, gai)?;
                 }
                 Commands::Log {} => {
-                    let _ = gai.get_logs();
+                    let logs = gai.get_logs()?;
+
+                    println!("{:#?}", logs);
                 }
                 Commands::Commit {
                     skip_confirmation,
