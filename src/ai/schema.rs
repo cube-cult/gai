@@ -19,6 +19,12 @@ pub struct ResponseSchema {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ResponseCommit {
+    /// reason why you decided to make this
+    /// commit. ex. why are they grouped together?
+    /// or why decide on this type of change for the
+    /// diffs
+    pub reasoning: String,
+
     /// paths to apply commit to
     /// ex. main.rs doubloon.rs
     pub files: Vec<String>,
