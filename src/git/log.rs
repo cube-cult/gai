@@ -108,9 +108,20 @@ impl GaiLog {
 }
 
 impl GaiGit {
-    pub fn get_logs(&self) -> anyhow::Result<Vec<GaiLog>> {
+    pub fn get_logs(
+        &self,
+        number: Option<usize>,
+        reverse: bool,
+    ) -> anyhow::Result<Vec<GaiLog>> {
         let mut revwalk = self.repo.revwalk()?;
+
+        if reverse {
+            revwalk.set_sorting(git2::Sort::REVERSE)?;
+        }
+
         revwalk.push_head()?;
+
+        let revwalk = revwalk.take(number.unwrap_or(!0));
 
         let mut logs = Vec::new();
 

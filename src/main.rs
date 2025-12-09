@@ -58,8 +58,8 @@ fn main() -> Result<()> {
                 Commands::TUI { .. } => {
                     run_tui(cfg, gai)?;
                 }
-                Commands::Log {} => {
-                    let logs = gai.get_logs()?;
+                Commands::Log { number, reverse } => {
+                    let logs = gai.get_logs(number, reverse)?;
 
                     println!("{:#?}", logs);
                 }
