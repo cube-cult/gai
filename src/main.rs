@@ -19,7 +19,10 @@ use crate::{
     auth::{auth_login, auth_status, clear_auth},
     config::Config,
     git::{commit::GaiCommit, repo::GaiGit},
-    print::{SpinDeez, pretty_print_commits, pretty_print_status},
+    print::{
+        SpinDeez, pretty_print_commits, pretty_print_logs,
+        pretty_print_status,
+    },
     tui::app::run_tui,
 };
 
@@ -61,7 +64,7 @@ fn main() -> Result<()> {
                 Commands::Log { number, reverse } => {
                     let logs = gai.get_logs(number, reverse)?;
 
-                    println!("{:#?}", logs);
+                    pretty_print_logs(&logs, args.compact)?;
                 }
                 Commands::Commit {
                     skip_confirmation,
