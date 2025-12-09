@@ -81,7 +81,6 @@
             let
               inherit (pkgs)
                 mkShell
-                just
                 openssl
                 pkg-config
                 ;
@@ -89,7 +88,6 @@
             mkShell {
               name = "gai-shell";
               packages = [
-                just
                 rustToolchain
                 pkg-config
               ];

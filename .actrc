@@ -1,2 +1,0 @@
- -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:rust-latest
- --artifact-server-path $PWD/.artifacts
