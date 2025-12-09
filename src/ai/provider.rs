@@ -7,7 +7,7 @@ use crate::ai::{
     gai::{GaiConfig, GaiProvider},
     gemini::{GeminiConfig, GeminiProvider},
     openai::{OpenAIConfig, OpenAIProvider},
-    response::ResponseSchema,
+    schema::ResponseSchema,
 };
 
 #[derive(

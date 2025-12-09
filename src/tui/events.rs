@@ -5,7 +5,7 @@ use ratatui::crossterm::event::{
 use std::{sync::mpsc::Receiver, time::Duration};
 
 use crate::{
-    ai::response::ResponseCommit,
+    ai::schema::ResponseCommit,
     tui::popup::{PopupResult, PopupType},
 };
 

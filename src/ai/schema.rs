@@ -27,11 +27,8 @@ pub struct ResponseCommit {
     // when stage_hunks is enabled
     // ex: src/main.rs:0
     pub hunk_ids: Vec<String>,
-    pub message: CommitMessage,
-}
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-pub struct CommitMessage {
+    // commit message
     // feat
     pub prefix: PrefixType,
     // (api)
@@ -79,15 +76,15 @@ impl ResponseCommit {
         include_scope: bool,
     ) -> String {
         let prefix = if capitalize_prefix {
-            format!("{:?}", self.message.prefix).to_uppercase()
+            format!("{:?}", self.prefix).to_uppercase()
         } else {
-            format!("{:?}", self.message.prefix).to_lowercase()
+            format!("{:?}", self.prefix).to_lowercase()
         };
 
-        let breaking = if self.message.breaking { "!" } else { "" };
+        let breaking = if self.breaking { "!" } else { "" };
 
         let scope = if include_scope {
-            format!("({})", self.message.scope.to_lowercase())
+            format!("({})", self.scope.to_lowercase())
         } else {
             "".to_owned()
         };

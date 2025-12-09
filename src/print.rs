@@ -7,7 +7,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::io::stdout;
 
 use crate::{
-    ai::response::ResponseCommit,
+    ai::schema::ResponseCommit,
     config::Config,
     consts::{PROGRESS_TEMPLATE, PROGRESS_TICK},
     git::{log::GaiLog, repo::GaiGit},
@@ -405,15 +405,15 @@ fn compact_print_commits(
             Print(format!("{} ", prefix)),
             ResetColor,
             SetForegroundColor(Color::White),
-            Print(format!("{}\n", commit.message.header)),
+            Print(format!("{}\n", commit.header)),
             ResetColor
         )?;
 
-        if !commit.message.body.is_empty() {
-            let body_preview = if commit.message.body.len() > 60 {
-                format!("{}...", &commit.message.body[..60])
+        if !commit.body.is_empty() {
+            let body_preview = if commit.body.len() > 60 {
+                format!("{}...", &commit.body[..60])
             } else {
-                commit.message.body.clone()
+                commit.body.clone()
             };
             execute!(
                 stdout,
@@ -486,13 +486,13 @@ pub fn pretty_print_commits(
         arena.add_child(commit_root, prefix_node);
 
         let header_node = arena.new_node(
-            format!("Header: {}", commit.message.header),
+            format!("Header: {}", commit.header),
             Color::White,
         );
         arena.add_child(commit_root, header_node);
 
-        if !commit.message.body.is_empty() {
-            let body_text = arena.truncate(&commit.message.body, 45);
+        if !commit.body.is_empty() {
+            let body_text = arena.truncate(&commit.body, 45);
             let body_node = arena.new_node(
                 format!("Body: {}", body_text),
                 Color::Blue,

@@ -1,4 +1,4 @@
-use crate::ai::response::ResponseCommit;
+use crate::ai::schema::ResponseCommit;
 
 #[derive(Debug)]
 pub struct GaiCommit {
@@ -15,17 +15,13 @@ impl GaiCommit {
     ) -> Self {
         let message = {
             let prefix = if capitalize_prefix {
-                format!("{:?}", response.message.prefix)
-                    .to_uppercase()
+                format!("{:?}", response.prefix).to_uppercase()
             } else {
-                format!("{:?}", response.message.prefix)
-                    .to_lowercase()
+                format!("{:?}", response.prefix).to_lowercase()
             };
 
-            let breaking =
-                if response.message.breaking { "!" } else { "" };
-            let scope = if include_scope
-                && !response.message.scope.is_empty()
+            let breaking = if response.breaking { "!" } else { "" };
+            let scope = if include_scope && !response.scope.is_empty()
             {
                 // gonna set it to lowercase PERMA
                 // sometimes the AI responds with a scope
@@ -33,7 +29,7 @@ impl GaiCommit {
                 // like (Respfileonse.rs) which looks ridiculous imo
                 // the only way i can think of is to make it a rule to not include
                 // extension names
-                format!("({})", response.message.scope.to_lowercase())
+                format!("({})", response.scope.to_lowercase())
             } else {
                 "".to_owned()
             };
@@ -43,11 +39,11 @@ impl GaiCommit {
                 prefix,
                 breaking,
                 scope,
-                response.message.header,
-                if response.message.body.is_empty() {
+                response.header,
+                if response.body.is_empty() {
                     String::new()
                 } else {
-                    format!("\n\n{}", response.message.body)
+                    format!("\n\n{}", response.body)
                 }
             )
         };
