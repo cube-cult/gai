@@ -10,7 +10,7 @@ use crate::{
     ai::response::ResponseCommit,
     config::Config,
     consts::{PROGRESS_TEMPLATE, PROGRESS_TICK},
-    git::repo::GaiGit,
+    git::{log::GaiLog, repo::GaiGit},
     graph::Arena,
 };
 
@@ -517,6 +517,164 @@ pub fn pretty_print_commits(
                 arena.add_child(files_parent, file_node);
             }
         }
+    }
+
+    arena.print_tree(&mut stdout)?;
+
+    Ok(())
+}
+
+fn compact_print_logs(logs: &[GaiLog]) -> Result<()> {
+    let mut stdout = stdout();
+
+    for log in logs {
+        let short_hash =
+            &log.commit_hash[..7.min(log.commit_hash.len())];
+
+        execute!(
+            stdout,
+            SetForegroundColor(Color::Yellow),
+            Print(format!("{} ", short_hash)),
+        )?;
+
+        if let Some(ref message) = log.message {
+            let first = message.lines().next().unwrap_or("");
+            let msg = if first.len() > 60 {
+                format!("{}...", &first[..60])
+            } else {
+                first.to_string()
+            };
+            execute!(
+                stdout,
+                SetForegroundColor(Color::White),
+                Print(msg),
+            )?;
+        } else {
+            if let Some(ref prefix) = log.prefix {
+                execute!(
+                    stdout,
+                    SetForegroundColor(Color::Green),
+                    Print(prefix),
+                )?;
+            }
+
+            if let Some(ref scope) = log.scope {
+                execute!(
+                    stdout,
+                    SetForegroundColor(Color::Green),
+                    Print(format!("({})", scope)),
+                )?;
+            }
+
+            if log.breaking {
+                execute!(
+                    stdout,
+                    SetForegroundColor(Color::Red),
+                    Print("!"),
+                )?;
+            }
+
+            if log.prefix.is_some() || log.scope.is_some() {
+                execute!(
+                    stdout,
+                    SetForegroundColor(Color::Green),
+                    Print(": "),
+                )?;
+            }
+
+            if let Some(ref header) = log.header {
+                execute!(
+                    stdout,
+                    SetForegroundColor(Color::White),
+                    Print(header),
+                )?;
+            }
+        }
+
+        execute!(
+            stdout,
+            SetForegroundColor(Color::DarkGrey),
+            Print(format!(" - {} ({})", log.author, log.date)),
+            ResetColor,
+            Print("\n"),
+        )?;
+    }
+
+    Ok(())
+}
+
+pub fn pretty_print_logs(
+    logs: &[GaiLog],
+    compact: bool,
+) -> Result<()> {
+    if compact {
+        return compact_print_logs(logs);
+    }
+
+    let mut stdout = stdout();
+    let mut arena = Arena::new();
+
+    execute!(
+        stdout,
+        SetForegroundColor(Color::Cyan),
+        Print(format!("Commit History({}):\n", logs.len()).bold()),
+        ResetColor
+    )?;
+
+    for log in logs {
+        let short_hash =
+            &log.commit_hash[..7.min(log.commit_hash.len())];
+        let log_root = arena.new_node(short_hash, Color::Yellow);
+
+        if let Some(ref message) = log.message {
+            // avoid breaking into another tree
+            // when message has a
+            // \n
+            let first = message.lines().next().unwrap_or("");
+            let msg_node = arena
+                .new_node(arena.truncate(first, 60), Color::White);
+            arena.add_child(log_root, msg_node);
+        } else {
+            let mut title_parts = Vec::new();
+
+            if let Some(ref prefix) = log.prefix {
+                title_parts.push(prefix.to_owned());
+            }
+
+            if let Some(ref scope) = log.scope {
+                title_parts.push(format!("({})", scope));
+            }
+
+            if log.breaking {
+                title_parts.push("!".to_string());
+            }
+
+            if !title_parts.is_empty() {
+                let prefix_str = title_parts.join("");
+                let prefix_node =
+                    arena.new_node(prefix_str, Color::Green);
+                arena.add_child(log_root, prefix_node);
+            }
+
+            if let Some(ref header) = log.header {
+                let header_node =
+                    arena.new_node(header, Color::White);
+                arena.add_child(log_root, header_node);
+            }
+
+            if let Some(ref body) = log.body {
+                let body_text = arena.truncate(body, 50);
+                let body_node =
+                    arena.new_node(body_text, Color::DarkGrey);
+                arena.add_child(log_root, body_node);
+            }
+        }
+
+        let author_node = arena.new_node(&log.author, Color::Blue);
+        arena.add_child(log_root, author_node);
+
+        let date_node = arena.new_node(&log.date, Color::DarkGrey);
+        arena.add_child(log_root, date_node);
     }
 
     arena.print_tree(&mut stdout)?;
