@@ -13,34 +13,42 @@ pub struct Response {
     Clone, Debug, Default, Serialize, Deserialize, JsonSchema,
 )]
 pub struct ResponseSchema {
+    /// list of commits to create staged changes
     pub commits: Vec<ResponseCommit>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ResponseCommit {
-    // paths to apply commit to
-    // ex. git add main.rs doubloon.rs
+    /// paths to apply commit to
+    /// ex. main.rs doubloon.rs
     pub files: Vec<String>,
 
-    // hunk "ids" per file, more like
-    // indices
-    // when stage_hunks is enabled
-    // ex: src/main.rs:0
+    // populated/used when stage_hunks
+    // is enabled
+    /// hunk "ids" per file
+    /// using format file:index
+    /// ex: src/main.rs:0
     pub hunk_ids: Vec<String>,
 
-    // commit message
-    // feat
+    // commit message components
+    /// commit type
     pub prefix: PrefixType,
-    // (api)
+
+    /// scope of the change
     pub scope: String,
-    // !
+
+    /// is a breaking change?
     pub breaking: bool,
 
-    /// description compoennts
+    /// short commit description
+    /// used as a initial view
     pub header: String,
+
+    /// extended description
     pub body: String,
 }
 
+/// conventional commit type prefix
 #[derive(
     Clone, Debug, Serialize, Deserialize, JsonSchema, EnumIter,
 )]
