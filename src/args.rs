@@ -77,6 +77,15 @@ pub enum Commands {
         #[arg(short = 'c', long, value_name = "KEY=VALUE")]
         config: Option<Vec<String>>,
     },
+    Log {
+        /// Max number of commits to show
+        #[arg(short = 'n', long)]
+        number: Option<usize>,
+
+        /// Reverse the order of commits
+        #[arg(short = 'r', long)]
+        reverse: bool,
+    },
     /* todo: implement, see feature tracking
     /// Rebase commits
     Rebase {},
