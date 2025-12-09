@@ -30,6 +30,7 @@ use crate::{
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
+const TERTIARY_TEXT: Style = Style::new().fg(tailwind::AMBER.c400);
 const HIGHLIGHT_STYLE: Style = Style::new()
     .fg(tailwind::WHITE)
     .bg(tailwind::CYAN.c800)
@@ -54,6 +55,7 @@ pub struct ThrobberStyles {
 pub struct TextStyles {
     pub primary_text_style: Style,
     pub secondary_text_style: Style,
+    pub tertiary_text_style: Style,
     pub highlight_text_style: Style,
     pub border_style: Style,
 }
@@ -90,6 +92,7 @@ impl Default for TextStyles {
         Self {
             primary_text_style: PRIMARY_TEXT,
             secondary_text_style: SECONDARY_TEXT,
+            tertiary_text_style: TERTIARY_TEXT,
             highlight_text_style: HIGHLIGHT_STYLE,
             border_style: BORDER_STYLE,
         }
