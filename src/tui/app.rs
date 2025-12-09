@@ -22,7 +22,10 @@ use super::{
 use crate::{
     config::Config,
     git::repo::GaiGit,
-    tui::popup::{Popup, PopupWidget},
+    tui::{
+        logs::{LogScreen, LogScreenWidget},
+        popup::{Popup, PopupWidget},
+    },
 };
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
@@ -72,6 +75,7 @@ pub struct App {
 
     pub commit_screen: CommitScreen,
     pub diff_screen: DiffScreen,
+    pub log_screen: LogScreen,
 
     pub popup: Option<Popup>,
 
@@ -136,7 +140,9 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
             CurrentScreen::Diffs => {
                 app.diff_screen.handle_event(&event, &mut app.gai)
             }
-            _ => {}
+            CurrentScreen::Logs => {
+                app.log_screen.handle_event(&event);
+            }
         }
     }
 
@@ -165,6 +171,8 @@ impl App {
         let diff_screen = DiffScreen::new(&gai.files);
         let commit_screen =
             CommitScreen::new(&cfg.ai, &cfg.gai.commit_config);
+        let log_screen =
+            LogScreen::new(gai.get_logs(None, false).unwrap());
 
         Self {
             running: true,
@@ -173,6 +181,7 @@ impl App {
             current_screen,
             commit_screen,
             diff_screen,
+            log_screen,
             popup: None,
             tui_state,
             throbber_styles: ThrobberStyles::default(),
@@ -217,7 +226,13 @@ impl App {
                 }
                 .render(screen_area, frame.buffer_mut());
             }
-            _ => {}
+            CurrentScreen::Logs => {
+                LogScreenWidget {
+                    screen: &mut self.log_screen,
+                    text_styles: &self.text_styles,
+                }
+                .render(screen_area, frame.buffer_mut());
+            }
         }
 
         // todo use popup content
