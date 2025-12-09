@@ -222,11 +222,14 @@ fn render_list(
     let logs: Vec<ListItem> = logs
         .iter()
         .map(|item| {
-            //todo use span::styled
             let line = Line::from(vec![
-                Span::raw(&item.author),
+                Span::styled(
+                    &item.commit_hash
+                        [..7.min(item.commit_hash.len())],
+                    text_styles.tertiary_text_style,
+                ),
                 Span::raw(" "),
-                Span::raw(&item.date),
+                Span::raw(&item.author),
             ]);
 
             ListItem::new(line)
