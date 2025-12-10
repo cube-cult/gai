@@ -2,8 +2,8 @@ use std::{collections::HashMap, fmt};
 
 use crate::{
     config::{Config, RuleConfig},
-    consts::*,
     git::repo::GaiGit,
+    utils::consts::*,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -24,6 +24,19 @@ impl fmt::Display for Request {
 
         writeln!(f)
     }
+}
+
+pub fn build_request(
+    cfg: &Config,
+    gai: &GaiGit,
+    spinner: &crate::utils::print::SpinDeez,
+) -> Request {
+    spinner.start("Building Request...");
+    let mut req = Request::default();
+    req.build_prompt(cfg, gai);
+    req.build_diffs_string(gai.get_file_diffs_as_str());
+    spinner.stop(None);
+    req
 }
 
 impl Request {

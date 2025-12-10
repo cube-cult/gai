@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use strum::{Display, EnumIter};
 
-use crate::ai::{
+use super::{
     gai::{GaiConfig, GaiProvider},
     gemini::{GeminiConfig, GeminiProvider},
     openai::{OpenAIConfig, OpenAIProvider},

@@ -18,15 +18,10 @@ use super::{
     commits::{CommitScreen, CommitScreenWidget},
     diffs::{DiffScreen, DiffScreenWidget},
     events::{Event, poll_event},
+    logs::{LogScreen, LogScreenWidget},
+    popup::{Popup, PopupWidget},
 };
-use crate::{
-    config::Config,
-    git::repo::GaiGit,
-    tui::{
-        logs::{LogScreen, LogScreenWidget},
-        popup::{Popup, PopupWidget},
-    },
-};
+use crate::{config::Config, git::repo::GaiGit};
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);

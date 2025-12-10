@@ -9,12 +9,9 @@ use ratatui::{
     },
 };
 
-use crate::{
-    git::repo::{DiffType, GaiFile, GaiGit},
-    tui::{events::Event, utils::center},
-};
+use crate::git::repo::{DiffType, GaiFile, GaiGit};
 
-use super::app::TextStyles;
+use super::{app::TextStyles, events::Event, utils::center};
 
 pub struct DiffScreen {
     pub files: Vec<GaiFile>,
