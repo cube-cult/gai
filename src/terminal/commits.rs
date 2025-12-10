@@ -20,7 +20,7 @@ use super::{
     utils::center,
 };
 use crate::{
-    config::{AiConfig, CommitConfig, Config},
+    configuration::{AiConfig, CommitConfig, Config},
     git::{commit::GaiCommit, repo::GaiGit},
     providers::{
         provider::{ProviderKind::Gai, extract_from_provider},

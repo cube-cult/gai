@@ -21,7 +21,7 @@ use super::{
     logs::{LogScreen, LogScreenWidget},
     popup::{Popup, PopupWidget},
 };
-use crate::{config::Config, git::repo::GaiGit};
+use crate::{configuration::Config, git::repo::GaiGit};
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);

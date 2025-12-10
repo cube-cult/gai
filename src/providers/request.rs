@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use crate::{
-    config::{Config, RuleConfig},
+    configuration::{Config, RuleConfig},
     git::repo::GaiGit,
     utils::consts::*,
 };
