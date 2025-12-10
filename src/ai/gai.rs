@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use ureq::Agent;
 
 use crate::{
-    ai::{provider::ProviderError, response::ResponseSchema},
+    ai::{provider::ProviderError, schema::ResponseSchema},
     auth::get_token,
 };
 

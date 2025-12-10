@@ -3,7 +3,7 @@ use schemars::generate::SchemaSettings;
 use serde::{Deserialize, Serialize};
 use ureq::Agent;
 
-use crate::ai::{provider::ProviderError, response::ResponseSchema};
+use crate::ai::{provider::ProviderError, schema::ResponseSchema};
 
 #[derive(Debug)]
 pub struct GeminiProvider {

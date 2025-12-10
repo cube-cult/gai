@@ -13,37 +13,48 @@ pub struct Response {
     Clone, Debug, Default, Serialize, Deserialize, JsonSchema,
 )]
 pub struct ResponseSchema {
+    /// list of commits to create staged changes
     pub commits: Vec<ResponseCommit>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ResponseCommit {
-    // paths to apply commit to
-    // ex. git add main.rs doubloon.rs
+    /// reason why you decided to make this
+    /// commit. ex. why are they grouped together?
+    /// or why decide on this type of change for the
+    /// diffs
+    pub reasoning: String,
+
+    /// paths to apply commit to
+    /// ex. main.rs doubloon.rs
     pub files: Vec<String>,
 
-    // hunk "ids" per file, more like
-    // indices
-    // when stage_hunks is enabled
-    // ex: src/main.rs:0
+    // populated/used when stage_hunks
+    // is enabled
+    /// hunk "ids" per file
+    /// using format file:index
+    /// ex: src/main.rs:0
     pub hunk_ids: Vec<String>,
-    pub message: CommitMessage,
-}
 
-#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
-pub struct CommitMessage {
-    // feat
+    // commit message components
+    /// commit type
     pub prefix: PrefixType,
-    // (api)
+
+    /// scope of the change
     pub scope: String,
-    // !
+
+    /// is a breaking change?
     pub breaking: bool,
 
-    /// description compoennts
+    /// short commit description
+    /// used as a initial view
     pub header: String,
+
+    /// extended description
     pub body: String,
 }
 
+/// conventional commit type prefix
 #[derive(
     Clone, Debug, Serialize, Deserialize, JsonSchema, EnumIter,
 )]
@@ -79,15 +90,15 @@ impl ResponseCommit {
         include_scope: bool,
     ) -> String {
         let prefix = if capitalize_prefix {
-            format!("{:?}", self.message.prefix).to_uppercase()
+            format!("{:?}", self.prefix).to_uppercase()
         } else {
-            format!("{:?}", self.message.prefix).to_lowercase()
+            format!("{:?}", self.prefix).to_lowercase()
         };
 
-        let breaking = if self.message.breaking { "!" } else { "" };
+        let breaking = if self.breaking { "!" } else { "" };
 
         let scope = if include_scope {
-            format!("({})", self.message.scope.to_lowercase())
+            format!("({})", self.scope.to_lowercase())
         } else {
             "".to_owned()
         };

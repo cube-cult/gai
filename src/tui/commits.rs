@@ -23,7 +23,7 @@ use crate::{
     ai::{
         provider::{ProviderKind::Gai, extract_from_provider},
         request::Request,
-        response::{PrefixType, ResponseCommit},
+        schema::{PrefixType, ResponseCommit},
     },
     config::{AiConfig, CommitConfig, Config},
     git::{commit::GaiCommit, repo::GaiGit},
@@ -141,7 +141,6 @@ impl CommitScreen {
                         } else if choice == 1 {
                             //header
                             let text = self.commits[selected_commit]
-                                .message
                                 .header
                                 .to_owned();
 
@@ -156,7 +155,6 @@ impl CommitScreen {
                         } else if choice == 2 {
                             //body
                             let text = self.commits[selected_commit]
-                                .message
                                 .body
                                 .to_owned();
 
@@ -171,7 +169,6 @@ impl CommitScreen {
                         } else if choice == 3 {
                             //scope
                             let text = self.commits[selected_commit]
-                                .message
                                 .scope
                                 .to_owned();
                             let event =
@@ -199,13 +196,11 @@ impl CommitScreen {
                                 "somehow couldn't find prefixtype",
                             );
 
-                        self.commits[selected_commit]
-                            .message
-                            .prefix = new_prefix;
+                        self.commits[selected_commit].prefix =
+                            new_prefix;
                     } else if layer == CommitLayers::Breaking as u8 {
-                        self.commits[selected_commit]
-                            .message
-                            .breaking = choice == 0;
+                        self.commits[selected_commit].breaking =
+                            choice == 0;
                     }
                 }
                 PopupResult::Text(layer, result) => {
@@ -216,19 +211,16 @@ impl CommitScreen {
 
                     match *layer {
                         val if val == CommitLayers::Header as u8 => {
-                            self.commits[selected_commit]
-                                .message
-                                .header = result.to_owned();
+                            self.commits[selected_commit].header =
+                                result.to_owned();
                         }
                         val if val == CommitLayers::Body as u8 => {
-                            self.commits[selected_commit]
-                                .message
-                                .body = result.to_owned();
+                            self.commits[selected_commit].body =
+                                result.to_owned();
                         }
                         val if val == CommitLayers::Scope as u8 => {
-                            self.commits[selected_commit]
-                                .message
-                                .scope = result.to_owned();
+                            self.commits[selected_commit].scope =
+                                result.to_owned();
                         }
                         _ => {}
                     }
@@ -481,7 +473,7 @@ fn render_commit_message(
 ) {
     let mut lines: Vec<Line> = Vec::new();
 
-    let prefix_color = match commit.message.prefix {
+    let prefix_color = match commit.prefix {
         PrefixType::Feat => tailwind::GREEN,
         PrefixType::Fix => tailwind::RED,
         PrefixType::Refactor => tailwind::BLUE,
@@ -496,11 +488,10 @@ fn render_commit_message(
         PrefixType::Revert => tailwind::ROSE,
     };
 
-    let prefix_str =
-        format!("{:?}", commit.message.prefix).to_lowercase();
-    let breaking_str = if commit.message.breaking { "!" } else { "" };
-    let scope_str = if !commit.message.scope.is_empty() {
-        format!("({})", commit.message.scope)
+    let prefix_str = format!("{:?}", commit.prefix).to_lowercase();
+    let breaking_str = if commit.breaking { "!" } else { "" };
+    let scope_str = if !commit.scope.is_empty() {
+        format!("({})", commit.scope)
     } else {
         String::new()
     };
@@ -517,15 +508,14 @@ fn render_commit_message(
 
     lines.push(Line::from("Header").fg(tailwind::SLATE.c500).bold());
     lines.push(
-        Line::from(commit.message.header.clone())
-            .fg(tailwind::SLATE.c100),
+        Line::from(commit.header.clone()).fg(tailwind::SLATE.c100),
     );
     lines.push(Line::from(""));
 
-    if !commit.message.body.is_empty() {
+    if !commit.body.is_empty() {
         lines
             .push(Line::from("Body").fg(tailwind::SLATE.c500).bold());
-        for body_line in commit.message.body.lines() {
+        for body_line in commit.body.lines() {
             lines
                 .push(Line::from(body_line).fg(tailwind::SLATE.c300));
         }
