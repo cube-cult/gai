@@ -1,10 +1,9 @@
-use anyhow::Result;
 use clap::{
-    Parser, Subcommand,
+    Args, Parser, Subcommand,
     builder::styling::{self, AnsiColor},
 };
 
-use crate::{ai::provider::ProviderKind, config::Config};
+use crate::providers::provider::ProviderKind;
 
 pub const STYLING: styling::Styles = clap::builder::Styles::styled()
     .header(AnsiColor::White.on_default().bold())
@@ -17,10 +16,19 @@ pub const STYLING: styling::Styles = clap::builder::Styles::styled()
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None, styles = STYLING)]
-pub struct Args {
-    /// Print with compact outputs (no pretty trees)
-    #[arg(short = 'c', long)]
-    pub compact: bool,
+pub struct Cli {
+    #[command(flatten)]
+    pub global: GlobalArgs,
+
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Debug, Args)]
+pub struct GlobalArgs {
+    /// Override config option for this command
+    #[arg(short = 'c', long, value_name = "KEY=VALUE")]
+    config: Option<Vec<String>>,
 
     /// Override the current provider
     #[arg(short = 'p', long)]
@@ -30,70 +38,42 @@ pub struct Args {
     #[arg(short = 'H', long)]
     pub hint: Option<String>,
 
-    #[command(subcommand)]
-    pub command: Commands,
+    /// Print with compact outputs (no pretty trees)
+    #[arg(long)]
+    pub compact: bool,
 }
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Authenticate with GitHub OAuth to use the Gai provider
-    Auth {
-        #[command(subcommand)]
-        auth: Auth,
-    },
+    Auth(AuthArgs),
 
     /// Prints gai repository status
-    Status {
-        /// Prints the verbose status which includes the
-        /// request prompt and request diffs
-        #[arg(short = 'v', long)]
-        verbose: bool,
-    },
+    Status(StatusArgs),
 
-    /// Launch the Text-based/Terminal User Interface
-    TUI {},
+    /// Show the commit history in the format of gai commits
+    Log(LogArgs),
+
+    /// Launch the Terminal User Interface
+    TUI(CommitArgs),
 
     /// Create commits from the diffs in the working tree
-    Commit {
-        /// Skips the confirmation prompt and applies
-        /// the commits
-        #[arg(short = 'y', long)]
-        skip_confirmation: bool,
+    Commit(CommitArgs),
 
-        /// Only generate for currently
-        /// staged files/hunks
-        #[arg(short = 's', long)]
-        staged: bool,
+    /// Create a rebase plan for commits
+    Rebase,
 
-        /// Stage as hunks
-        #[arg(short = 'H', long)]
-        hunks: bool,
-
-        /// Stage as files
-        #[arg(short = 'f', long)]
-        files: bool,
-
-        /// Override config option for this commit
-        #[arg(short = 'c', long, value_name = "KEY=VALUE")]
-        config: Option<Vec<String>>,
-    },
-    Log {
-        /// Max number of commits to show
-        #[arg(short = 'n', long)]
-        number: Option<usize>,
-
-        /// Reverse the order of commits
-        #[arg(short = 'r', long)]
-        reverse: bool,
-    },
-    /* todo: implement, see feature tracking
-    /// Rebase commits
-    Rebase {},
     /// Find a specific commit
-    Find
+    Find,
+
     /// Initiate interactive bisect
-    Bisect
-    */
+    Bisect,
+}
+
+#[derive(Debug, Args)]
+pub struct AuthArgs {
+    #[command(subcommand)]
+    auth: Auth,
 }
 
 #[derive(Debug, Subcommand)]
@@ -110,33 +90,40 @@ pub enum Auth {
     Logout,
 }
 
-impl Args {
-    pub fn parse_flags(&self, config: &mut Config) -> Result<()> {
-        if let Some(provider) = self.provider {
-            config.ai.provider = provider;
-        }
+// Each command has its own args struct
+#[derive(Debug, Args)]
+pub struct CommitArgs {
+    /// Skips the confirmation prompt
+    #[arg(short = 'y', long)]
+    pub skip_confirmation: bool,
 
-        config.ai.hint = self.hint.to_owned();
+    /// Only generate for currently staged files/hunks
+    #[arg(short = 's', long)]
+    pub staged: bool,
 
-        // good lord...
-        if let Commands::Commit {
-            staged,
-            hunks,
-            files,
-            ..
-        } = self.command
-        {
-            if staged {
-                config.gai.only_staged = true;
-            }
-            if hunks {
-                config.gai.stage_hunks = true;
-            }
-            if files {
-                config.gai.stage_hunks = false;
-            }
-        }
+    /// Stage as hunks
+    #[arg(short = 'H', long, conflicts_with = "files")]
+    pub hunks: bool,
 
-        Ok(())
-    }
+    /// Stage as files
+    #[arg(short = 'f', long, conflicts_with = "hunks")]
+    pub files: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct StatusArgs {
+    /// Print verbose status with request prompt and diffs
+    #[arg(short = 'v', long)]
+    pub verbose: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct LogArgs {
+    /// Max number of commits to show
+    #[arg(short = 'n', long)]
+    pub number: Option<usize>,
+
+    /// Reverse the order of commits
+    #[arg(short = 'r', long)]
+    pub reverse: bool,
 }
