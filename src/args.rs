@@ -55,7 +55,7 @@ pub enum Commands {
     Log(LogArgs),
 
     /// Launch the Terminal User Interface
-    TUI(CommitArgs),
+    TUI(TUIArgs),
 
     /// Create commits from the diffs in the working tree
     Commit(CommitArgs),
@@ -70,12 +70,6 @@ pub enum Commands {
     Bisect,
 }
 
-#[derive(Debug, Args)]
-pub struct AuthArgs {
-    #[command(subcommand)]
-    auth: Auth,
-}
-
 #[derive(Debug, Subcommand)]
 pub enum Auth {
     /// Login using GitHub OAuth
@@ -88,6 +82,19 @@ pub enum Auth {
 
     /// Logout/clear the stored user token
     Logout,
+}
+
+#[derive(Debug, Args)]
+pub struct AuthArgs {
+    #[command(subcommand)]
+    pub auth: Auth,
+}
+
+#[derive(Debug, Args)]
+pub struct TUIArgs {
+    #[command(flatten)]
+    pub commit_args: CommitArgs,
+    //todo implement rebase, find args
 }
 
 // Each command has its own args struct
