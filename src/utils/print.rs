@@ -54,6 +54,12 @@ impl SpinDeez {
     }
 }
 
+impl Default for SpinDeez {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // compact status but not as compact code
 // might have to rewrite a more generic way of printing different parts
 // to avoid repetition but meh
