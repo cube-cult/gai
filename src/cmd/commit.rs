@@ -1,11 +1,13 @@
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 
-use crate::{
+use super::{
     args::{CommitArgs, GlobalArgs},
+    state::State,
+};
+use crate::{
     configuration::Config,
     git::{commit::GaiCommit, repo::GaiGit},
     providers::{provider::extract_from_provider, request::Request},
-    state::State,
     tui::app::run_tui,
     utils::print::{
         SpinDeez, pretty_print_commits, pretty_print_status,

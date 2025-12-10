@@ -1,21 +1,25 @@
-use crate::args::{Cli, Commands};
+use clap::Parser;
 
+pub mod args;
 pub mod auth;
 pub mod commit;
 pub mod log;
+pub mod state;
 pub mod status;
 pub mod tui;
 
-pub fn run(args: &Cli) -> anyhow::Result<()> {
+pub fn run() -> anyhow::Result<()> {
+    let args = args::Cli::parse();
+
     match &args.command {
-        Commands::Auth(a) => auth::run(&a.auth)?,
-        Commands::Status(a) => status::run(a, &args.global)?,
-        Commands::TUI(a) => tui::run(a, &args.global)?,
-        Commands::Commit(a) => commit::run(a, &args.global)?,
-        Commands::Log(a) => log::run(a, &args.global)?,
-        Commands::Rebase => {}
-        Commands::Find => {}
-        Commands::Bisect => {}
+        args::Commands::Auth(a) => auth::run(&a.auth)?,
+        args::Commands::Status(a) => status::run(a, &args.global)?,
+        args::Commands::TUI(a) => tui::run(a, &args.global)?,
+        args::Commands::Commit(a) => commit::run(a, &args.global)?,
+        args::Commands::Log(a) => log::run(a, &args.global)?,
+        args::Commands::Rebase => {}
+        args::Commands::Find => {}
+        args::Commands::Bisect => {}
     };
 
     Ok(())

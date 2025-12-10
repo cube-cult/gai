@@ -1,8 +1,8 @@
-use crate::{
+use super::{
     args::{GlobalArgs, TUIArgs},
     state::State,
-    tui::app::run_tui,
 };
+use crate::tui::app::run_tui;
 
 pub fn run(
     _args: &TUIArgs,

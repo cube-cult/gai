@@ -1,7 +1,9 @@
-use crate::{
+use super::{
     args::{GlobalArgs, StatusArgs},
-    providers::request::build_request,
     state::State,
+};
+use crate::{
+    providers::request::build_request,
     utils::print::{SpinDeez, pretty_print_status},
 };
 

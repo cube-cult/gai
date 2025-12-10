@@ -2,7 +2,8 @@ use anyhow::Result;
 use dialoguer::{Password, theme::ColorfulTheme};
 use std::{fs, io::ErrorKind, path::PathBuf};
 
-use crate::{args::Auth, utils::print::SpinDeez};
+use super::args::Auth;
+use crate::utils::print::SpinDeez;
 
 pub fn run(auth: &Auth) -> Result<()> {
     let spinner = SpinDeez::new();

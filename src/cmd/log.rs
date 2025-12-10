@@ -1,8 +1,8 @@
-use crate::{
+use super::{
     args::{GlobalArgs, LogArgs},
     state::State,
-    utils::print::pretty_print_logs,
 };
+use crate::utils::print::pretty_print_logs;
 
 pub fn run(
     args: &LogArgs,
