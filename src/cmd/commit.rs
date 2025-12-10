@@ -6,7 +6,7 @@ use crate::{
     git::{commit::GaiCommit, repo::GaiGit},
     providers::{provider::extract_from_provider, request::Request},
     state::State,
-    terminal::app::run_tui,
+    tui::app::run_tui,
     utils::print::{
         SpinDeez, pretty_print_commits, pretty_print_status,
     },

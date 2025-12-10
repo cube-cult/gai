@@ -1,7 +1,7 @@
 use crate::{
     args::{GlobalArgs, TUIArgs},
     state::State,
-    terminal::app::run_tui,
+    tui::app::run_tui,
 };
 
 pub fn run(
