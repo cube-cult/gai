@@ -1,4 +1,4 @@
-use crate::ai::schema::ResponseCommit;
+use crate::providers::schema::ResponseCommit;
 
 #[derive(Debug)]
 pub struct GaiCommit {

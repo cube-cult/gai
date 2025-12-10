@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use ureq::Agent;
 
 use super::{provider::ProviderError, schema::ResponseSchema};
-use crate::commands::auth::get_token;
+use crate::cmds::auth::get_token;
 
 #[derive(Debug)]
 pub struct GaiProvider {
