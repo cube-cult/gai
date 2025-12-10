@@ -1,0 +1,24 @@
+use crate::{
+    args::{GlobalArgs, StatusArgs},
+    providers::request::build_request,
+    state::State,
+    utils::print::{SpinDeez, pretty_print_status},
+};
+
+pub fn run(
+    args: &StatusArgs,
+    global: &GlobalArgs,
+) -> anyhow::Result<()> {
+    let state = State::new(global.config.as_deref())?;
+
+    pretty_print_status(&state.gai, global.compact)?;
+
+    if args.verbose {
+        let spinner = SpinDeez::new();
+
+        let req = build_request(&state.config, &state.gai, &spinner);
+        println!("{}", req);
+    }
+
+    Ok(())
+}

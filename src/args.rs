@@ -28,7 +28,7 @@ pub struct Cli {
 pub struct GlobalArgs {
     /// Override config option for this command
     #[arg(short = 'c', long, value_name = "KEY=VALUE")]
-    config: Option<Vec<String>>,
+    pub config: Option<Vec<String>>,
 
     /// Override the current provider
     #[arg(short = 'p', long)]
