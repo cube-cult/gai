@@ -12,9 +12,9 @@ use super::{
 };
 
 use crate::{
-    configuration::Config,
     git::{log::GaiLog, repo::GaiGit},
     providers::schema::ResponseCommit,
+    settings::Settings,
 };
 
 // yes lmao
@@ -395,7 +395,7 @@ pub fn pretty_print_status(
 
 fn compact_print_commits(
     commits: &[ResponseCommit],
-    cfg: &Config,
+    cfg: &Settings,
     gai: &GaiGit,
 ) -> Result<()> {
     let mut stdout = stdout();
@@ -472,7 +472,7 @@ fn compact_print_commits(
 
 pub fn pretty_print_commits(
     commits: &[ResponseCommit],
-    cfg: &Config,
+    cfg: &Settings,
     gai: &GaiGit,
     compact: bool,
 ) -> Result<()> {

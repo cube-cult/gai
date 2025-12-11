@@ -1,8 +1,8 @@
 use std::{collections::HashMap, fmt};
 
 use crate::{
-    configuration::{Config, RuleConfig},
     git::repo::GaiGit,
+    settings::{RuleConfig, Settings},
     utils::consts::*,
 };
 
@@ -27,7 +27,7 @@ impl fmt::Display for Request {
 }
 
 pub fn build_request(
-    cfg: &Config,
+    cfg: &Settings,
     gai: &GaiGit,
     spinner: &crate::utils::print::SpinDeez,
 ) -> Request {
@@ -58,7 +58,7 @@ impl Request {
         self.diffs = diffs_str;
     }
 
-    pub fn build_prompt(&mut self, cfg: &Config, gai: &GaiGit) {
+    pub fn build_prompt(&mut self, cfg: &Settings, gai: &GaiGit) {
         let mut prompt = String::new();
 
         let rules = build_rules(&cfg.ai.rules);

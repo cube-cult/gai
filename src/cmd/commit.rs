@@ -5,9 +5,9 @@ use super::{
     state::State,
 };
 use crate::{
-    configuration::Config,
     git::{commit::GaiCommit, repo::GaiGit},
     providers::{provider::extract_from_provider, request::Request},
+    settings::Settings,
     tui::app::run_tui,
     utils::print::{
         SpinDeez, pretty_print_commits, pretty_print_status,
@@ -67,7 +67,7 @@ pub fn run(
 fn run_commit(
     spinner: &SpinDeez,
     req: Request,
-    cfg: Config,
+    cfg: Settings,
     gai: GaiGit,
     skip_confirmation: bool,
     compact: bool,

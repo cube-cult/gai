@@ -20,13 +20,13 @@ use super::{
     utils::center,
 };
 use crate::{
-    configuration::{AiConfig, CommitConfig, Config},
     git::{commit::GaiCommit, repo::GaiGit},
     providers::{
         provider::{ProviderKind::Gai, extract_from_provider},
         request::Request,
         schema::{PrefixType, ResponseCommit},
     },
+    settings::{AiConfig, CommitConfig, Settings},
 };
 
 pub struct CommitScreen {
@@ -89,7 +89,7 @@ impl CommitScreen {
         &mut self,
         event: &Event,
         tx: &Sender<Event>,
-        cfg: &Config,
+        cfg: &Settings,
         gai: &GaiGit,
     ) {
         match event {
@@ -258,7 +258,7 @@ impl CommitScreen {
     fn send_request(
         &mut self,
         tx: Sender<Event>,
-        cfg: &Config,
+        cfg: &Settings,
         gai: &GaiGit,
     ) {
         self.request_sent = true;
@@ -290,7 +290,7 @@ impl CommitScreen {
     fn apply_commits(
         &self,
         tx: &Sender<Event>,
-        cfg: &Config,
+        cfg: &Settings,
         gai: &GaiGit,
     ) {
         if self.commits.is_empty() {

@@ -1,13 +1,13 @@
-use crate::{configuration::Config, git::repo::GaiGit};
+use crate::{git::repo::GaiGit, settings::Settings};
 
 pub struct State {
-    pub config: Config,
+    pub config: Settings,
     pub gai: GaiGit,
 }
 
 impl State {
     pub fn new(overrides: Option<&[String]>) -> anyhow::Result<Self> {
-        let config = Config::load(overrides)?;
+        let config = Settings::load(overrides)?;
 
         let gai = GaiGit::new(
             config.gai.only_staged,

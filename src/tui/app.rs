@@ -21,7 +21,7 @@ use super::{
     logs::{LogScreen, LogScreenWidget},
     popup::{Popup, PopupWidget},
 };
-use crate::{configuration::Config, git::repo::GaiGit};
+use crate::{git::repo::GaiGit, settings::Settings};
 
 const PRIMARY_TEXT: Style = Style::new().fg(tailwind::WHITE);
 const SECONDARY_TEXT: Style = Style::new().fg(tailwind::CYAN.c400);
@@ -64,7 +64,7 @@ pub enum CurrentScreen {
 
 pub struct App {
     pub running: bool,
-    pub cfg: Config,
+    pub cfg: Settings,
     pub gai: GaiGit,
 
     pub tui_state: TUIState,
@@ -104,7 +104,7 @@ impl Default for ThrobberStyles {
     }
 }
 
-pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
+pub fn run_tui(cfg: Settings, gai: GaiGit) -> Result<()> {
     let mut terminal = ratatui::init();
     let timeout = Duration::from_millis(50);
 
@@ -151,7 +151,7 @@ pub fn run_tui(cfg: Config, gai: GaiGit) -> Result<()> {
 
 impl App {
     pub fn new(
-        cfg: Config,
+        cfg: Settings,
         gai: GaiGit,
         curr_screen: Option<CurrentScreen>,
         event_tx: Sender<Event>,

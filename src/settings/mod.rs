@@ -9,13 +9,13 @@ use std::{fs, io::ErrorKind};
 use crate::providers::provider::{ProviderConfigs, ProviderKind};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct Config {
+pub struct Settings {
     pub ai: AiConfig,
     pub gai: GaiConfig,
     pub tui: TuiConfig,
 }
 
-impl Config {
+impl Settings {
     pub fn load(overrides: Option<&[String]>) -> Result<Self> {
         let mut cfg = Self::init()?;
         if let Some(o) = overrides {
@@ -45,7 +45,7 @@ impl Config {
                     "No config.toml found. Creating anew. in {}",
                     cfg_dir.display()
                 );
-                let def = Config::default();
+                let def = Settings::default();
                 let def_toml = toml::to_string_pretty(&def)?;
                 fs::write(&cfg_dir, &def_toml)?;
             }
@@ -55,7 +55,7 @@ impl Config {
                 .add_source(File::from(cfg_dir))
                 .build()?;
 
-            let cfg: Config = builder.try_deserialize()?;
+            let cfg: Settings = builder.try_deserialize()?;
             Ok(cfg)
         } else {
             Err(anyhow::anyhow!(
@@ -67,7 +67,7 @@ impl Config {
     pub fn override_cfg(
         &self,
         overrides: &[String],
-    ) -> Result<Config> {
+    ) -> Result<Settings> {
         let cur_cfg = toml::to_string(self)?;
 
         let mut builder = ConfigBuilder::builder().add_source(
