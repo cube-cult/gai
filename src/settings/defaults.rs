@@ -1,15 +1,17 @@
-use super::{
-    CommitSettings, ContextSettings, PromptRules, PromptSettings,
-    TuiSettings,
-};
+use crate::settings::Settings;
 
-impl Default for PromptSettings {
+use super::{CommitSettings, ContextSettings, PromptRules};
+
+impl Default for Settings {
     fn default() -> Self {
         Self {
-            system_prompt: None,
-            commit_convention: None,
-            hint: None,
-            extra: None,
+            provider: crate::providers::provider::ProviderKind::Gai,
+            providers: Default::default(),
+            prompt: Default::default(),
+            rules: Default::default(),
+            context: Default::default(),
+            commit: Default::default(),
+            tui: Default::default(),
         }
     }
 }
@@ -52,11 +54,5 @@ impl Default for CommitSettings {
             include_breaking: true,
             breaking_symbol: '!',
         }
-    }
-}
-
-impl Default for TuiSettings {
-    fn default() -> Self {
-        Self {}
     }
 }

@@ -31,7 +31,7 @@ pub enum ProviderKind {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct ProviderConfigs {
+pub struct ProviderSettings {
     pub gai: GaiConfig,
     pub openai: OpenAIConfig,
     pub gemini: GeminiConfig,
@@ -93,6 +93,17 @@ impl From<ureq::Error> for ProviderError {
 impl From<serde_json::Error> for ProviderError {
     fn from(e: serde_json::Error) -> Self {
         ProviderError::ParseError(e)
+    }
+}
+
+impl ProviderSettings {
+    pub fn get_model(&self, provider: &ProviderKind) -> &str {
+        match provider {
+            ProviderKind::OpenAI => &self.openai.model,
+            ProviderKind::Gemini => &self.gemini.model,
+            ProviderKind::Claude => "not yet implemented",
+            ProviderKind::Gai => &self.gai.model,
+        }
     }
 }
 

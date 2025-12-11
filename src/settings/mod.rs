@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::providers::provider::{ProviderKind, ProviderSettings};
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Settings {
     pub provider: ProviderKind,
     pub providers: ProviderSettings,
@@ -27,7 +27,7 @@ pub struct Settings {
     pub tui: TuiSettings,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct PromptSettings {
     /// this is what tells the llm
     /// how to behave
@@ -153,7 +153,7 @@ pub struct CommitSettings {
     // todo allow user customizable format
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct TuiSettings {
     // todo, implement keybinds
     // and style settings
