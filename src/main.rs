@@ -6,6 +6,6 @@ pub mod tui;
 pub mod utils;
 
 fn main() -> anyhow::Result<()> {
-    dotenv::dotenv()?;
+    dotenv::dotenv().ok();
     cmd::run()
 }
