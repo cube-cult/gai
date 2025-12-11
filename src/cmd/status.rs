@@ -11,12 +11,16 @@ pub fn run(
     args: &StatusArgs,
     global: &GlobalArgs,
 ) -> anyhow::Result<()> {
-    let state = State::new(global.config.as_deref())?;
+    let mut state = State::new(global.config.as_deref())?;
 
     pretty_print_status(&state.gai, global.compact)?;
 
     if args.verbose {
         let spinner = SpinDeez::new();
+
+        state.gai.create_diffs(
+            state.settings.context.files_to_truncate.as_deref(),
+        )?;
 
         let req =
             build_request(&state.settings, &state.gai, &spinner);
