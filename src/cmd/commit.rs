@@ -8,7 +8,7 @@ use crate::{
     git::{commit::GaiCommit, repo::GaiGit},
     providers::{provider::extract_from_provider, request::Request},
     settings::Settings,
-    tui::app::run_tui,
+    tui::app::open,
     utils::print::{
         SpinDeez, pretty_print_commits, pretty_print_status,
     },
@@ -20,23 +20,25 @@ pub fn run(
 ) -> anyhow::Result<()> {
     let mut state = State::new(global.config.as_deref())?;
 
-    state.config.ai.hint = global.hint.to_owned();
+    state.settings.prompt.hint = global.hint.to_owned();
 
     if args.staged {
-        state.config.gai.only_staged = true;
+        state.settings.commit.only_staged = true;
     }
     if args.hunks {
-        state.config.gai.stage_hunks = true;
+        state.settings.commit.stage_hunks = true;
     }
     if args.files {
-        state.config.gai.stage_hunks = false;
+        state.settings.commit.stage_hunks = false;
     }
 
     if let Some(provider) = global.provider {
-        state.config.ai.provider = provider;
+        state.settings.provider = provider;
     }
 
-    state.gai.create_diffs(&state.config.ai.files_to_truncate)?;
+    state.gai.create_diffs(
+        state.settings.context.files_to_truncate.as_deref(),
+    )?;
 
     pretty_print_status(&state.gai, global.compact)?;
 
@@ -47,7 +49,7 @@ pub fn run(
     let spinner = SpinDeez::new();
 
     let req = crate::providers::request::build_request(
-        &state.config,
+        &state.settings,
         &state.gai,
         &spinner,
     );
@@ -55,7 +57,7 @@ pub fn run(
     run_commit(
         &spinner,
         req,
-        state.config,
+        state.settings,
         state.gai,
         args.skip_confirmation,
         global.compact,
@@ -75,11 +77,12 @@ fn run_commit(
     loop {
         spinner.start(&format!(
             "Awaiting response from {} using {}",
-            cfg.ai.provider, "todo!"
+            &cfg.provider.to_string(),
+            cfg.providers.get_model(&cfg.provider)
         ));
 
         let response = extract_from_provider(
-            &cfg.ai.provider,
+            &cfg.provider,
             &req.prompt,
             &req.diffs,
         );
@@ -133,8 +136,8 @@ fn run_commit(
             .map(|resp_commit| {
                 GaiCommit::from_response(
                     resp_commit,
-                    cfg.gai.commit_config.capitalize_prefix,
-                    cfg.gai.commit_config.include_scope,
+                    cfg.commit.capitalize_prefix,
+                    cfg.commit.include_scope,
                 )
             })
             .collect();
@@ -201,7 +204,7 @@ fn run_commit(
                 }
             }
         } else if selection == 1 {
-            let _ = run_tui(cfg, gai);
+            let _ = open(cfg, gai);
         } else if selection == 2 {
             println!("Retrying...");
             continue;

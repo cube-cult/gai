@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt};
 
 use crate::{
     git::repo::GaiGit,
-    settings::{RuleConfig, Settings},
+    settings::{PromptRules, Settings},
     utils::consts::*,
 };
 
@@ -61,9 +61,9 @@ impl Request {
     pub fn build_prompt(&mut self, cfg: &Settings, gai: &GaiGit) {
         let mut prompt = String::new();
 
-        let rules = build_rules(&cfg.ai.rules);
+        let rules = build_rules(&cfg.rules);
 
-        if let Some(sys_prompt) = &cfg.ai.system_prompt {
+        if let Some(sys_prompt) = &cfg.prompt.system_prompt {
             prompt.push_str(sys_prompt);
         } else {
             prompt.push_str(DEFAULT_SYS_PROMPT);
@@ -71,7 +71,7 @@ impl Request {
 
         prompt.push('\n');
 
-        if let Some(hint) = &cfg.ai.hint {
+        if let Some(hint) = &cfg.prompt.hint {
             prompt.push_str(
                 format!(
                     "USE THIS IS A HINT FOR YOUR COMMITS: {}",
@@ -82,28 +82,22 @@ impl Request {
             prompt.push('\n');
         }
 
-        if cfg.gai.only_staged {
-            prompt.push_str(
-                "ONLY GENERATE COMMITS FOR THE STAGED FILES",
-            );
-
-            prompt.push('\n');
+        if cfg.commit.only_staged {
+            prompt.push_str(PROMPT_ONLY_STAGED);
         }
 
         prompt.push_str(&rules);
         prompt.push('\n');
 
-        if cfg.ai.include_convention {
-            if let Some(commit_conv) = &cfg.ai.commit_convention {
-                prompt.push_str(commit_conv);
-            } else {
-                prompt.push_str(COMMIT_CONVENTION);
-            }
-
-            prompt.push('\n');
+        if let Some(commit_conv) = &cfg.prompt.commit_convention {
+            prompt.push_str(commit_conv);
         }
 
-        if cfg.gai.stage_hunks {
+        if cfg.context.include_convention {
+            prompt.push_str(COMMIT_CONVENTION);
+        }
+
+        if cfg.commit.stage_hunks {
             prompt.push_str(PROMPT_STAGE_HUNKS);
         } else {
             prompt.push_str(PROMPT_STAGE_FILES);
@@ -111,13 +105,13 @@ impl Request {
 
         prompt.push('\n');
 
-        if cfg.ai.include_file_tree {
+        if cfg.context.include_file_tree {
             prompt.push_str("Current File Tree: \n");
             prompt.push_str(&gai.get_repo_tree());
             prompt.push('\n');
         }
 
-        if cfg.ai.include_git_status {
+        if cfg.context.include_git_status {
             prompt.push_str("Current Git Status: \n");
             prompt.push_str(&gai.get_repo_status_as_str());
         }
@@ -126,15 +120,11 @@ impl Request {
     }
 }
 
-fn build_rules(cfg: &RuleConfig) -> String {
+fn build_rules(cfg: &PromptRules) -> String {
     let mut rules = String::new();
 
     if cfg.group_related_files {
         rules.push_str(RULE_GROUP_FILES);
-    }
-
-    if cfg.no_file_splitting {
-        rules.push_str(RULE_NO_FILE_SPLITTING);
     }
 
     if cfg.separate_by_purpose {
@@ -145,8 +135,7 @@ fn build_rules(cfg: &RuleConfig) -> String {
     rules.push_str(RULE_PREFIX);
 
     let scope_rule =
-        match (cfg.allow_empty_scope, cfg.exclude_extension_in_scope)
-        {
+        match (cfg.allow_empty_scope, cfg.extension_in_scope) {
             (true, true) => RULE_SCOPE_ALLOW_EMPTY_NO_EXTENSION,
             (true, false) => RULE_SCOPE_ALLOW_EMPTY_WITH_EXTENSION,
             (false, true) => RULE_SCOPE_REQUIRED_NO_EXTENSION,
@@ -165,7 +154,7 @@ fn build_rules(cfg: &RuleConfig) -> String {
     if cfg.allow_body {
         rules.push_str(RULE_BODY_BASE);
         rules.push_str(&format!(
-            "    - Wrap lines at {} characters\n",
+            "    - CRITICAL: Maximum length is {} characters\n",
             cfg.max_body_length
         ));
     } else {

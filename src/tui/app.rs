@@ -104,7 +104,7 @@ impl Default for ThrobberStyles {
     }
 }
 
-pub fn run_tui(cfg: Settings, gai: GaiGit) -> Result<()> {
+pub fn open(cfg: Settings, gai: GaiGit) -> Result<()> {
     let mut terminal = ratatui::init();
     let timeout = Duration::from_millis(50);
 
@@ -167,8 +167,11 @@ impl App {
         let tui_state = TUIState { selected_screen };
 
         let diff_screen = DiffScreen::new(&gai.files);
-        let commit_screen =
-            CommitScreen::new(&cfg.ai, &cfg.gai.commit_config);
+        let commit_screen = CommitScreen::new(
+            &cfg.provider.to_string(),
+            cfg.providers.get_model(&cfg.provider),
+            &cfg.commit,
+        );
         let log_screen =
             LogScreen::new(gai.get_logs(None, false).unwrap());
 

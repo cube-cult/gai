@@ -402,8 +402,8 @@ fn compact_print_commits(
 
     for (i, commit) in commits.iter().enumerate() {
         let prefix = commit.get_commit_prefix(
-            cfg.gai.commit_config.capitalize_prefix,
-            cfg.gai.commit_config.include_scope,
+            cfg.commit.capitalize_prefix,
+            cfg.commit.include_scope,
         );
 
         execute!(
@@ -485,8 +485,8 @@ pub fn pretty_print_commits(
 
     for (i, commit) in commits.iter().enumerate() {
         let prefix = commit.get_commit_prefix(
-            cfg.gai.commit_config.capitalize_prefix,
-            cfg.gai.commit_config.include_scope,
+            cfg.commit.capitalize_prefix,
+            cfg.commit.include_scope,
         );
 
         let commit_root = arena
