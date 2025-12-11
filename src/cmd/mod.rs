@@ -17,9 +17,9 @@ pub fn run() -> anyhow::Result<()> {
         args::Commands::TUI(a) => tui::run(a, &args.global)?,
         args::Commands::Commit(a) => commit::run(a, &args.global)?,
         args::Commands::Log(a) => log::run(a, &args.global)?,
-        args::Commands::Rebase => {}
+        /* args::Commands::Rebase => {}
         args::Commands::Find => {}
-        args::Commands::Bisect => {}
+        args::Commands::Bisect => {} */
     };
 
     Ok(())

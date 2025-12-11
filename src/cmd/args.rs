@@ -59,15 +59,14 @@ pub enum Commands {
 
     /// Create commits from the diffs in the working tree
     Commit(CommitArgs),
-
-    /// Create a rebase plan for commits
+    /* /// Create a rebase plan for commits
     Rebase,
 
     /// Find a specific commit
     Find,
 
     /// Initiate interactive bisect
-    Bisect,
+    Bisect, */
 }
 
 #[derive(Debug, Subcommand)]

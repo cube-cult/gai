@@ -7,6 +7,5 @@ pub mod utils;
 
 fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
-    cmd::run()?;
-    Ok(())
+    cmd::run()
 }
