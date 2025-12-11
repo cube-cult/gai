@@ -8,14 +8,14 @@ pub const GEMINI_DEFAULT: &str = "gemini-2.5-flash";
 
 pub const DEFAULT_SYS_PROMPT: &str = "You are an expert at git operations. Create git a logical list of git commits based on diffs and structure.";
 
-pub const LOGO: &str = r#""#;
+pub const PROMPT_ONLY_STAGED: &str =
+    "ONLY GENERATE COMMITS FOR THE STAGED FILES\n";
 
 pub const PROMPT_STAGE_HUNKS: &str = "Fill hunk_ids with the HUNK_ID values shown in the diffs (format: \"filepath:index\").\
     Each hunk can only appear in ONE commit.\
     Ex.: [\"src/main.rs:0\", \"src/git/repo.rs:1\"]";
 
-pub const PROMPT_STAGE_FILES: &str =
-    "Fill out files with valid paths and leave hunk_headers empty";
+pub const PROMPT_STAGE_FILES: &str = "Fill out files with valid paths and leave hunk_headers empty. Files should ONLY appear in ONE commit";
 
 pub const RULE_GROUP_FILES: &str = "- GROUP related files into LOGICAL commits based on the type of change\n\
 - Examples of files that should be grouped together:\n\
@@ -23,9 +23,6 @@ pub const RULE_GROUP_FILES: &str = "- GROUP related files into LOGICAL commits b
   * Files modified for the same bug fix\n\
   * Related configuration and code changes\n\
   * Test files with the code they test\n";
-
-pub const RULE_NO_FILE_SPLITTING: &str =
-    "- CRITICAL: Each file should appear in ONLY ONE commit\n";
 
 pub const RULE_SEPARATE_BY_PURPOSE: &str = "- CRITICAL: Create SEPARATE commits when changes serve DIFFERENT purposes\n";
 

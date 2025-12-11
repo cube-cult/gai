@@ -20,13 +20,13 @@ use super::{
     utils::center,
 };
 use crate::{
-    configuration::{AiConfig, CommitConfig, Config},
     git::{commit::GaiCommit, repo::GaiGit},
     providers::{
         provider::{ProviderKind::Gai, extract_from_provider},
         request::Request,
         schema::{PrefixType, ResponseCommit},
     },
+    settings::{CommitSettings, Settings},
 };
 
 pub struct CommitScreen {
@@ -65,16 +65,17 @@ pub struct CommitScreenWidget<'screen> {
 
 impl CommitScreen {
     pub fn new(
-        ai_config: &AiConfig,
-        commit_cfg: &CommitConfig,
+        provider: &str,
+        model: &str,
+        commit_settings: &CommitSettings,
     ) -> Self {
         let selected_commit_state = ListState::default();
 
         Self {
-            provider: ai_config.provider.to_string(),
-            model: "todo: implement provider".to_owned(),
-            capitalize_prefix: commit_cfg.capitalize_prefix,
-            include_scope: commit_cfg.include_scope,
+            provider: provider.to_owned(),
+            model: model.to_owned(),
+            capitalize_prefix: commit_settings.capitalize_prefix,
+            include_scope: commit_settings.include_scope,
             commits: Vec::new(),
             is_error: false,
             error: None,
@@ -89,7 +90,7 @@ impl CommitScreen {
         &mut self,
         event: &Event,
         tx: &Sender<Event>,
-        cfg: &Config,
+        cfg: &Settings,
         gai: &GaiGit,
     ) {
         match event {
@@ -258,7 +259,7 @@ impl CommitScreen {
     fn send_request(
         &mut self,
         tx: Sender<Event>,
-        cfg: &Config,
+        cfg: &Settings,
         gai: &GaiGit,
     ) {
         self.request_sent = true;
@@ -290,7 +291,7 @@ impl CommitScreen {
     fn apply_commits(
         &self,
         tx: &Sender<Event>,
-        cfg: &Config,
+        cfg: &Settings,
         gai: &GaiGit,
     ) {
         if self.commits.is_empty() {
@@ -303,8 +304,8 @@ impl CommitScreen {
             .map(|r_c| {
                 GaiCommit::from_response(
                     r_c,
-                    cfg.gai.commit_config.capitalize_prefix,
-                    cfg.gai.commit_config.include_scope,
+                    cfg.commit.capitalize_prefix,
+                    cfg.commit.include_scope,
                 )
             })
             .collect();

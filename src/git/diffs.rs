@@ -8,7 +8,7 @@ use crate::git::repo::{
 impl GaiGit {
     pub fn create_diffs(
         &mut self,
-        files_to_truncate: &[String],
+        files_to_truncate: Option<&[String]>,
     ) -> Result<(), git2::Error> {
         // start this puppy up
         let mut opts = DiffOptions::new();
@@ -30,6 +30,13 @@ impl GaiGit {
         };
 
         let mut gai_files: Vec<GaiFile> = Vec::new();
+
+        // hilarious
+        let files_to_truncate = if let Some(f) = files_to_truncate {
+            f
+        } else {
+            &Vec::new()
+        };
 
         diff.print(git2::DiffFormat::Patch, |delta, hunk, line| {
             let path = delta

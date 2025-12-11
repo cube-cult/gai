@@ -18,7 +18,8 @@ pub fn run(
     if args.verbose {
         let spinner = SpinDeez::new();
 
-        let req = build_request(&state.config, &state.gai, &spinner);
+        let req =
+            build_request(&state.settings, &state.gai, &spinner);
         println!("{}", req);
     }
 

@@ -1,21 +1,24 @@
-use crate::{configuration::Config, git::repo::GaiGit};
+use crate::{
+    git::repo::GaiGit,
+    settings::{Settings, load},
+};
 
 pub struct State {
-    pub config: Config,
+    pub settings: Settings,
     pub gai: GaiGit,
 }
 
 impl State {
     pub fn new(overrides: Option<&[String]>) -> anyhow::Result<Self> {
-        let config = Config::load(overrides)?;
+        let settings = load::load(overrides)?;
 
         let gai = GaiGit::new(
-            config.gai.only_staged,
-            config.gai.stage_hunks,
-            config.gai.commit_config.capitalize_prefix,
-            config.gai.commit_config.include_scope,
+            settings.commit.only_staged,
+            settings.commit.stage_hunks,
+            settings.commit.capitalize_prefix,
+            settings.commit.include_scope,
         )?;
 
-        Ok(Self { config, gai })
+        Ok(Self { settings, gai })
     }
 }

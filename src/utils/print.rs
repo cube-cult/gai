@@ -12,9 +12,9 @@ use super::{
 };
 
 use crate::{
-    configuration::Config,
     git::{log::GaiLog, repo::GaiGit},
     providers::schema::ResponseCommit,
+    settings::Settings,
 };
 
 // yes lmao
@@ -395,15 +395,15 @@ pub fn pretty_print_status(
 
 fn compact_print_commits(
     commits: &[ResponseCommit],
-    cfg: &Config,
+    cfg: &Settings,
     gai: &GaiGit,
 ) -> Result<()> {
     let mut stdout = stdout();
 
     for (i, commit) in commits.iter().enumerate() {
         let prefix = commit.get_commit_prefix(
-            cfg.gai.commit_config.capitalize_prefix,
-            cfg.gai.commit_config.include_scope,
+            cfg.commit.capitalize_prefix,
+            cfg.commit.include_scope,
         );
 
         execute!(
@@ -472,7 +472,7 @@ fn compact_print_commits(
 
 pub fn pretty_print_commits(
     commits: &[ResponseCommit],
-    cfg: &Config,
+    cfg: &Settings,
     gai: &GaiGit,
     compact: bool,
 ) -> Result<()> {
@@ -485,8 +485,8 @@ pub fn pretty_print_commits(
 
     for (i, commit) in commits.iter().enumerate() {
         let prefix = commit.get_commit_prefix(
-            cfg.gai.commit_config.capitalize_prefix,
-            cfg.gai.commit_config.include_scope,
+            cfg.commit.capitalize_prefix,
+            cfg.commit.include_scope,
         );
 
         let commit_root = arena
