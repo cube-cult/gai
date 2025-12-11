@@ -11,11 +11,10 @@ pub fn load(
     if let Some(cfg_path) =
         ProjectDirs::from("com", "nuttycream", "gai")
             .map(|d| d.config_dir().to_owned())
+        && cfg_path.join("config.toml").exists()
     {
-        if cfg_path.join("config.toml").exists() {
-            builder = builder
-                .add_source(File::from(cfg_path).required(false));
-        }
+        builder =
+            builder.add_source(File::from(cfg_path).required(false));
     }
 
     if let Some(overrides) = overrides {
@@ -33,7 +32,7 @@ pub fn load(
     // cli passed overrides
 
     let settings = match builder.build() {
-        Ok(cfg) => cfg.try_deserialize()?,
+        Ok(cfg) => cfg.try_deserialize().unwrap_or_default(),
         Err(ConfigError::NotFound(_)) => Settings::default(),
         Err(e) => return Err(e.into()),
     };
