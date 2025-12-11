@@ -38,8 +38,8 @@ impl Default for ContextSettings {
             include_git_status: true,
             include_untracked: true,
             files_to_truncate: None,
-            include_log: true,
-            log_amount: 5,
+            include_log: false,
+            log_amount: 10,
         }
     }
 }
