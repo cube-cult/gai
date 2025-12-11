@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::providers::provider::{ProviderKind, ProviderSettings};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub provider: ProviderKind,
     pub providers: ProviderSettings,
@@ -28,6 +29,7 @@ pub struct Settings {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct PromptSettings {
     /// this is what tells the llm
     /// how to behave
@@ -58,6 +60,7 @@ pub struct PromptSettings {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct PromptRules {
     /// group related files into logical commits based on the type of prefix
     pub group_related_files: bool,
@@ -88,6 +91,7 @@ pub struct PromptRules {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ContextSettings {
     /// include commit convention v1
     /// this is different from commit_convetion field
@@ -125,6 +129,7 @@ pub struct ContextSettings {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CommitSettings {
     /// only generate commits for staged files
     pub only_staged: bool,
@@ -154,6 +159,7 @@ pub struct CommitSettings {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct TuiSettings {
     // todo, implement keybinds
     // and style settings

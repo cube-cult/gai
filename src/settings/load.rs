@@ -10,8 +10,7 @@ pub fn load(
 
     if let Some(cfg_path) =
         ProjectDirs::from("com", "nuttycream", "gai")
-            .map(|d| d.config_dir().to_owned())
-        && cfg_path.join("config.toml").exists()
+            .map(|d| d.config_dir().join("config.toml"))
     {
         builder =
             builder.add_source(File::from(cfg_path).required(false));
@@ -32,7 +31,7 @@ pub fn load(
     // cli passed overrides
 
     let settings = match builder.build() {
-        Ok(cfg) => cfg.try_deserialize().unwrap_or_default(),
+        Ok(cfg) => cfg.try_deserialize()?,
         Err(ConfigError::NotFound(_)) => Settings::default(),
         Err(e) => return Err(e.into()),
     };
