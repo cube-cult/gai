@@ -116,6 +116,38 @@ impl Request {
             prompt.push_str(&gai.get_repo_status_as_str());
         }
 
+        if cfg.context.include_log {
+            let count = if cfg.context.log_amount == 0 {
+                None
+            } else {
+                Some(cfg.context.log_amount as usize)
+            };
+
+            let mut logs = String::new();
+
+            if let Ok(gai_logs) = gai.get_logs(count, false) {
+                for gai_log in gai_logs {
+                    if let Some(header) = gai_log.header
+                        && let Some(prefix) = gai_log.prefix
+                    {
+                        logs.push_str(&format!(
+                            "{}:{}",
+                            prefix, header
+                        ));
+                    } else {
+                        logs.push_str(&gai_log.message.unwrap_or(
+                            "No Commit Message".to_owned(),
+                        ));
+                    }
+                    logs.push('\n');
+                }
+            }
+
+            prompt.push_str("Recent Git Logs: \n");
+            prompt.push_str(&logs);
+            prompt.push('\n');
+        }
+
         self.prompt = prompt;
     }
 }
