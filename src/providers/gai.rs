@@ -3,10 +3,8 @@ use schemars::generate::SchemaSettings;
 use serde::{Deserialize, Serialize};
 use ureq::Agent;
 
-use crate::{
-    ai::{provider::ProviderError, schema::ResponseSchema},
-    auth::get_token,
-};
+use super::{provider::ProviderError, schema::ResponseSchema};
+use crate::cmd::auth::get_token;
 
 #[derive(Debug)]
 pub struct GaiProvider {

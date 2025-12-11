@@ -2,9 +2,22 @@ use anyhow::Result;
 use dialoguer::{Password, theme::ColorfulTheme};
 use std::{fs, io::ErrorKind, path::PathBuf};
 
-use crate::SpinDeez;
+use super::args::Auth;
+use crate::utils::print::SpinDeez;
 
-pub fn auth_login() -> Result<()> {
+pub fn run(auth: &Auth) -> Result<()> {
+    let spinner = SpinDeez::new();
+
+    match auth {
+        Auth::Login => auth_login()?,
+        Auth::Status => auth_status(&spinner)?,
+        Auth::Logout => clear_auth()?,
+    }
+
+    Ok(())
+}
+
+fn auth_login() -> Result<()> {
     println!("Opening Browser for https://cli.gai.fyi/login");
     open::that("https://cli.gai.fyi/login")?;
     let token = Password::with_theme(&ColorfulTheme::default())
@@ -17,7 +30,7 @@ pub fn auth_login() -> Result<()> {
     Ok(())
 }
 
-pub fn auth_status(spinner: &SpinDeez) -> Result<()> {
+fn auth_status(spinner: &SpinDeez) -> Result<()> {
     spinner.start("Fetching User Status");
     let token = get_token()?;
 
@@ -47,7 +60,7 @@ pub fn auth_status(spinner: &SpinDeez) -> Result<()> {
     Ok(())
 }
 
-pub fn clear_auth() -> Result<()> {
+fn clear_auth() -> Result<()> {
     let token_path = token_path()?;
 
     if token_path.exists() {

@@ -5,7 +5,7 @@ use schemars::{
 use serde::{Deserialize, Serialize};
 use ureq::Agent;
 
-use crate::ai::{provider::ProviderError, schema::ResponseSchema};
+use super::{provider::ProviderError, schema::ResponseSchema};
 
 #[derive(Debug)]
 pub struct OpenAIProvider {

@@ -1,10 +1,12 @@
+pub mod defaults;
+
 use anyhow::Result;
 use config::{Config as ConfigBuilder, File};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::{fs, io::ErrorKind};
 
-use crate::ai::provider::{ProviderConfigs, ProviderKind};
+use crate::providers::provider::{ProviderConfigs, ProviderKind};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
@@ -14,6 +16,14 @@ pub struct Config {
 }
 
 impl Config {
+    pub fn load(overrides: Option<&[String]>) -> Result<Self> {
+        let mut cfg = Self::init()?;
+        if let Some(o) = overrides {
+            cfg = cfg.override_cfg(o)?;
+        }
+        Ok(cfg)
+    }
+
     pub fn init() -> Result<Self> {
         if let Some(base_dirs) =
             ProjectDirs::from("com", "nuttycream", "gai")
@@ -204,49 +214,4 @@ pub struct RuleConfig {
     // todo add hard validation
     /// max length of commit body
     pub max_body_length: u16,
-}
-
-impl Default for AiConfig {
-    fn default() -> Self {
-        Self {
-            provider: ProviderKind::Gai,
-            system_prompt: None,
-            commit_convention: None,
-            include_convention: true,
-            include_file_tree: true,
-            include_git_status: true,
-            include_untracked: true,
-            files_to_truncate: vec![],
-            rules: RuleConfig::default(),
-            provider_configs: ProviderConfigs::default(),
-            hint: None,
-        }
-    }
-}
-
-impl Default for RuleConfig {
-    fn default() -> Self {
-        Self {
-            group_related_files: true,
-            no_file_splitting: true,
-            separate_by_purpose: true,
-            verbose_descriptions: true,
-            exclude_extension_in_scope: true,
-            allow_empty_scope: true,
-            max_header_length: 52,
-            allow_body: true,
-            max_body_length: 72,
-        }
-    }
-}
-
-impl Default for CommitConfig {
-    fn default() -> Self {
-        Self {
-            capitalize_prefix: false,
-            include_scope: true,
-            include_breaking: true,
-            breaking_symbol: None,
-        }
-    }
 }

@@ -4,10 +4,8 @@ use ratatui::crossterm::event::{
 };
 use std::{sync::mpsc::Receiver, time::Duration};
 
-use crate::{
-    ai::schema::ResponseCommit,
-    tui::popup::{PopupResult, PopupType},
-};
+use super::popup::{PopupResult, PopupType};
+use crate::providers::schema::ResponseCommit;
 
 #[derive(Clone, Debug)]
 pub enum Event {

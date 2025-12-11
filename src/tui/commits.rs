@@ -20,13 +20,13 @@ use super::{
     utils::center,
 };
 use crate::{
-    ai::{
+    configuration::{AiConfig, CommitConfig, Config},
+    git::{commit::GaiCommit, repo::GaiGit},
+    providers::{
         provider::{ProviderKind::Gai, extract_from_provider},
         request::Request,
         schema::{PrefixType, ResponseCommit},
     },
-    config::{AiConfig, CommitConfig, Config},
-    git::{commit::GaiCommit, repo::GaiGit},
 };
 
 pub struct CommitScreen {

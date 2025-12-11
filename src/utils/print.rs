@@ -6,12 +6,15 @@ use crossterm::{
 use indicatif::{ProgressBar, ProgressStyle};
 use std::io::stdout;
 
-use crate::{
-    ai::schema::ResponseCommit,
-    config::Config,
+use super::{
     consts::{PROGRESS_TEMPLATE, PROGRESS_TICK},
-    git::{log::GaiLog, repo::GaiGit},
     graph::Arena,
+};
+
+use crate::{
+    configuration::Config,
+    git::{log::GaiLog, repo::GaiGit},
+    providers::schema::ResponseCommit,
 };
 
 // yes lmao
@@ -23,14 +26,15 @@ pub struct SpinDeez {
 }
 
 impl SpinDeez {
-    pub fn new() -> Result<Self> {
+    pub fn new() -> Self {
         let bar = ProgressBar::new_spinner();
         bar.set_style(
-            ProgressStyle::with_template(PROGRESS_TEMPLATE)?
+            ProgressStyle::with_template(PROGRESS_TEMPLATE)
+                .unwrap()
                 .tick_strings(PROGRESS_TICK),
         );
 
-        Ok(Self { spinner: bar })
+        Self { spinner: bar }
     }
 
     pub fn start(&self, msg: &str) {
@@ -47,6 +51,12 @@ impl SpinDeez {
         } else {
             self.spinner.finish();
         }
+    }
+}
+
+impl Default for SpinDeez {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

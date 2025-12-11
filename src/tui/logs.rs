@@ -9,8 +9,8 @@ use ratatui::{
     },
 };
 
-use super::{app::TextStyles, events::Event};
-use crate::{git::log::GaiLog, tui::utils::center};
+use super::{app::TextStyles, events::Event, utils::center};
+use crate::git::log::GaiLog;
 
 pub struct LogScreen {
     gai_logs: Vec<GaiLog>,
