@@ -475,7 +475,6 @@ dependencies = [
  "serde_json",
  "strum 0.27.2",
  "throbber-widgets-tui",
- "toml",
  "tui-textarea",
  "ureq",
  "walkdir",
@@ -1483,7 +1482,6 @@ dependencies = [
  "serde_spanned",
  "toml_datetime",
  "toml_parser",
- "toml_writer",
  "winnow",
 ]
 
@@ -1504,12 +1502,6 @@ checksum = "c0cbe268d35bdb4bb5a56a2de88d0ad0eb70af5384a99d648cd4b3d04039800e"
 dependencies = [
  "winnow",
 ]
-
-[[package]]
-name = "toml_writer"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df8b2b54733674ad286d16267dcfc7a71ed5c776e4ac7aa3c3e2561f7c637bf2"
 
 [[package]]
 name = "tui-textarea"
