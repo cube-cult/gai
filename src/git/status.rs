@@ -3,6 +3,47 @@ use git2::{Repository, Status, StatusOptions};
 
 use crate::git::repo::{GaiGit, GaiStatus};
 
+/// split status out from
+/// monolithic struct
+///
+/// should be created WHEN
+/// we need it
+pub struct RepoStatus {
+    pub staged: Changes,
+    pub unstaged: Changes,
+}
+
+/// saner change status handling
+pub struct Changes {
+    pub new: Vec<String>,
+    pub modified: Vec<String>,
+    pub deleted: Vec<String>,
+    pub renamed: Vec<Renamed>,
+}
+
+/// while the tuple did seem the shorter
+/// i think structuring them out
+/// makes it more readable
+pub struct Renamed {
+    pub old_name: String,
+    pub new_name: String,
+}
+
+impl Changes {
+    pub fn len(&self) -> usize {
+        self.new.len()
+            + self.modified.len()
+            + self.deleted.len()
+            + self.renamed.len()
+    }
+
+    //#[must_use]
+    // this was recommended by the compiler?
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
 impl GaiGit {
     pub fn build_status(
         repo: &Repository,

@@ -1,7 +1,9 @@
 use anyhow::Result;
 use git2::Repository;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 use walkdir::WalkDir;
+
+use super::errors::GitError;
 
 // honestly not sure
 // why i named the struct
@@ -11,7 +13,45 @@ use walkdir::WalkDir;
 // ideally, what gets passed
 // around instead of a humongous
 // struct
-pub struct GitRepo {}
+pub struct GitRepo {
+    /// git2 based Repo
+    pub repo: Repository,
+
+    /// current workdir path
+    /// will error on bare
+    /// intentional methinks
+    /// idt we should handle ANY operation
+    /// for bare repos
+    pub workdir: PathBuf,
+}
+
+impl GitRepo {
+    /// attempt to open repo,
+    /// if no path specified it'll
+    /// walk up FROM the CURRENT dir
+    /// to find a valid repo, otherwise
+    /// search from the path supplied
+    pub fn open(path: Option<&str>) -> Result<GitRepo> {
+        let repo = if let Some(p) = path {
+            Repository::discover(p)?
+        } else {
+            Repository::discover(".")?
+        };
+
+        let workdir =
+            repo.workdir().ok_or(GitError::BareRepo)?.to_path_buf();
+
+        Ok(Self { repo, workdir })
+    }
+
+    /// helper func to get branch name
+    pub fn get_branch(&self) -> Result<Option<String>> {
+        match self.repo.head() {
+            Ok(head) => Ok(head.shorthand().map(String::from)),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
 
 pub struct GaiGit {
     /// Diffs

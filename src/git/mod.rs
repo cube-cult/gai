@@ -5,3 +5,4 @@ pub mod log;
 pub mod repo;
 pub mod staging;
 pub mod status;
+pub mod tree;
