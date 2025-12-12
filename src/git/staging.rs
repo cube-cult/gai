@@ -1,10 +1,7 @@
 use anyhow::Result;
 use std::path::Path;
 
-use crate::git::{
-    commit::GaiCommit,
-    repo::{DiffType, GaiGit},
-};
+use crate::git::{commit::GaiCommit, diffs::DiffType, repo::GaiGit};
 
 impl GaiGit {
     pub fn apply_commits(&self, commits: &[GaiCommit]) -> Result<()> {

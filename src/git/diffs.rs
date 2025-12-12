@@ -1,9 +1,39 @@
-use git2::{DiffHunk, DiffLine, DiffOptions};
+use git2::{DiffDelta, DiffHunk, DiffLine, DiffOptions};
 use walkdir::WalkDir;
 
-use crate::git::repo::{
-    DiffType, GaiFile, GaiGit, HunkDiff, LineDiff,
-};
+use super::repo::GaiGit;
+
+/// a sort of DiffDelta struct
+#[derive(Debug, Clone)]
+pub struct GaiFile {
+    pub path: String,
+    pub should_truncate: bool,
+    pub hunks: Vec<HunkDiff>,
+}
+
+#[derive(Debug, Clone)]
+pub struct HunkDiff {
+    /// example key (header)
+    /// @@ -12,8 +12,9 @@
+    pub header: String,
+
+    pub line_diffs: Vec<LineDiff>,
+}
+
+#[derive(Debug, Clone)]
+pub struct LineDiff {
+    pub diff_type: super::diffs::DiffType,
+    pub content: String,
+}
+
+/// taken from diffline::origin
+#[derive(Clone, Default, Debug, Eq, Hash, PartialEq)]
+pub enum DiffType {
+    #[default]
+    Unchanged,
+    Additions,
+    Deletions,
+}
 
 impl GaiGit {
     pub fn create_diffs(
@@ -37,6 +67,13 @@ impl GaiGit {
         } else {
             &Vec::new()
         };
+
+        diff.foreach(
+            &mut |delta, count| file_cb(delta, count),
+            None,
+            None,
+            None,
+        );
 
         diff.print(git2::DiffFormat::Patch, |delta, hunk, line| {
             let path = delta
@@ -116,6 +153,10 @@ impl GaiGit {
 
         Ok(())
     }
+}
+
+fn file_cb(diff_delta: DiffDelta, count: f32) -> bool {
+    false
 }
 
 fn process_file_diff(

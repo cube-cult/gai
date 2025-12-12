@@ -55,7 +55,7 @@ impl GitRepo {
 
 pub struct GaiGit {
     /// Diffs
-    pub files: Vec<GaiFile>,
+    pub files: Vec<super::diffs::GaiFile>,
     /// ideally this can be configured as well for global
     /// ignores that are not part of .gitignore.
     pub ignored: Vec<String>,
@@ -85,38 +85,6 @@ pub struct GaiStatus {
     pub u_modified: Vec<String>,
     pub u_deleted: Vec<String>,
     pub u_renamed: Vec<(String, String)>,
-}
-
-/// a sort of DiffDelta struct
-#[derive(Debug, Clone)]
-pub struct GaiFile {
-    pub path: String,
-    pub should_truncate: bool,
-    pub hunks: Vec<HunkDiff>,
-}
-
-#[derive(Debug, Clone)]
-pub struct HunkDiff {
-    /// example key (header)
-    /// @@ -12,8 +12,9 @@
-    pub header: String,
-
-    pub line_diffs: Vec<LineDiff>,
-}
-
-#[derive(Debug, Clone)]
-pub struct LineDiff {
-    pub diff_type: DiffType,
-    pub content: String,
-}
-
-/// taken from diffline::origin
-#[derive(Clone, Default, Debug, Eq, Hash, PartialEq)]
-pub enum DiffType {
-    #[default]
-    Unchanged,
-    Additions,
-    Deletions,
 }
 
 impl GaiGit {
