@@ -3,6 +3,16 @@ use git2::Repository;
 use std::collections::HashMap;
 use walkdir::WalkDir;
 
+// honestly not sure
+// why i named the struct
+// gaigit
+//
+// wrapper for git2rs repo
+// ideally, what gets passed
+// around instead of a humongous
+// struct
+pub struct GitRepo {}
+
 pub struct GaiGit {
     /// Diffs
     pub files: Vec<GaiFile>,
