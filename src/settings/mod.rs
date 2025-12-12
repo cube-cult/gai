@@ -120,12 +120,20 @@ pub struct ContextSettings {
     /// if 0 then its all
     pub log_amount: u64,
 
+    /// files to ignore
+    /// this is separate from .gitignore
+    /// meant to be ignored and NOT sent to the LLM
+    /// as additional diffs
+    /// and can be manually specified in the config
+    /// or cli
+    pub ignore_files: Option<Vec<String>>,
+
     /// files that gai will be TRUNCATED
     /// you can use this to add specific files
     /// that are not really relevant to send to the AI provider
     /// such as a Cargo.lock or package-lock.json file
     /// which may take up valuable token space
-    pub files_to_truncate: Option<Vec<String>>,
+    pub truncate_files: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

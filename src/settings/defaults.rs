@@ -37,7 +37,8 @@ impl Default for ContextSettings {
             include_file_tree: false,
             include_git_status: true,
             include_untracked: true,
-            files_to_truncate: None,
+            ignore_files: None,
+            truncate_files: None,
             include_log: true,
             log_amount: 5,
         }
