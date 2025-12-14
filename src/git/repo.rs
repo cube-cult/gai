@@ -243,9 +243,9 @@ impl GaiGit {
 
                 for line in &hunk.line_diffs {
                     let prefix = match line.diff_type {
-                        DiffType::Unchanged => ' ',
-                        DiffType::Additions => '+',
-                        DiffType::Deletions => '-',
+                        super::diffs::DiffType::Unchanged => ' ',
+                        super::diffs::DiffType::Additions => '+',
+                        super::diffs::DiffType::Deletions => '-',
                     };
                     diff_str.push(prefix);
                     diff_str.push_str(&line.content);

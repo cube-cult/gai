@@ -3,6 +3,7 @@ pub mod diffs;
 pub mod errors;
 pub mod log;
 pub mod repo;
+pub mod settings;
 pub mod staging;
 pub mod status;
 pub mod tree;

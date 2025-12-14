@@ -37,7 +37,7 @@ pub fn run(
     }
 
     state.gai.create_diffs(
-        state.settings.context.files_to_truncate.as_deref(),
+        state.settings.context.truncate_files.as_deref(),
     )?;
 
     pretty_print_status(&state.gai, global.compact)?;
