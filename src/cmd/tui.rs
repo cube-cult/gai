@@ -9,5 +9,5 @@ pub fn run(
 ) -> anyhow::Result<()> {
     let state = State::new(global.config.as_deref())?;
 
-    crate::tui::app::open(state.settings, state.gai)
+    crate::tui::open(state.settings, state.gai)
 }

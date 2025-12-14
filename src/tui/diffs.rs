@@ -9,7 +9,10 @@ use ratatui::{
     },
 };
 
-use crate::git::repo::{DiffType, GaiFile, GaiGit};
+use crate::git::{
+    diffs::{DiffType, GaiFile},
+    repo::GaiGit,
+};
 
 use super::{app::TextStyles, events::Event, utils::center};
 

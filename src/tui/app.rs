@@ -106,7 +106,7 @@ impl Default for ThrobberStyles {
 
 pub fn open(cfg: Settings, gai: GaiGit) -> Result<()> {
     let mut terminal = ratatui::init();
-    let timeout = Duration::from_millis(50);
+    let timeout = Duration::from_millis(16);
 
     let (tx, rx) = mpsc::channel::<Event>();
 
