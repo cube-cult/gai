@@ -1,13 +1,12 @@
 use anyhow::Result;
-use asyncgit::sync::{
-    RepoPath, ShowUntrackedFilesConfig,
-    status::{StatusType, get_status},
-};
+use git2::Repository;
 use std::{
     fs::{File, create_dir},
     io::Write,
     path::{Path, PathBuf},
 };
+
+use super::errors::GitError;
 
 // honestly not sure
 // why i named the struct
@@ -19,7 +18,7 @@ use std::{
 // struct
 pub struct GitRepo {
     /// git2 based Repo
-    pub repo: PathBuf,
+    pub repo: Repository,
 
     /// current workdir path
     /// will error on bare
@@ -35,17 +34,17 @@ impl GitRepo {
     /// walk up FROM the CURRENT dir
     /// to find a valid repo, otherwise
     /// search from the path supplied
-    pub fn open(path: Option<&str>) -> Result<()> {
-        let repo_path = RepoPath::Path(".".into());
-        let status_type = StatusType::Both;
-        let show_untracked = ShowUntrackedFilesConfig::default();
+    pub fn open(path: Option<&str>) -> Result<Self> {
+        let repo = if let Some(p) = path {
+            Repository::discover(p)?
+        } else {
+            Repository::discover(".")?
+        };
 
-        let status =
-            get_status(&repo_path, status_type, Some(show_untracked));
+        let workdir =
+            repo.workdir().ok_or(GitError::BareRepo)?.to_path_buf();
 
-        println!("{:#?}", status);
-
-        Ok(())
+        Ok(Self { repo, workdir })
     }
 
     /// helper func to get branch name

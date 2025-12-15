@@ -8,6 +8,7 @@ pub enum GitError {
     BareRepo,
     InvalidHunk { hunk: String },
     NoHead,
+    Generic(String),
 }
 
 impl std::fmt::Display for GitError {
@@ -23,6 +24,7 @@ impl std::fmt::Display for GitError {
                 write!(f, "Invalid Hunk:{}", hunk)
             }
             GitError::NoHead => write!(f, "No Head found"),
+            GitError::Generic(e) => write!(f, "{}", e),
         }
     }
 }
