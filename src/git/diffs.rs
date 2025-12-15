@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fs, path::Path, rc::Rc};
+use std::{cell::RefCell, path::Path, rc::Rc};
 
 use git2::{
     Delta, Diff, DiffDelta, DiffFormat, DiffHunk, Patch, Repository,
@@ -138,15 +138,11 @@ impl Diffs {
         git_repo: &GitRepo,
         strategy: &DiffStrategy,
     ) -> anyhow::Result<Self> {
-        let files = Vec::new();
-
         let raw_diff = get_diff_raw(&git_repo.repo, strategy)?;
-        let file_diff =
-            raw_diff_to_file_diff(&raw_diff, &git_repo.workdir)?;
+        let file_diffs =
+            raw_diff_to_file_diffs(&raw_diff, &git_repo.workdir)?;
 
-        println!("{:#?}", file_diff);
-
-        Ok(Self { files })
+        Ok(file_diffs)
     }
 }
 
@@ -185,10 +181,19 @@ fn get_diff_raw<'a>(
     Ok(diff)
 }
 
-fn raw_diff_to_file_diff(
+fn raw_diff_to_file_diffs(
     diff: &Diff,
     work_dir: &Path,
-) -> anyhow::Result<FileDiff> {
+) -> anyhow::Result<Diffs> {
+    let mut files = Vec::new();
+    for delta in diff.deltas() {
+        let file_diff = if delta.status() == Delta::Untracked {
+            create_new_file_diff()?
+        } else {
+            create_file_diff()?
+        };
+    }
+
     let res = Rc::new(RefCell::new(FileDiff::default()));
     {
         let mut current_lines = Vec::new();
@@ -205,8 +210,7 @@ fn raw_diff_to_file_diff(
             res.lines += lines.len();
         };
 
-        let res_cell = Rc::clone(&res);
-        let mut put = |delta: DiffDelta,
+        let mut put = |_: DiffDelta,
                        hunk: Option<DiffHunk>,
                        line: git2::DiffLine| {
             if let Some(hunk) = hunk {
@@ -316,5 +320,19 @@ fn raw_diff_to_file_diff(
         GitError::Generic("rc unwrap error".to_owned())
     })?;
 
-    Ok(res.into_inner())
+    files.push(res.into_inner());
+
+    Ok(Diffs { files })
+}
+
+// for tracked files
+fn create_file_diff() -> anyhow::Result<FileDiff> {
+    //let mut patch = Patch::from_blob()
+
+    todo!()
+}
+
+// for untracked files
+fn create_new_file_diff() -> anyhow::Result<FileDiff> {
+    todo!()
 }

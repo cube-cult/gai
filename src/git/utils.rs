@@ -20,10 +20,10 @@ pub fn new_file_content(path: &Path) -> Option<Vec<u8>> {
                     path.to_str()?.to_string().as_bytes().into(),
                 );
             }
-        } else if !meta.file_type().is_dir() {
-            if let Ok(content) = fs::read(path) {
-                return Some(content);
-            }
+        } else if !meta.file_type().is_dir()
+            && let Ok(content) = fs::read(path)
+        {
+            return Some(content);
         }
     }
 
