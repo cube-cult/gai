@@ -30,6 +30,7 @@ pub enum StagingStrategy {
 // dont think passing around
 // config is needed for this case
 /// diffing strategy
+#[derive(Default)]
 pub struct DiffStrategy {
     /// send the diffs with the
     /// staged files ONLy
