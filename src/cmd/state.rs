@@ -17,7 +17,7 @@ impl State {
             settings.commit.stage_hunks,
             settings.commit.capitalize_prefix,
             settings.commit.include_scope,
-        )?;
+        );
 
         Ok(Self { settings, gai })
     }

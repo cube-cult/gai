@@ -116,23 +116,6 @@ fn render_selected_diff(
         lines.push(
             Line::from(hunk.header.clone()).bg(tailwind::BLUE.c900),
         );
-
-        for line_diff in &hunk.line_diffs {
-            let styled_line = match line_diff.diff_type {
-                DiffType::Additions => {
-                    Line::from(format!("+{}", line_diff.content))
-                        .bg(tailwind::GREEN.c950)
-                }
-                DiffType::Deletions => {
-                    Line::from(format!("-{}", line_diff.content))
-                        .bg(tailwind::RED.c950)
-                }
-                DiffType::Unchanged => {
-                    Line::from(format!(" {}", line_diff.content))
-                }
-            };
-            lines.push(styled_line);
-        }
     }
 
     let paragraph = Paragraph::new(lines)

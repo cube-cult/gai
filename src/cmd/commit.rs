@@ -8,7 +8,7 @@ use crate::{
     git::{commit::GaiCommit, repo::GaiGit},
     providers::{provider::extract_from_provider, request::Request},
     settings::Settings,
-    tui::app::open,
+    //tui::app::open,
     utils::print::{
         SpinDeez, pretty_print_commits, pretty_print_status,
     },
@@ -36,15 +36,15 @@ pub fn run(
         state.settings.provider = provider;
     }
 
-    state.gai.create_diffs(
+    /* state.gai.create_diffs(
         state.settings.context.truncate_files.as_deref(),
-    )?;
+    )?; */
 
     pretty_print_status(&state.gai, global.compact)?;
 
-    if state.gai.files.is_empty() {
+    /* if state.gai.files.is_empty() {
         return Ok(());
-    }
+    } */
 
     let spinner = SpinDeez::new();
 
@@ -204,7 +204,7 @@ fn run_commit(
                 }
             }
         } else if selection == 1 {
-            let _ = open(cfg, gai);
+            //let _ = open(cfg, gai);
         } else if selection == 2 {
             println!("Retrying...");
             continue;

@@ -1,28 +1,23 @@
 use super::{
-    repo::{GaiGit, GitRepo},
-    settings::DiffStrategy,
+    errors::GitError, repo::GitRepo, settings::DiffStrategy,
 };
 
 // https://libgit2.org/docs/reference/main/diff/git_diff_delta.html
 
-pub struct Diffs {
+pub struct GitDiffs {
     pub files: Vec<FileDiff>,
 }
 
+#[derive(Default)]
 pub struct FileDiff {
     pub path: String,
     pub hunks: Vec<Hunk>,
-    pub status: DiffDeltaStatus,
+    pub lines: usize,
+    pub untracked: bool,
 }
 
 // diffdelta status
 // ignoring others
-pub enum DiffDeltaStatus {
-    Added,
-    Modified,
-    Deleted,
-    Renamed,
-}
 
 #[derive(Debug, Clone)]
 pub struct LineDiff {
@@ -30,8 +25,12 @@ pub struct LineDiff {
     pub content: String,
 }
 
-pub struct Hunk {
+pub struct HunkId {
+    pub path: String,
     pub index: usize,
+}
+
+pub struct Hunk {
     pub header: HunkHeader,
     /// raw content of
     /// what the hunk contains
@@ -94,118 +93,34 @@ impl Hunk {
     }
 }
 
-impl Diffs {
+impl HunkId {
+    pub fn parse(from_str: &str) -> anyhow::Result<Self> {
+        let (path, index) =
+            from_str.split_once(':').ok_or_else(|| {
+                GitError::InvalidHunk {
+                    hunk: from_str.to_owned(),
+                }
+            })?;
+
+        let path = path.to_owned();
+        let index =
+            index.parse().map_err(|_| GitError::InvalidHunk {
+                hunk: from_str.to_owned(),
+            })?;
+
+        Ok(Self { path, index })
+    }
+}
+
+impl HunkHeader {}
+
+impl GitDiffs {
     pub fn create(
-        repo: &GitRepo,
+        git_repo: &GitRepo,
         strategy: &DiffStrategy,
     ) -> anyhow::Result<Self> {
-        let mut opts = git2::DiffOptions::new();
-        opts.include_untracked(true)
-            .recurse_untracked_dirs(true)
-            .enable_fast_untracked_dirs(true);
-
-        let repo = &repo.repo;
-        let head = repo.head()?.peel_to_tree()?;
-
-        let diff = if strategy.staged_only {
-            repo.diff_tree_to_index(
-                Some(&head),
-                None,
-                Some(&mut opts),
-            )?
-        } else {
-            repo.diff_tree_to_workdir_with_index(
-                Some(&head),
-                Some(&mut opts),
-            )?
-        };
-
-        let mut files = Vec::new();
-
-        diff.foreach(
-            &mut |delta, _| {
-                if let Some(file_diff) = file_cb(delta, strategy) {
-                    files.push(file_diff);
-                }
-                true
-            },
-            Some(&mut |delta, _| binary_cb(delta, strategy)),
-            Some(&mut |delta, hunk| true),
-            Some(&mut |delta, hunk, line| true),
-        )?;
+        let files = Vec::new();
 
         Ok(Self { files })
-    }
-}
-
-// file callback for diff delta loop
-fn file_cb(
-    diff_delta: git2::DiffDelta,
-    strategy: &DiffStrategy,
-) -> Option<FileDiff> {
-    let path = diff_delta
-        .new_file()
-        .path()
-        .and_then(|p| p.to_str())
-        .unwrap_or_default()
-        .to_owned();
-
-    if strategy.ignored_files.iter().any(|p| p == &path) {
-        return None;
-    }
-
-    let status = match diff_delta.status() {
-        git2::Delta::Added => DiffDeltaStatus::Added,
-        git2::Delta::Deleted => DiffDeltaStatus::Deleted,
-        git2::Delta::Modified => DiffDeltaStatus::Modified,
-        git2::Delta::Renamed => DiffDeltaStatus::Renamed,
-        _ => return None,
-    };
-
-    Some(FileDiff {
-        path,
-        hunks: Vec::new(),
-        status,
-    })
-}
-
-fn binary_cb(
-    _delta: git2::DiffDelta,
-    _strategy: &DiffStrategy,
-) -> bool {
-    true
-}
-
-/// a sort of DiffDelta struct
-#[derive(Debug, Clone)]
-pub struct GaiFile {
-    pub path: String,
-    pub should_truncate: bool,
-    pub hunks: Vec<HunkDiff>,
-}
-
-#[derive(Debug, Clone)]
-pub struct HunkDiff {
-    /// example key (header)
-    /// @@ -12,8 +12,9 @@
-    pub header: String,
-
-    pub line_diffs: Vec<LineDiff>,
-}
-
-/// taken from diffline::origin
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum DiffType {
-    Unchanged,
-    Additions,
-    Deletions,
-}
-
-impl GaiGit {
-    pub fn create_diffs(
-        &mut self,
-        truncate_files: Option<&[String]>,
-    ) -> Result<(), git2::Error> {
-        Ok(())
     }
 }

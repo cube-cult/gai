@@ -12,7 +12,7 @@ pub fn run(
 
     let logs = state.gai.get_logs(args.number, args.reverse)?;
 
-    pretty_print_logs(&logs, global.compact)?;
+    //pretty_print_logs(&logs, global.compact)?;
 
     Ok(())
 }

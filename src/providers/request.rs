@@ -107,13 +107,13 @@ impl Request {
 
         if cfg.context.include_file_tree {
             prompt.push_str("Current File Tree: \n");
-            prompt.push_str(&gai.get_repo_tree());
+            //prompt.push_str(&gai.get_repo_tree());
             prompt.push('\n');
         }
 
         if cfg.context.include_git_status {
             prompt.push_str("Current Git Status: \n");
-            prompt.push_str(&gai.get_repo_status_as_str());
+            //prompt.push_str(&gai.get_repo_status_as_str());
         }
 
         self.prompt = prompt;

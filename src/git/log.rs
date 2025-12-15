@@ -1,7 +1,3 @@
-use chrono::DateTime;
-
-use super::repo::GaiGit;
-
 #[derive(Debug)]
 pub struct GaiLog {
     pub prefix: Option<String>,
@@ -104,49 +100,5 @@ impl GaiLog {
             author: String::new(),
             commit_hash: String::new(),
         }
-    }
-}
-
-impl GaiGit {
-    pub fn get_logs(
-        &self,
-        number: Option<usize>,
-        reverse: bool,
-    ) -> anyhow::Result<Vec<GaiLog>> {
-        let mut revwalk = self.repo.revwalk()?;
-
-        if reverse {
-            revwalk.set_sorting(git2::Sort::REVERSE)?;
-        }
-
-        revwalk.push_head()?;
-
-        let revwalk = revwalk.take(number.unwrap_or(!0));
-
-        let mut logs = Vec::new();
-
-        for oid in revwalk {
-            let oid = oid?;
-            let commit = self.repo.find_commit(oid)?;
-            let message =
-                String::from_utf8_lossy(commit.message_bytes());
-
-            let mut log = GaiLog::parse(&message);
-
-            let author = commit.author();
-            log.author =
-                author.name().unwrap_or("unknown author").to_string();
-            log.commit_hash = oid.to_string();
-            log.date =
-                DateTime::from_timestamp(author.when().seconds(), 0)
-                    .map(|dt| {
-                        dt.format("%m/%d/%Y %H:%M:%S").to_string()
-                    })
-                    .unwrap_or_default();
-
-            logs.push(log);
-        }
-
-        Ok(logs)
     }
 }
