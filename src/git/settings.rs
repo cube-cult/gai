@@ -47,3 +47,18 @@ pub struct DiffStrategy {
     /// from .gitignore
     pub ignored_files: Vec<String>,
 }
+
+/// status strategy when running
+/// get_status
+#[derive(Default)]
+pub enum StatusStrategy {
+    /// only get status
+    /// of working dir
+    #[default]
+    WorkingDir,
+    /// only get status
+    /// of what's currently staged
+    Stage,
+    /// both
+    Both,
+}
