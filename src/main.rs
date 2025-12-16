@@ -16,9 +16,9 @@ fn main() -> anyhow::Result<()> {
 
     let diffs = get_diffs(&git_repo, &strategy)?;
 
-    for diff in diffs.files {
-        println!("{:#?}", diff.hunks);
-    }
+    //println!("{}", diffs.files.len());
+    println!("{}", diffs);
 
-    cmd::run()
+    //cmd::run()
+    Ok(())
 }

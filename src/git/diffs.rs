@@ -1,4 +1,4 @@
-use std::{cell::RefCell, path::Path, rc::Rc};
+use std::{cell::RefCell, fmt, path::Path, rc::Rc};
 
 use git2::{
     Delta, Diff, DiffDelta, DiffFormat, DiffHunk, Patch, Repository,
@@ -93,6 +93,22 @@ impl From<git2::DiffLineType> for DiffLineType {
     }
 }
 
+impl fmt::Display for DiffLineType {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        let prefix = match self {
+            DiffLineType::None => " ",
+            DiffLineType::Header => "",
+            DiffLineType::Add => "+",
+            DiffLineType::Delete => "-",
+        };
+
+        write!(f, "{}", prefix)
+    }
+}
+
 impl From<&git2::DiffLine<'_>> for DiffLinePosition {
     fn from(line: &git2::DiffLine<'_>) -> Self {
         Self {
@@ -134,6 +150,44 @@ impl HunkId {
     }
 }
 
+/// helper for printing for
+/// the LLM request
+impl fmt::Display for Diffs {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        let mut s = String::new();
+
+        for file in &self.files {
+            let mut f_str = String::new();
+            for (idx, hunk) in file.hunks.iter().enumerate() {
+                f_str.push_str(&format!(
+                    "HunkId[{}:{}]\n",
+                    file.path, idx
+                ));
+
+                /* f_str.push_str(&hunk.header.raw);
+                f_str.push('\n'); */
+
+                for line in &hunk.lines {
+                    f_str.push_str(&format!(
+                        "{}{}",
+                        line.line_type, line.content
+                    ));
+                    f_str.push('\n');
+                }
+            }
+            s.push_str(&f_str);
+            s.push('\n');
+        }
+
+        write!(f, "{}", s)
+    }
+}
+
+/// build a list of FileDiff's
+/// calls get_status() first
 pub fn get_diffs(
     git_repo: &GitRepo,
     strategy: &DiffStrategy,
@@ -162,6 +216,24 @@ pub fn get_diffs(
     }
 
     Ok(Diffs { files })
+}
+
+/// helper to fill out the valid schema options
+pub fn get_hunk_ids(file_diffs: &[FileDiff]) -> Vec<HunkId> {
+    let mut hunk_ids = Vec::new();
+
+    for file_diff in file_diffs.iter() {
+        for (idx, _) in file_diff.hunks.iter().enumerate() {
+            let hunk = HunkId {
+                path: file_diff.path.to_owned(),
+                index: idx,
+            };
+
+            hunk_ids.push(hunk);
+        }
+    }
+
+    hunk_ids
 }
 
 fn get_diff_raw<'a>(
