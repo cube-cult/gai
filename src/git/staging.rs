@@ -10,6 +10,52 @@
 // depending on the accuracy,
 // will make these operations separate
 
+use git2::{IndexAddOption, Repository};
+use std::path::Path;
+
+use super::settings::StagingStrategy;
+
+pub fn stage(
+    repo: &Repository,
+    strategy: StagingStrategy,
+) -> anyhow::Result<()> {
+    match strategy {
+        StagingStrategy::OneFilePerCommit => {}
+        StagingStrategy::AtomicCommit => {}
+        StagingStrategy::AllFilesOneCommit => {}
+        StagingStrategy::Hunks => {}
+    }
+
+    Ok(())
+}
+
+/// for atomic commits
+fn stage_file(
+    repo: &Repository,
+    path: &str,
+) -> anyhow::Result<()> {
+    let mut index = repo.index()?;
+
+    index.add_path(Path::new(path))?;
+    index.write()?;
+
+    Ok(())
+}
+
+/// for allfilesonecommit
+fn stage_all(
+    repo: &Repository,
+    pattern: &str,
+) -> anyhow::Result<()> {
+    let mut index = repo.index()?;
+
+    index.add_all(vec![pattern], IndexAddOption::DEFAULT, None)?;
+
+    index.write()?;
+
+    Ok(())
+}
+
 const NEWLINE: char = '\n';
 
 struct NewFromOldContent {

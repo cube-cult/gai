@@ -14,7 +14,7 @@ pub enum StagingStrategy {
     /// files SHOULD represent
     /// a DISTINCT change per commit
     #[default]
-    AtomicFiles,
+    AtomicCommit,
 
     /// stage all changes together
     /// as monolithic commit
