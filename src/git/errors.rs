@@ -5,6 +5,7 @@ use std::error::Error;
 /// error types
 #[derive(Debug)]
 pub enum GitError {
+    Git2(git2::Error),
     BareRepo,
     InvalidHunk { hunk: String },
     NoHead,
@@ -17,6 +18,9 @@ impl std::fmt::Display for GitError {
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
         match self {
+            GitError::Git2(e) => {
+                write!(f, "{}", e)
+            }
             GitError::BareRepo => {
                 write!(f, "This is a bare repository")
             }
@@ -32,6 +36,7 @@ impl std::fmt::Display for GitError {
 impl Error for GitError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            GitError::Git2(e) => Some(e),
             _ => None,
         }
     }
