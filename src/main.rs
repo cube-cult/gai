@@ -1,5 +1,8 @@
 use crate::git::{
-    diffs::Diffs, repo::GitRepo, settings::DiffStrategy,
+    diffs::Diffs,
+    repo::GitRepo,
+    settings::{DiffStrategy, StatusStrategy},
+    status::get_status,
 };
 
 pub mod cmd;
@@ -14,6 +17,10 @@ fn main() -> anyhow::Result<()> {
     let git_repo = GitRepo::open(None)?;
     let strategy = DiffStrategy::default();
     Diffs::create(&git_repo, &strategy)?;
+
+    let status = get_status(&git_repo.repo, StatusStrategy::Both)?;
+
+    println!("{:#?}", status);
 
     cmd::run()
 }

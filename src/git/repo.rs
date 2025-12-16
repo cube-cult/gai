@@ -1,10 +1,6 @@
 use anyhow::Result;
 use git2::Repository;
-use std::{
-    fs::{File, create_dir},
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 
 use super::errors::GitError;
 
