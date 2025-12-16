@@ -135,16 +135,13 @@ impl HunkId {
     pub fn parse(from_str: &str) -> anyhow::Result<Self> {
         let (path, index) =
             from_str.split_once(':').ok_or_else(|| {
-                GitError::InvalidHunk {
-                    hunk: from_str.to_owned(),
-                }
+                GitError::InvalidHunk(from_str.to_owned())
             })?;
 
         let path = path.to_owned();
-        let index =
-            index.parse().map_err(|_| GitError::InvalidHunk {
-                hunk: from_str.to_owned(),
-            })?;
+        let index = index.parse().map_err(|_| {
+            GitError::InvalidHunk(from_str.to_owned())
+        })?;
 
         Ok(Self { path, index })
     }
@@ -391,7 +388,7 @@ fn raw_diff_to_file_diff(
             adder(
                 &current_hunk.map_or_else(
                     || {
-                        Err(GitError::Generic(
+                        Err(GitError::InvalidHunk(
                             "invalid hunk".to_owned(),
                         ))
                     },

@@ -7,7 +7,7 @@ use std::error::Error;
 pub enum GitError {
     Git2(git2::Error),
     BareRepo,
-    InvalidHunk { hunk: String },
+    InvalidHunk(String),
     NoHead,
     Generic(String),
 }
@@ -24,8 +24,8 @@ impl std::fmt::Display for GitError {
             GitError::BareRepo => {
                 write!(f, "This is a bare repository")
             }
-            GitError::InvalidHunk { hunk } => {
-                write!(f, "Invalid Hunk:{}", hunk)
+            GitError::InvalidHunk(h) => {
+                write!(f, "Invalid Hunk:{}", h)
             }
             GitError::NoHead => write!(f, "No Head found"),
             GitError::Generic(e) => write!(f, "{}", e),
