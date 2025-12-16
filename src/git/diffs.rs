@@ -139,10 +139,12 @@ impl Diffs {
         strategy: &DiffStrategy,
     ) -> anyhow::Result<Self> {
         let raw_diff = get_diff_raw(&git_repo.repo, strategy)?;
-        let file_diffs =
-            raw_diff_to_file_diffs(&raw_diff, &git_repo.workdir)?;
+        let file_diff =
+            raw_diff_to_file_diff(&raw_diff, &git_repo.workdir)?;
 
-        Ok(file_diffs)
+        let files = vec![file_diff];
+
+        Ok(Diffs { files })
     }
 }
 
@@ -181,19 +183,14 @@ fn get_diff_raw<'a>(
     Ok(diff)
 }
 
-fn raw_diff_to_file_diffs(
+// use original asyncgit to read
+// diff per file then filter/process
+// todo process all diffs together
+// filter as you come acorss
+fn raw_diff_to_file_diff(
     diff: &Diff,
     work_dir: &Path,
-) -> anyhow::Result<Diffs> {
-    let mut files = Vec::new();
-    for delta in diff.deltas() {
-        let file_diff = if delta.status() == Delta::Untracked {
-            create_new_file_diff()?
-        } else {
-            create_file_diff()?
-        };
-    }
-
+) -> anyhow::Result<FileDiff> {
     let res = Rc::new(RefCell::new(FileDiff::default()));
     {
         let mut current_lines = Vec::new();
@@ -320,12 +317,10 @@ fn raw_diff_to_file_diffs(
         GitError::Generic("rc unwrap error".to_owned())
     })?;
 
-    files.push(res.into_inner());
-
-    Ok(Diffs { files })
+    Ok(res.into_inner())
 }
 
-// for tracked files
+/* // for tracked files
 fn create_file_diff() -> anyhow::Result<FileDiff> {
     //let mut patch = Patch::from_blob()
 
@@ -335,4 +330,4 @@ fn create_file_diff() -> anyhow::Result<FileDiff> {
 // for untracked files
 fn create_new_file_diff() -> anyhow::Result<FileDiff> {
     todo!()
-}
+} */
