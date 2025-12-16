@@ -66,6 +66,24 @@ impl From<Delta> for StatusItemType {
     }
 }
 
+pub fn is_workdir_clean(repo: &Repository) -> anyhow::Result<bool> {
+    if repo.is_bare() && !repo.is_worktree() {
+        return Ok(true);
+    }
+
+    let mut options = StatusOptions::default();
+    options
+        .show(StatusShow::Workdir)
+        .update_index(true)
+        .include_untracked(true)
+        .renames_head_to_index(true)
+        .recurse_untracked_dirs(true);
+
+    let statuses = repo.statuses(Some(&mut options))?;
+
+    Ok(statuses.is_empty())
+}
+
 pub fn get_status(
     repo: &Repository,
     strategy: StatusStrategy,

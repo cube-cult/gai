@@ -7,7 +7,8 @@ use git2::{
 use super::{
     errors::GitError,
     repo::GitRepo,
-    settings::DiffStrategy,
+    settings::{DiffStrategy, StatusStrategy},
+    status::get_status,
     utils::{get_head_repo, is_newline, new_file_content},
 };
 
@@ -133,28 +134,44 @@ impl HunkId {
     }
 }
 
-impl Diffs {
-    pub fn create(
-        git_repo: &GitRepo,
-        strategy: &DiffStrategy,
-    ) -> anyhow::Result<Self> {
-        let raw_diff = get_diff_raw(&git_repo.repo, strategy)?;
-        let file_diff =
-            raw_diff_to_file_diff(&raw_diff, &git_repo.workdir)?;
+pub fn get_diffs(
+    git_repo: &GitRepo,
+    strategy: &DiffStrategy,
+) -> anyhow::Result<Diffs> {
+    let mut files = Vec::new();
 
-        let files = vec![file_diff];
+    let status_strategy = if strategy.staged_only {
+        StatusStrategy::Stage
+    } else {
+        StatusStrategy::Both
+    };
 
-        Ok(Diffs { files })
+    let status = get_status(&git_repo.repo, status_strategy)?;
+
+    for file in status.statuses {
+        let raw_diff =
+            get_diff_raw(&git_repo.repo, &file.path, strategy)?;
+
+        let file_diff = raw_diff_to_file_diff(
+            &raw_diff,
+            &file.path,
+            &git_repo.workdir,
+        )?;
+
+        files.push(file_diff);
     }
+
+    Ok(Diffs { files })
 }
 
 fn get_diff_raw<'a>(
     repo: &'a Repository,
+    path: &str,
     strategy: &DiffStrategy,
 ) -> anyhow::Result<Diff<'a>> {
     let mut opt = git2::DiffOptions::new();
 
-    //opt.pathspec(pathspec);
+    opt.pathspec(path);
 
     let diff = if strategy.staged_only {
         // diff against head
@@ -189,9 +206,13 @@ fn get_diff_raw<'a>(
 // filter as you come acorss
 fn raw_diff_to_file_diff(
     diff: &Diff,
+    path: &str,
     work_dir: &Path,
 ) -> anyhow::Result<FileDiff> {
-    let res = Rc::new(RefCell::new(FileDiff::default()));
+    let res = Rc::new(RefCell::new(FileDiff {
+        path: path.to_owned(),
+        ..Default::default()
+    }));
     {
         let mut current_lines = Vec::new();
         let mut current_hunk: Option<HunkHeader> = None;

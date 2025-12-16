@@ -54,11 +54,11 @@ pub struct DiffStrategy {
 pub enum StatusStrategy {
     /// only get status
     /// of working dir
-    #[default]
     WorkingDir,
     /// only get status
     /// of what's currently staged
     Stage,
     /// both
+    #[default]
     Both,
 }
