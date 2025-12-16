@@ -4,7 +4,7 @@ use directories::ProjectDirs;
 use super::Settings;
 
 pub fn load(
-    overrides: Option<&[String]>,
+    overrides: Option<&[String]>
 ) -> anyhow::Result<Settings> {
     let mut builder = Config::builder();
 

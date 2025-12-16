@@ -13,7 +13,10 @@ pub struct Request {
 }
 
 impl fmt::Display for Request {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
         writeln!(f, "Request Prompt:")?;
         writeln!(f, "{}", self.prompt)?;
 
@@ -58,7 +61,11 @@ impl Request {
         self.diffs = diffs_str;
     }
 
-    pub fn build_prompt(&mut self, cfg: &Settings, gai: &GaiGit) {
+    pub fn build_prompt(
+        &mut self,
+        cfg: &Settings,
+        gai: &GaiGit,
+    ) {
         let mut prompt = String::new();
 
         let rules = build_rules(&cfg.rules);

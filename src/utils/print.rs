@@ -29,7 +29,10 @@ impl SpinDeez {
         Self { spinner: bar }
     }
 
-    pub fn start(&self, msg: &str) {
+    pub fn start(
+        &self,
+        msg: &str,
+    ) {
         self.spinner.reset();
 
         self.spinner
@@ -37,7 +40,10 @@ impl SpinDeez {
         self.spinner.set_message(msg.to_owned());
     }
 
-    pub fn stop(&self, msg: Option<&str>) {
+    pub fn stop(
+        &self,
+        msg: Option<&str>,
+    ) {
         if let Some(message) = msg {
             self.spinner.finish_with_message(message.to_owned());
         } else {

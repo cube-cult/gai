@@ -56,7 +56,7 @@ impl GitRepo {
 pub struct GaiGit {}
 impl GaiGit {
     pub(crate) fn get_file_diffs_as_str(
-        &self,
+        &self
     ) -> std::collections::HashMap<String, String> {
         todo!()
     }
