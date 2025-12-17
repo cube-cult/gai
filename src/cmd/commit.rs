@@ -5,10 +5,14 @@ use super::{
     state::State,
 };
 use crate::{
-    git::{commit::GaiCommit, repo::GaiGit},
+    git::{
+        commit::{GitCommit, commit},
+        repo::GitRepo,
+        settings::StagingStrategy,
+        staging::stage_file,
+    },
     providers::{provider::extract_from_provider, request::Request},
     settings::Settings,
-    //tui::app::open,
     utils::print::{
         SpinDeez, pretty_print_commits, pretty_print_status,
     },
@@ -22,6 +26,7 @@ pub fn run(
 
     state.settings.prompt.hint = global.hint.to_owned();
 
+    // todo blast this to smithereens
     if args.staged {
         state.settings.commit.only_staged = true;
     }
@@ -36,13 +41,13 @@ pub fn run(
         state.settings.provider = provider;
     }
 
-    /* state.gai.create_diffs(
+    /* state.git.create_diffs(
         state.settings.context.truncate_files.as_deref(),
     )?; */
 
-    pretty_print_status(&state.gai, global.compact)?;
+    pretty_print_status(&state.git, global.compact)?;
 
-    /* if state.gai.files.is_empty() {
+    /* if state.git.files.is_empty() {
         return Ok(());
     } */
 
@@ -50,7 +55,7 @@ pub fn run(
 
     let req = crate::providers::request::build_request(
         &state.settings,
-        &state.gai,
+        &state.git,
         &spinner,
     );
 
@@ -58,7 +63,7 @@ pub fn run(
         &spinner,
         req,
         state.settings,
-        state.gai,
+        state.git,
         args.skip_confirmation,
         global.compact,
     )?;
@@ -70,7 +75,7 @@ fn run_commit(
     spinner: &SpinDeez,
     req: Request,
     cfg: Settings,
-    gai: GaiGit,
+    git: GitRepo,
     skip_confirmation: bool,
     compact: bool,
 ) -> anyhow::Result<()> {
@@ -128,23 +133,16 @@ fn run_commit(
             if result.commits.len() == 1 { "" } else { "s" }
         );
 
-        pretty_print_commits(&result.commits, &cfg, &gai, compact)?;
+        pretty_print_commits(&result.commits, &cfg, &git, compact)?;
 
-        let commits: Vec<GaiCommit> = result
+        let git_commits: Vec<GitCommit> = result
             .commits
             .iter()
-            .map(|resp_commit| {
-                GaiCommit::from_response(
-                    resp_commit,
-                    cfg.commit.capitalize_prefix,
-                    cfg.commit.include_scope,
-                )
-            })
+            .map(|resp_commit| resp_commit.into())
             .collect();
 
         if skip_confirmation {
-            println!("Skipping confirmation and applying commits...");
-            match gai.apply_commits(&commits) {
+            match apply_commits(&git, &git_commits) {
                 Ok(_) => break,
                 Err(e) => {
                     println!("Failed to Apply Commits: {}", e);
@@ -180,7 +178,7 @@ fn run_commit(
 
         if selection == 0 {
             println!("Applying Commits...");
-            match gai.apply_commits(&commits) {
+            match apply_commits(&git, &git_commits) {
                 Ok(_) => break,
                 Err(e) => {
                     println!("Failed to Apply Commits: {}", e);
@@ -204,7 +202,7 @@ fn run_commit(
                 }
             }
         } else if selection == 1 {
-            //let _ = open(cfg, gai);
+            //let _ = open(cfg, git);
         } else if selection == 2 {
             println!("Retrying...");
             continue;
@@ -213,6 +211,23 @@ fn run_commit(
         }
 
         break;
+    }
+
+    Ok(())
+}
+
+fn apply_commits(
+    git: &GitRepo,
+    git_commits: &[GitCommit],
+) -> anyhow::Result<()> {
+    let staging_stragey = StagingStrategy::default();
+    for git_commit in git_commits {
+        if let StagingStrategy::AtomicCommits = staging_stragey {
+            for file in &git_commit.files {
+                stage_file(&git.repo, file)?;
+            }
+        }
+        commit(&git.repo, git_commit)?;
     }
 
     Ok(())
