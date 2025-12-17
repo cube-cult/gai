@@ -3,13 +3,28 @@ pub mod load;
 
 use serde::{Deserialize, Serialize};
 
-use crate::providers::provider::{ProviderKind, ProviderSettings};
+use crate::{
+    git::settings::{StagingStrategy, StatusStrategy},
+    providers::provider::{ProviderKind, ProviderSettings},
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
+    /// current active provider
     pub provider: ProviderKind,
+
+    /// all provider settings
+    /// ex. providers.gai.model = ""
     pub providers: ProviderSettings,
+
+    /// for different types
+    /// of adding/staging per commit
+    pub staging_type: StagingStrategy,
+
+    /// status strategy when running
+    /// get_status
+    pub status_type: StatusStrategy,
 
     /// custom prompt stuff
     pub prompt: PromptSettings,
@@ -140,13 +155,8 @@ pub struct ContextSettings {
 #[serde(default)]
 pub struct CommitSettings {
     /// only generate commits for staged files
+    /// for DiffStrategy
     pub only_staged: bool,
-
-    // todo this needs to be reworked
-    // likely an enum, where we implement
-    // tool calling
-    /// should we apply as hunks?
-    pub stage_hunks: bool,
 
     /// prefix will be capitalized like feat -> Feat
     pub capitalize_prefix: bool,

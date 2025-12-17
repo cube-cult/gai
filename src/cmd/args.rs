@@ -106,14 +106,6 @@ pub struct CommitArgs {
     /// Only generate for currently staged files/hunks
     #[arg(short = 's', long)]
     pub staged: bool,
-
-    /// Stage as hunks
-    #[arg(short = 'H', long, conflicts_with = "files")]
-    pub hunks: bool,
-
-    /// Stage as files
-    #[arg(short = 'f', long, conflicts_with = "hunks")]
-    pub files: bool,
 }
 
 #[derive(Debug, Args)]

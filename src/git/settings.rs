@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// for different types
 /// of adding/staging per commit
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum StagingStrategy {
     /// as individual hunks
     Hunks,
@@ -26,11 +26,12 @@ pub enum StagingStrategy {
 
 // populated after
 // loading config
+// NOT NEEDED FOR SETTINGs
 // but can be modified
 // dont think passing around
 // config is needed for this case
 /// diffing strategy
-#[derive(Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct DiffStrategy {
     /// send the diffs with the
     /// staged files ONLy
@@ -50,7 +51,7 @@ pub struct DiffStrategy {
 
 /// status strategy when running
 /// get_status
-#[derive(Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum StatusStrategy {
     /// only get status
     /// of working dir

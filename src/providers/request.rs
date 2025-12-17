@@ -1,7 +1,11 @@
 use std::{collections::HashMap, fmt};
 
 use crate::{
-    git::{diffs::get_diffs, repo::GitRepo, settings::DiffStrategy},
+    git::{
+        repo::GitRepo,
+        settings::{StagingStrategy, StatusStrategy},
+        status::get_status,
+    },
     settings::{PromptRules, Settings},
     utils::consts::*,
 };
@@ -31,15 +35,14 @@ impl fmt::Display for Request {
 
 pub fn build_request(
     cfg: &Settings,
-    git: &GitRepo,
-    spinner: &crate::utils::print::SpinDeez,
+    repo: &GitRepo,
+    diffs: &str,
 ) -> Request {
-    spinner.start("Building Request...");
     let mut req = Request::default();
-    let diffs = get_diffs(git, &DiffStrategy::default()).unwrap();
-    req.build_prompt(cfg);
-    req.diffs = diffs.to_string();
-    spinner.stop(None);
+
+    req.build_prompt(repo, cfg);
+    req.diffs = diffs.to_owned();
+
     req
 }
 
@@ -64,6 +67,7 @@ impl Request {
 
     pub fn build_prompt(
         &mut self,
+        repo: &GitRepo,
         cfg: &Settings,
     ) {
         let mut prompt = String::new();
@@ -104,10 +108,12 @@ impl Request {
             prompt.push_str(COMMIT_CONVENTION);
         }
 
-        if cfg.commit.stage_hunks {
-            prompt.push_str(PROMPT_STAGE_HUNKS);
-        } else {
-            prompt.push_str(PROMPT_STAGE_FILES);
+        match cfg.staging_type {
+            StagingStrategy::Hunks => {
+                prompt.push_str(PROMPT_STAGE_HUNKS)
+            }
+
+            _ => prompt.push_str(PROMPT_STAGE_FILES),
         }
 
         prompt.push('\n');
@@ -120,7 +126,15 @@ impl Request {
 
         if cfg.context.include_git_status {
             prompt.push_str("Current Git Status: \n");
-            //prompt.push_str(&git.get_repo_status_as_str());
+            let staged =
+                get_status(&repo.repo, StatusStrategy::Stage)
+                    .unwrap();
+            let working_dir =
+                get_status(&repo.repo, StatusStrategy::WorkingDir)
+                    .unwrap();
+
+            prompt.push_str(&format!("Staged\n{}", staged));
+            prompt.push_str(&format!("WorkingDir\n{}", working_dir));
         }
 
         self.prompt = prompt;
