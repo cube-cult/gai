@@ -56,7 +56,13 @@ pub struct ResponseCommit {
 
 /// conventional commit type prefix
 #[derive(
-    Clone, Debug, Serialize, Deserialize, JsonSchema, EnumIter,
+    Clone,
+    Debug,
+    Serialize,
+    Deserialize,
+    JsonSchema,
+    EnumIter,
+    strum::Display,
 )]
 #[serde(rename_all = "lowercase")]
 pub enum PrefixType {
