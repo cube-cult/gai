@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fmt, path::Path};
 
 use git2::{Delta, Repository, Status, StatusOptions, StatusShow};
 
@@ -15,7 +15,7 @@ pub struct FileStatus {
     pub status: StatusItemType,
 }
 
-#[derive(Copy, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(strum::Display, Copy, Clone, Hash, PartialEq, Eq, Debug)]
 pub enum StatusItemType {
     New,
     Modified,
@@ -63,6 +63,27 @@ impl From<Delta> for StatusItemType {
             Delta::Typechange => Self::Typechange,
             _ => Self::Modified,
         }
+    }
+}
+
+// helper ONLY FOR LLM REQUESTS
+// not for pretty print status
+impl fmt::Display for GitStatus {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        let mut s = String::new();
+
+        for git_status in &self.statuses {
+            s.push_str(&format!(
+                "{}:{}",
+                git_status.status, git_status.path
+            ));
+            s.push('\n');
+        }
+
+        write!(f, "{}", s)
     }
 }
 
