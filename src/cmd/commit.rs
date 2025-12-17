@@ -7,11 +7,15 @@ use super::{
 use crate::{
     git::{
         commit::{GitCommit, commit},
+        diffs::get_diffs,
         repo::GitRepo,
-        settings::StagingStrategy,
+        settings::{DiffStrategy, StagingStrategy},
         staging::stage_file,
     },
-    providers::{provider::extract_from_provider, request::Request},
+    providers::{
+        provider::extract_from_provider,
+        request::{Request, build_request},
+    },
     settings::Settings,
     utils::print::{
         SpinDeez, pretty_print_commits, pretty_print_status,
@@ -26,15 +30,8 @@ pub fn run(
 
     state.settings.prompt.hint = global.hint.to_owned();
 
-    // todo blast this to smithereens
     if args.staged {
         state.settings.commit.only_staged = true;
-    }
-    if args.hunks {
-        state.settings.commit.stage_hunks = true;
-    }
-    if args.files {
-        state.settings.commit.stage_hunks = false;
     }
 
     if let Some(provider) = global.provider {
@@ -52,12 +49,34 @@ pub fn run(
     } */
 
     let spinner = SpinDeez::new();
+    spinner.start("Building Request");
 
-    let req = crate::providers::request::build_request(
+    let mut diff_strategy = DiffStrategy {
+        staged_only: state.settings.commit.only_staged,
+        ..Default::default()
+    };
+
+    if let Some(ref files_to_truncate) =
+        state.settings.context.truncate_files
+    {
+        diff_strategy.truncated_files = files_to_truncate.to_owned();
+    }
+
+    if let Some(ref files_to_ignore) =
+        state.settings.context.ignore_files
+    {
+        diff_strategy.ignored_files = files_to_ignore.to_owned();
+    }
+
+    let diffs = get_diffs(&state.git, &diff_strategy)?;
+
+    let req = build_request(
         &state.settings,
         &state.git,
-        &spinner,
+        &diffs.to_string(),
     );
+
+    spinner.stop(None);
 
     run_commit(
         &spinner,
