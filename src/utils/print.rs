@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::io::stdout;
 
 use anyhow::Result;
@@ -7,7 +10,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use super::consts::{PROGRESS_TEMPLATE, PROGRESS_TICK};
 
 use crate::{
-    git::{log::GaiLog, repo::GitRepo},
+    git::{log::GitLog, repo::GitRepo},
     providers::schema::ResponseCommit,
     settings::Settings,
     utils::graph::Arena,
@@ -139,12 +142,12 @@ pub fn pretty_print_commits(
     Ok(())
 }
 
-fn compact_print_logs(logs: &[GaiLog]) -> Result<()> {
+fn compact_print_logs(logs: &[GitLog]) -> Result<()> {
     Ok(())
 }
 
 pub fn pretty_print_logs(
-    logs: &[GaiLog],
+    logs: &[GitLog],
     compact: bool,
 ) -> Result<()> {
     Ok(())

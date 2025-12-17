@@ -1,104 +1,95 @@
-#[derive(Debug)]
-pub struct GaiLog {
+use std::fmt;
+
+use chrono::DateTime;
+use git2::Repository;
+
+#[derive(Debug, Default)]
+pub struct Logs {
+    pub git_logs: Vec<GitLog>,
+}
+
+#[derive(Debug, Default)]
+pub struct GitLog {
     pub prefix: Option<String>,
-    pub scope: Option<String>,
     pub breaking: bool,
+    pub scope: Option<String>,
     pub header: Option<String>,
     pub body: Option<String>,
 
-    // this only gets populated
-    // if the prefix, scope, and breaking dont
-    // exist
-    //
-    // we could just return the header
-    // but me thinks it might get
-    // confusing
-    pub message: Option<String>,
+    // raw git commit message
+    // used when we could not parse
+    // prefix, scope, or header
+    pub raw: String,
 
     pub date: String,
     pub author: String,
     pub commit_hash: String,
 }
 
-impl GaiLog {
-    fn parse(message: &str) -> Self {
-        let mut lines = message.lines();
+impl From<&[u8]> for GitLog {
+    fn from(value: &[u8]) -> Self {
+        let raw = String::from_utf8(value.to_owned())
+            .unwrap_or("Failed to convert msg from utf8".to_owned());
 
-        let first = lines.next().unwrap_or("").trim();
-
-        let body: String =
-            lines.collect::<Vec<_>>().join("\n").trim().to_string();
-
-        let body = if body.is_empty() { None } else { Some(body) };
-
-        // delimit
-        let Some(colon_pos) = first.find(':') else {
-            return Self::message(message);
-        };
-
-        let before = &first[..colon_pos];
-        let header = first[colon_pos + 1..].trim();
-
-        // find breaking
-        let (before_colon, breaking) = match before.strip_suffix('!')
-        {
-            Some(s) => (s, true),
-            None => (before, false),
-        };
-
-        //find prefix + scope
-        let (prefix, scope) =
-            if let Some(paren_start) = before_colon.find('(') {
-                let Some(paren_end) = before_colon.find(')') else {
-                    return Self::message(message);
-                };
-                if paren_end <= paren_start {
-                    return Self::message(message);
-                }
-                (
-                    &before_colon[..paren_start],
-                    Some(&before_colon[paren_start + 1..paren_end]),
-                )
-            } else {
-                (before_colon, None)
-            };
-
-        let prefix = if prefix.is_empty() {
-            None
-        } else {
-            Some(prefix.to_owned())
-        };
-
-        let header = if header.is_empty() {
-            None
-        } else {
-            Some(header.to_owned())
-        };
-
-        Self {
-            prefix,
-            scope: scope.map(String::from),
-            breaking,
-            header,
-            body,
-            message: None,
-            date: String::new(),
-            author: String::new(),
-            commit_hash: String::new(),
+        GitLog {
+            raw,
+            ..Default::default()
         }
     }
+}
 
-    fn message(message: &str) -> Self {
-        Self {
-            prefix: None,
-            scope: None,
-            breaking: false,
-            header: None,
-            body: None,
-            message: Some(message.trim().to_string()),
-            date: String::new(),
-            author: String::new(),
-            commit_hash: String::new(),
+impl fmt::Display for Logs {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        let mut s = String::new();
+
+        for log in &self.git_logs {
+            s.push_str(&format!("Author: {}", &log.author));
+            s.push('\n');
+            s.push_str(&format!("Message: {}", &log.raw));
+            s.push('\n');
         }
+
+        write!(f, "{}", s)
     }
+}
+
+pub fn get_logs(
+    repo: &Repository,
+    count: usize,
+    reverse: bool,
+) -> anyhow::Result<Logs> {
+    let mut revwalk = repo.revwalk()?;
+
+    if reverse {
+        revwalk.set_sorting(git2::Sort::REVERSE)?;
+    }
+
+    revwalk.push_head()?;
+    let cont = if count == 0 { !0 } else { count };
+    let revwalk = revwalk.take(cont);
+
+    let mut git_logs = Vec::new();
+
+    for oid in revwalk {
+        let oid = oid?;
+        let commit = repo.find_commit(oid)?;
+
+        let mut log: GitLog = commit.message_bytes().into();
+
+        let author = commit.author();
+        log.author =
+            author.name().unwrap_or("unknown author").to_string();
+        log.commit_hash = oid.to_string();
+        log.date =
+            DateTime::from_timestamp(author.when().seconds(), 0)
+                .map(|dt| dt.format("%m/%d/%Y %H:%M:%S").to_string())
+                .unwrap_or_default();
+
+        git_logs.push(log);
+    }
+
+    Ok(Logs { git_logs })
 }

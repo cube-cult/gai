@@ -6,5 +6,4 @@ pub mod repo;
 pub mod settings;
 pub mod staging;
 pub mod status;
-pub mod tree;
 pub mod utils;

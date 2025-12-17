@@ -59,7 +59,9 @@ pub enum StatusStrategy {
     /// only get status
     /// of what's currently staged
     Stage,
-    /// both
+    /// both, this does not differentiate between
+    /// the two, meaning wt and index are shown
+    /// as one status
     #[default]
     Both,
 }
