@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use crate::{
-    git::repo::GaiGit,
+    git::{diffs::get_diffs, repo::GitRepo, settings::DiffStrategy},
     settings::{PromptRules, Settings},
     utils::consts::*,
 };
@@ -31,13 +31,14 @@ impl fmt::Display for Request {
 
 pub fn build_request(
     cfg: &Settings,
-    gai: &GaiGit,
+    git: &GitRepo,
     spinner: &crate::utils::print::SpinDeez,
 ) -> Request {
     spinner.start("Building Request...");
     let mut req = Request::default();
-    req.build_prompt(cfg, gai);
-    req.build_diffs_string(gai.get_file_diffs_as_str());
+    let diffs = get_diffs(git, &DiffStrategy::default()).unwrap();
+    req.build_prompt(cfg);
+    req.diffs = diffs.to_string();
     spinner.stop(None);
     req
 }
@@ -64,7 +65,6 @@ impl Request {
     pub fn build_prompt(
         &mut self,
         cfg: &Settings,
-        gai: &GaiGit,
     ) {
         let mut prompt = String::new();
 
@@ -114,13 +114,13 @@ impl Request {
 
         if cfg.context.include_file_tree {
             prompt.push_str("Current File Tree: \n");
-            //prompt.push_str(&gai.get_repo_tree());
+            //prompt.push_str(&git.get_repo_tree());
             prompt.push('\n');
         }
 
         if cfg.context.include_git_status {
             prompt.push_str("Current Git Status: \n");
-            //prompt.push_str(&gai.get_repo_status_as_str());
+            //prompt.push_str(&git.get_repo_status_as_str());
         }
 
         self.prompt = prompt;

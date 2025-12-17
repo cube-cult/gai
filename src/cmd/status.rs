@@ -13,13 +13,13 @@ pub fn run(
 ) -> anyhow::Result<()> {
     let state = State::new(global.config.as_deref())?;
 
-    pretty_print_status(&state.gai, global.compact)?;
+    pretty_print_status(&state.git, global.compact)?;
 
     if args.verbose {
         let spinner = SpinDeez::new();
 
         let req =
-            build_request(&state.settings, &state.gai, &spinner);
+            build_request(&state.settings, &state.git, &spinner);
         println!("{}", req);
     }
 
