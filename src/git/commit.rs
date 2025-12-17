@@ -14,8 +14,8 @@ pub struct GitCommit {
 // post processing happens before this
 // parsing the ResponseCommit
 // wont need any setting vars
-impl From<ResponseCommit> for GitCommit {
-    fn from(r: ResponseCommit) -> Self {
+impl From<&ResponseCommit> for GitCommit {
+    fn from(r: &ResponseCommit) -> Self {
         let breaking = if r.breaking { "!" } else { "" };
 
         let scope = if !r.scope.is_empty() {
@@ -29,8 +29,8 @@ impl From<ResponseCommit> for GitCommit {
             r.prefix, breaking, scope, r.header, r.body
         );
 
-        let files = r.files;
-        let hunk_ids = r.hunk_ids;
+        let files = r.files.to_owned();
+        let hunk_ids = r.hunk_ids.to_owned();
 
         Self {
             files,
