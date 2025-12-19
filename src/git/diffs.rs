@@ -13,6 +13,7 @@ use super::{
 };
 
 /// diff set
+#[derive(Default)]
 pub struct Diffs {
     pub files: Vec<FileDiff>,
 }
@@ -36,8 +37,9 @@ pub struct FileDiff {
     pub untracked: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Hunk {
+    pub id: usize,
     pub header: HunkHeader,
     pub lines: Vec<DiffLine>,
 }
@@ -45,10 +47,10 @@ pub struct Hunk {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HunkHeader {
     // copied from DiffHunk
-    old_start: u32,
-    old_lines: u32,
-    new_start: u32,
-    new_lines: u32,
+    pub old_start: u32,
+    pub old_lines: u32,
+    pub new_start: u32,
+    pub new_lines: u32,
     // full raw header
     //raw: String,
 }
@@ -109,6 +111,16 @@ impl fmt::Display for DiffLineType {
     }
 }
 
+impl PartialEq<&git2::DiffLine<'_>> for DiffLinePosition {
+    fn eq(
+        &self,
+        other: &&git2::DiffLine,
+    ) -> bool {
+        other.new_lineno() == self.new_lineno
+            && other.old_lineno() == self.old_lineno
+    }
+}
+
 impl From<&git2::DiffLine<'_>> for DiffLinePosition {
     fn from(line: &git2::DiffLine<'_>) -> Self {
         Self {
@@ -131,17 +143,18 @@ impl From<DiffHunk<'_>> for HunkHeader {
     }
 }
 
-impl HunkId {
-    pub fn parse(from_str: &str) -> anyhow::Result<Self> {
-        let (path, index) =
-            from_str.split_once(':').ok_or_else(|| {
-                GitError::InvalidHunk(from_str.to_owned())
-            })?;
+impl TryFrom<&str> for HunkId {
+    type Error = GitError;
+
+    fn try_from(v: &str) -> Result<Self, Self::Error> {
+        let (path, index) = v
+            .split_once(':')
+            .ok_or_else(|| GitError::InvalidHunk(v.to_owned()))?;
 
         let path = path.to_owned();
-        let index = index.parse().map_err(|_| {
-            GitError::InvalidHunk(from_str.to_owned())
-        })?;
+        let index = index
+            .parse()
+            .map_err(|_| GitError::InvalidHunk(v.to_owned()))?;
 
         Ok(Self { path, index })
     }
@@ -158,10 +171,10 @@ impl fmt::Display for Diffs {
 
         for file in &self.files {
             let mut f_str = String::new();
-            for (idx, hunk) in file.hunks.iter().enumerate() {
+            for hunk in file.hunks.iter() {
                 f_str.push_str(&format!(
                     "HunkId[{}:{}]\n",
-                    file.path, idx
+                    file.path, hunk.id
                 ));
 
                 /* f_str.push_str(&hunk.header.raw);
@@ -181,6 +194,30 @@ impl fmt::Display for Diffs {
 
         write!(f, "{}", s)
     }
+}
+
+/// apply_commits() helper
+pub fn find_file_hunks(
+    file_diff: &FileDiff,
+    ids: Vec<usize>,
+) -> anyhow::Result<Vec<Hunk>> {
+    let mut hunks = Vec::new();
+
+    for hunk in file_diff.hunks.clone() {
+        if ids.contains(&hunk.id) {
+            hunks.push(hunk);
+        }
+    }
+
+    if hunks.is_empty() {
+        return Err(GitError::Generic(format!(
+            "no matching hunks found in {}",
+            file_diff.path
+        ))
+        .into());
+    }
+
+    Ok(hunks)
 }
 
 /// build a list of FileDiff's
@@ -220,10 +257,10 @@ pub fn get_hunk_ids(file_diffs: &[FileDiff]) -> Vec<HunkId> {
     let mut hunk_ids = Vec::new();
 
     for file_diff in file_diffs.iter() {
-        for (idx, _) in file_diff.hunks.iter().enumerate() {
+        for hunk in file_diff.hunks.iter() {
             let hunk = HunkId {
                 path: file_diff.path.to_owned(),
-                index: idx,
+                index: hunk.id,
             };
 
             hunk_ids.push(hunk);
@@ -290,7 +327,9 @@ fn raw_diff_to_file_diff(
         let adder = move |header: &HunkHeader,
                           lines: &Vec<DiffLine>| {
             let mut res = res_cell.borrow_mut();
+            let id = res.hunks.len();
             res.hunks.push(Hunk {
+                id,
                 header: header.to_owned(),
                 lines: lines.to_owned(),
             });
