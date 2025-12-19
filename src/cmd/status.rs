@@ -3,7 +3,7 @@ use super::{
     state::State,
 };
 use crate::{
-    git::{diffs::get_diffs, settings::DiffStrategy},
+    git::{DiffStrategy, diffs::get_diffs},
     providers::request::build_request,
     utils::print::{SpinDeez, pretty_print_status},
 };

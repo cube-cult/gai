@@ -4,7 +4,7 @@ pub mod load;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    git::settings::{StagingStrategy, StatusStrategy},
+    git::{StagingStrategy, StatusStrategy},
     providers::provider::{ProviderKind, ProviderSettings},
 };
 

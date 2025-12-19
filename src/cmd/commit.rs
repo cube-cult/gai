@@ -11,8 +11,8 @@ use crate::{
         Diffs, GitRepo,
         commit::{GitCommit, commit},
         diffs::{FileDiff, HunkId, find_file_hunks, get_diffs},
-        settings::{DiffStrategy, StagingStrategy},
         staging::{stage_file, stage_hunks},
+        {DiffStrategy, StagingStrategy},
     },
     providers::{
         provider::extract_from_provider,

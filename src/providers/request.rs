@@ -1,9 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use crate::{
-    git::{
-        repo::GitRepo, settings::StatusStrategy, status::get_status,
-    },
+    git::{StatusStrategy, repo::GitRepo, status::get_status},
     settings::{PromptRules, Settings},
     utils::consts::*,
 };

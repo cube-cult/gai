@@ -5,10 +5,11 @@ pub mod lines;
 pub mod log;
 pub mod patches;
 pub mod repo;
-pub mod settings;
 pub mod staging;
 pub mod status;
 pub mod utils;
 
-pub use diffs::Diffs;
+pub use diffs::{DiffStrategy, Diffs};
 pub use repo::GitRepo;
+pub use staging::StagingStrategy;
+pub use status::StatusStrategy;
