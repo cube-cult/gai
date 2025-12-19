@@ -131,7 +131,7 @@ pub fn pretty_print_commits(
         arena.set_count(files_parent, commit.files.len());
         arena.add_child(commit_root, files_parent);
 
-        for file in &commit.files {
+        for file in &commit.hunk_ids {
             let file_node = arena.new_node(file, Color::White);
             arena.add_child(files_parent, file_node);
         }
