@@ -10,6 +10,7 @@ pub enum GitError {
     InvalidHunk(String),
     NoHead,
     Generic(String),
+    PatchError,
 }
 
 impl std::fmt::Display for GitError {
@@ -29,6 +30,7 @@ impl std::fmt::Display for GitError {
             }
             GitError::NoHead => write!(f, "No Head found"),
             GitError::Generic(e) => write!(f, "{}", e),
+            GitError::PatchError => write!(f, "Patch Error"),
         }
     }
 }
