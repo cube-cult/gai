@@ -7,10 +7,35 @@ use git2::{
 use super::{
     errors::GitError,
     repo::GitRepo,
-    settings::{DiffStrategy, StatusStrategy},
+    status::StatusStrategy,
     status::get_status,
     utils::{get_head_repo, is_newline, new_file_content},
 };
+
+// populated after
+// loading config
+// NOT NEEDED FOR SETTINGs
+// but can be modified
+// dont think passing around
+// config is needed for this case
+/// diffing strategy
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct DiffStrategy {
+    /// send the diffs with the
+    /// staged files ONLy
+    pub staged_only: bool,
+
+    /// files to truncate
+    /// will show as
+    /// "TRUNCATED FILE"
+    /// ideally this could be set
+    /// automatically
+    pub truncated_files: Vec<String>,
+
+    /// files to ignore separate
+    /// from .gitignore
+    pub ignored_files: Vec<String>,
+}
 
 /// diff set
 #[derive(Default)]

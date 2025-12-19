@@ -2,7 +2,24 @@ use std::{fmt, path::Path};
 
 use git2::{Delta, Repository, Status, StatusOptions, StatusShow};
 
-use crate::git::settings::StatusStrategy;
+/// status strategy when running
+/// get_status
+#[derive(
+    Debug, Clone, Default, serde::Serialize, serde::Deserialize,
+)]
+pub enum StatusStrategy {
+    /// only get status
+    /// of working dir
+    WorkingDir,
+    /// only get status
+    /// of what's currently staged
+    Stage,
+    /// both, this does not differentiate between
+    /// the two, meaning wt and index are shown
+    /// as one status
+    #[default]
+    Both,
+}
 
 #[derive(Debug, Default)]
 pub struct GitStatus {

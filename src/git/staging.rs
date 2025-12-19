@@ -38,6 +38,32 @@
 // for now lets bail
 //
 
+/// for different types
+/// of adding/staging per commit
+#[derive(
+    Debug, Clone, Default, serde::Serialize, serde::Deserialize,
+)]
+pub enum StagingStrategy {
+    /// as individual hunks
+    Hunks,
+
+    /// only stage one file PER commit
+    OneFilePerCommit,
+
+    /// small group of files
+    /// files SHOULD represent
+    /// a DISTINCT change per commit
+    #[default]
+    AtomicCommits,
+
+    /// stage all changes together
+    /// as monolithic commit
+    /// best to enable allow_body
+    /// so the LLM can generate
+    /// a descriptive commit description
+    AllFilesOneCommit,
+}
+
 use git2::{IndexAddOption, Repository};
 use std::{collections::HashSet, path::Path};
 
