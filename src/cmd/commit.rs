@@ -244,15 +244,95 @@ fn run_commit(
 fn apply_commits(
     git: &GitRepo,
     git_commits: &[GitCommit],
+    og_file_diffs: &mut [FileDiff],
 ) -> anyhow::Result<()> {
-    let staging_stragey = StagingStrategy::default();
+    let staging_stragey = StagingStrategy::Hunks;
+
     for git_commit in git_commits {
-        if let StagingStrategy::AtomicCommits = staging_stragey {
-            for file in &git_commit.files {
-                stage_file(&git.repo, file)?;
+        match staging_stragey {
+            StagingStrategy::AtomicCommits => {
+                for file in &git_commit.files {
+                    stage_file(&git.repo, file)?;
+                }
+            }
+            StagingStrategy::Hunks => {
+                // this commit should define its hunkids
+                // to stage like:
+                // commit 1: src/main.rs:0, src/main.rs:1 etc
+                // group hunks based on the file paths
+                // iterate over each file
+                // find what hunks to stage
+                // pass it into stage_hunks
+                // stage_hunks should be able to apply
+                // only the hunks it gets from here
+
+                // file_path and a list of hunk indecises
+                let mut files: HashMap<String, Vec<usize>> =
+                    HashMap::new();
+
+                // group hunks to their file_paths
+                for hunk in &git_commit.hunk_ids {
+                    let hunk_id = HunkId::try_from(hunk.as_str())?;
+                    files
+                        .entry(hunk_id.path.clone())
+                        .or_default()
+                        .push(hunk_id.index);
+                }
+
+                // now process each file
+                for (file_path, hunk_ids) in files {
+                    // find the original file associated
+                    // with this from the og database
+                    let og_file_diff = og_file_diffs
+                        .iter()
+                        .find(|f| f.path == file_path)
+                        .ok_or({
+                            anyhow::anyhow!(
+                                "{} is not in the og_file_diffs",
+                                file_path
+                            )
+                        })?;
+
+                    if og_file_diff.untracked {
+                        stage_file(&git.repo, &file_path)?;
+                        continue;
+                    }
+
+                    // get relevant hunk ids
+                    let hunks =
+                        find_file_hunks(og_file_diff, hunk_ids)?;
+
+                    // stage hunks relevant to this file ONLY
+                    let used =
+                        stage_hunks(&git.repo, &file_path, &hunks)?;
+
+                    // remove already used from db
+                    for file_diff in &mut *og_file_diffs {
+                        if file_diff.path == file_path {
+                            file_diff.hunks.retain(|hunk| {
+                                !used.contains(&hunk.id)
+                            });
+                        }
+                    }
+                }
+            }
+            _ => (),
+        }
+
+        commit(&git.repo, git_commit)?;
+    }
+
+    if !og_file_diffs.is_empty() {
+        for file in og_file_diffs {
+            if !file.hunks.is_empty() {
+                for hunk in &file.hunks {
+                    println!(
+                        "hunk [{}:{}] not applied",
+                        file.path, hunk.id
+                    );
+                }
             }
         }
-        commit(&git.repo, git_commit)?;
     }
 
     Ok(())

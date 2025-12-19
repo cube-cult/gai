@@ -106,13 +106,15 @@ impl Request {
             prompt.push_str(COMMIT_CONVENTION);
         }
 
-        match cfg.staging_type {
+        prompt.push_str(PROMPT_STAGE_HUNKS);
+
+        /* match cfg.staging_type {
             StagingStrategy::Hunks => {
                 prompt.push_str(PROMPT_STAGE_HUNKS)
             }
 
             _ => prompt.push_str(PROMPT_STAGE_FILES),
-        }
+        } */
 
         prompt.push('\n');
 
