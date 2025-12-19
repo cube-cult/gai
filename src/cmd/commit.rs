@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 
 use super::{
@@ -6,11 +8,11 @@ use super::{
 };
 use crate::{
     git::{
+        Diffs, GitRepo,
         commit::{GitCommit, commit},
-        diffs::get_diffs,
-        repo::GitRepo,
+        diffs::{FileDiff, HunkId, find_file_hunks, get_diffs},
         settings::{DiffStrategy, StagingStrategy},
-        staging::stage_file,
+        staging::{stage_file, stage_hunks},
     },
     providers::{
         provider::extract_from_provider,
@@ -68,12 +70,12 @@ pub fn run(
         diff_strategy.ignored_files = files_to_ignore.to_owned();
     }
 
-    let diffs = get_diffs(&state.git, &diff_strategy)?;
+    state.diffs = get_diffs(&state.git, &diff_strategy)?;
 
     let req = build_request(
         &state.settings,
         &state.git,
-        &diffs.to_string(),
+        &state.diffs.to_string(),
     );
 
     spinner.stop(None);
@@ -83,6 +85,7 @@ pub fn run(
         req,
         state.settings,
         state.git,
+        state.diffs,
         args.skip_confirmation,
         global.compact,
     )?;
@@ -95,6 +98,7 @@ fn run_commit(
     req: Request,
     cfg: Settings,
     git: GitRepo,
+    mut diffs: Diffs,
     skip_confirmation: bool,
     compact: bool,
 ) -> anyhow::Result<()> {
@@ -161,7 +165,8 @@ fn run_commit(
             .collect();
 
         if skip_confirmation {
-            match apply_commits(&git, &git_commits) {
+            match apply_commits(&git, &git_commits, &mut diffs.files)
+            {
                 Ok(_) => break,
                 Err(e) => {
                     println!("Failed to Apply Commits: {}", e);
@@ -197,7 +202,8 @@ fn run_commit(
 
         if selection == 0 {
             println!("Applying Commits...");
-            match apply_commits(&git, &git_commits) {
+            match apply_commits(&git, &git_commits, &mut diffs.files)
+            {
                 Ok(_) => break,
                 Err(e) => {
                     println!("Failed to Apply Commits: {}", e);
