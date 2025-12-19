@@ -2,9 +2,7 @@ use std::{collections::HashMap, fmt};
 
 use crate::{
     git::{
-        repo::GitRepo,
-        settings::{StagingStrategy, StatusStrategy},
-        status::get_status,
+        repo::GitRepo, settings::StatusStrategy, status::get_status,
     },
     settings::{PromptRules, Settings},
     utils::consts::*,
