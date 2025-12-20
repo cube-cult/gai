@@ -42,9 +42,4 @@ impl GitRepo {
 
         Ok(Self { repo, workdir })
     }
-
-    /// helper func to get branch name
-    pub fn get_branch_name(&self) -> Result<Option<String>> {
-        todo!()
-    }
 }

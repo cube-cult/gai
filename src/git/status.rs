@@ -23,6 +23,7 @@ pub enum StatusStrategy {
 
 #[derive(Debug, Default)]
 pub struct GitStatus {
+    pub branch_name: String,
     pub statuses: Vec<FileStatus>,
 }
 
@@ -92,6 +93,9 @@ impl fmt::Display for GitStatus {
     ) -> fmt::Result {
         let mut s = String::new();
 
+        let title = format!("Branch:{}\n", self.branch_name);
+        s.push_str(&title);
+
         for git_status in &self.statuses {
             s.push_str(&format!(
                 "{}:{}",
@@ -138,6 +142,7 @@ pub fn get_status(
     opts.renames_index_to_workdir(true);
 
     let statuses = repo.statuses(Some(&mut opts))?;
+    let branch_name = get_branch_name(&repo)?;
 
     let mut statuses: Vec<FileStatus> = statuses
         .iter()
@@ -152,5 +157,15 @@ pub fn get_status(
     statuses
         .sort_by(|a, b| Path::new(&a.path).cmp(Path::new(&b.path)));
 
-    Ok(GitStatus { statuses })
+    Ok(GitStatus {
+        branch_name,
+        statuses,
+    })
+}
+
+fn get_branch_name(repo: &Repository) -> anyhow::Result<String> {
+    let binding = repo.head()?;
+    let head = binding.shorthand();
+
+    Ok(head.unwrap_or("HEAD").to_string())
 }
