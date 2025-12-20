@@ -1,118 +1,171 @@
-use anyhow::Result;
-use git2::{Repository, Status, StatusOptions};
+use std::{fmt, path::Path};
 
-use crate::git::repo::{GaiGit, GaiStatus};
+use git2::{Delta, Repository, Status, StatusOptions, StatusShow};
 
-impl GaiGit {
-    pub fn build_status(
-        repo: &Repository,
-    ) -> Result<super::repo::GaiStatus> {
-        let mut status_opts = StatusOptions::new();
+/// status strategy when running
+/// get_status
+#[derive(
+    Debug, Clone, Default, serde::Serialize, serde::Deserialize,
+)]
+pub enum StatusStrategy {
+    /// only get status
+    /// of working dir
+    WorkingDir,
+    /// only get status
+    /// of what's currently staged
+    Stage,
+    /// both, this does not differentiate between
+    /// the two, meaning wt and index are shown
+    /// as one status
+    #[default]
+    Both,
+}
 
-        status_opts.include_untracked(true);
+#[derive(Debug, Default)]
+pub struct GitStatus {
+    pub branch_name: String,
+    pub statuses: Vec<FileStatus>,
+}
 
-        let statuses = repo.statuses(Some(&mut status_opts))?;
+#[derive(Debug)]
+pub struct FileStatus {
+    pub path: String,
+    pub status: StatusItemType,
+}
 
-        let mut status = GaiStatus {
-            s_new: Vec::new(),
-            s_modified: Vec::new(),
-            s_deleted: Vec::new(),
-            s_renamed: Vec::new(),
-            u_new: Vec::new(),
-            u_modified: Vec::new(),
-            u_deleted: Vec::new(),
-            u_renamed: Vec::new(),
-        };
+#[derive(strum::Display, Copy, Clone, Hash, PartialEq, Eq, Debug)]
+pub enum StatusItemType {
+    New,
+    Modified,
+    Deleted,
+    Renamed,
+    Typechange,
+    Conflicted,
+}
 
-        for e in statuses.iter() {
-            if e.status().contains(Status::IGNORED) {
-                continue;
-            }
+// opts.show
+impl From<StatusStrategy> for StatusShow {
+    fn from(s: StatusStrategy) -> Self {
+        match s {
+            StatusStrategy::WorkingDir => Self::Workdir,
+            StatusStrategy::Stage => Self::Index,
+            StatusStrategy::Both => Self::IndexAndWorkdir,
+        }
+    }
+}
 
-            let path = e.path().unwrap_or("").to_string();
+impl From<Status> for StatusItemType {
+    fn from(s: Status) -> Self {
+        if s.is_index_new() || s.is_wt_new() {
+            Self::New
+        } else if s.is_index_deleted() || s.is_wt_deleted() {
+            Self::Deleted
+        } else if s.is_index_renamed() || s.is_wt_renamed() {
+            Self::Renamed
+        } else if s.is_index_typechange() || s.is_wt_typechange() {
+            Self::Typechange
+        } else if s.is_conflicted() {
+            Self::Conflicted
+        } else {
+            Self::Modified
+        }
+    }
+}
 
-            if e.status().contains(Status::INDEX_NEW) {
-                status.s_new.push(path.to_owned());
-            }
+impl From<Delta> for StatusItemType {
+    fn from(d: Delta) -> Self {
+        match d {
+            Delta::Added => Self::New,
+            Delta::Deleted => Self::Deleted,
+            Delta::Renamed => Self::Renamed,
+            Delta::Typechange => Self::Typechange,
+            _ => Self::Modified,
+        }
+    }
+}
 
-            if e.status().contains(Status::INDEX_MODIFIED) {
-                status.s_modified.push(path.to_owned());
-            }
+// helper ONLY FOR LLM REQUESTS
+// not for pretty print status
+impl fmt::Display for GitStatus {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        let mut s = String::new();
 
-            if e.status().contains(Status::INDEX_DELETED) {
-                status.s_deleted.push(path.to_owned());
-            }
+        let title = format!("Branch:{}\n", self.branch_name);
+        s.push_str(&title);
 
-            if e.status().contains(Status::INDEX_RENAMED)
-                && let Some(diff) = e.head_to_index()
-            {
-                let old_path = diff
-                    .old_file()
-                    .path()
-                    .and_then(|p| p.to_str())
-                    .unwrap_or("");
-                let new_path = diff
-                    .new_file()
-                    .path()
-                    .and_then(|p| p.to_str())
-                    .unwrap_or("");
-                status.s_renamed.push((
-                    old_path.to_string(),
-                    new_path.to_string(),
-                ));
-            }
-
-            if e.status().contains(Status::WT_NEW) {
-                status.u_new.push(path.to_owned());
-            }
-
-            if e.status().contains(Status::WT_MODIFIED) {
-                status.u_modified.push(path.to_owned());
-            }
-
-            if e.status().contains(Status::WT_DELETED) {
-                status.u_deleted.push(path.to_owned());
-            }
-
-            if e.status().contains(Status::WT_RENAMED)
-                && let Some(diff) = e.index_to_workdir()
-            {
-                let old = diff
-                    .old_file()
-                    .path()
-                    .and_then(|p| p.to_str())
-                    .unwrap_or("");
-
-                let new = diff
-                    .new_file()
-                    .path()
-                    .and_then(|p| p.to_str())
-                    .unwrap_or("");
-
-                status
-                    .u_renamed
-                    .push((old.to_owned(), new.to_owned()));
-            }
+        for git_status in &self.statuses {
+            s.push_str(&format!(
+                "{}:{}",
+                git_status.status, git_status.path
+            ));
+            s.push('\n');
         }
 
-        Ok(status)
+        write!(f, "{}", s)
+    }
+}
+
+pub fn is_workdir_clean(repo: &Repository) -> anyhow::Result<bool> {
+    if repo.is_bare() && !repo.is_worktree() {
+        return Ok(true);
     }
 
-    pub fn staged_len(&self) -> usize {
-        let s = &self.status;
+    let mut options = StatusOptions::default();
+    options
+        .show(StatusShow::Workdir)
+        .update_index(true)
+        .include_untracked(true)
+        .renames_head_to_index(true)
+        .recurse_untracked_dirs(true);
 
-        s.s_new.len()
-            + s.s_modified.len()
-            + s.s_deleted.len()
-            + s.s_renamed.len()
-    }
+    let statuses = repo.statuses(Some(&mut options))?;
 
-    pub fn unstaged_len(&self) -> usize {
-        let s = &self.status;
+    Ok(statuses.is_empty())
+}
 
-        s.u_new.len()
-            + s.u_modified.len()
-            + s.u_deleted.len()
-            + s.u_renamed.len()
-    }
+pub fn get_status(
+    repo: &Repository,
+    strategy: &StatusStrategy,
+) -> anyhow::Result<GitStatus> {
+    let mut opts = StatusOptions::default();
+
+    // filter
+    opts.show(strategy.to_owned().into());
+
+    opts.update_index(true);
+    opts.include_untracked(true);
+    opts.recurse_untracked_dirs(true);
+    opts.renames_head_to_index(true);
+    opts.renames_index_to_workdir(true);
+
+    let statuses = repo.statuses(Some(&mut opts))?;
+    let branch_name = get_branch_name(repo)?;
+
+    let mut statuses: Vec<FileStatus> = statuses
+        .iter()
+        .filter_map(|entry| {
+            Some(FileStatus {
+                path: entry.path()?.to_string(),
+                status: entry.status().into(),
+            })
+        })
+        .collect();
+
+    statuses
+        .sort_by(|a, b| Path::new(&a.path).cmp(Path::new(&b.path)));
+
+    Ok(GitStatus {
+        branch_name,
+        statuses,
+    })
+}
+
+fn get_branch_name(repo: &Repository) -> anyhow::Result<String> {
+    let binding = repo.head()?;
+    let head = binding.shorthand();
+
+    Ok(head.unwrap_or("HEAD").to_string())
 }

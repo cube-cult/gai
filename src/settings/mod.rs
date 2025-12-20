@@ -3,13 +3,28 @@ pub mod load;
 
 use serde::{Deserialize, Serialize};
 
-use crate::providers::provider::{ProviderKind, ProviderSettings};
+use crate::{
+    git::{StagingStrategy, StatusStrategy},
+    providers::provider::{ProviderKind, ProviderSettings},
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
+    /// current active provider
     pub provider: ProviderKind,
+
+    /// all provider settings
+    /// ex. providers.gai.model = ""
     pub providers: ProviderSettings,
+
+    /// for different types
+    /// of adding/staging per commit
+    pub staging_type: StagingStrategy,
+
+    /// status strategy when running
+    /// get_status
+    pub status_type: StatusStrategy,
 
     /// custom prompt stuff
     pub prompt: PromptSettings,
@@ -120,25 +135,28 @@ pub struct ContextSettings {
     /// if 0 then its all
     pub log_amount: u64,
 
+    /// files to ignore
+    /// this is separate from .gitignore
+    /// meant to be ignored and NOT sent to the LLM
+    /// as additional diffs
+    /// and can be manually specified in the config
+    /// or cli
+    pub ignore_files: Option<Vec<String>>,
+
     /// files that gai will be TRUNCATED
     /// you can use this to add specific files
     /// that are not really relevant to send to the AI provider
     /// such as a Cargo.lock or package-lock.json file
     /// which may take up valuable token space
-    pub files_to_truncate: Option<Vec<String>>,
+    pub truncate_files: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct CommitSettings {
     /// only generate commits for staged files
+    /// for DiffStrategy
     pub only_staged: bool,
-
-    // todo this needs to be reworked
-    // likely an enum, where we implement
-    // tool calling
-    /// should we apply as hunks?
-    pub stage_hunks: bool,
 
     /// prefix will be capitalized like feat -> Feat
     pub capitalize_prefix: bool,

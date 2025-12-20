@@ -1,18 +1,21 @@
+use crate::git::log::get_logs;
+
 use super::{
     args::{GlobalArgs, LogArgs},
     state::State,
 };
-use crate::utils::print::pretty_print_logs;
 
 pub fn run(
     args: &LogArgs,
-    global: &GlobalArgs,
+    _global: &GlobalArgs,
 ) -> anyhow::Result<()> {
     let state = State::new(None)?;
 
-    let logs = state.gai.get_logs(args.number, args.reverse)?;
+    let count = args.number.unwrap_or_default();
 
-    pretty_print_logs(&logs, global.compact)?;
+    let logs = get_logs(&state.git.repo, count, args.reverse)?;
+
+    println!("{}", logs);
 
     Ok(())
 }

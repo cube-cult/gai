@@ -97,7 +97,10 @@ impl From<serde_json::Error> for ProviderError {
 }
 
 impl ProviderSettings {
-    pub fn get_model(&self, provider: &ProviderKind) -> &str {
+    pub fn get_model(
+        &self,
+        provider: &ProviderKind,
+    ) -> &str {
         match provider {
             ProviderKind::OpenAI => &self.openai.model,
             ProviderKind::Gemini => &self.gemini.model,

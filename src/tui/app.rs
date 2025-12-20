@@ -104,9 +104,12 @@ impl Default for ThrobberStyles {
     }
 }
 
-pub fn open(cfg: Settings, gai: GaiGit) -> Result<()> {
+pub fn open(
+    cfg: Settings,
+    gai: GaiGit,
+) -> Result<()> {
     let mut terminal = ratatui::init();
-    let timeout = Duration::from_millis(50);
+    let timeout = Duration::from_millis(16);
 
     let (tx, rx) = mpsc::channel::<Event>();
 
@@ -191,7 +194,10 @@ impl App {
         }
     }
 
-    pub fn run(&mut self, frame: &mut Frame) {
+    pub fn run(
+        &mut self,
+        frame: &mut Frame,
+    ) {
         let vertical = Layout::vertical([
             Constraint::Length(3),
             Constraint::Fill(1),
@@ -248,7 +254,10 @@ impl App {
         }
     }
 
-    fn handle_main_events(&mut self, event: &Event) -> bool {
+    fn handle_main_events(
+        &mut self,
+        event: &Event,
+    ) -> bool {
         match event {
             Event::Mouse(_) => {}
             Event::Key(k) => {
@@ -286,7 +295,10 @@ impl App {
         false
     }
 
-    fn go_tab(&mut self, num: usize) {
+    fn go_tab(
+        &mut self,
+        num: usize,
+    ) {
         if num > CurrentScreen::iter().len() {
             return;
         }

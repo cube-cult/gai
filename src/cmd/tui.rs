@@ -1,13 +1,11 @@
-use super::{
-    args::{GlobalArgs, TUIArgs},
-    state::State,
-};
+use super::args::{GlobalArgs, TUIArgs};
 
 pub fn run(
     _args: &TUIArgs,
-    global: &GlobalArgs,
+    _global: &GlobalArgs,
 ) -> anyhow::Result<()> {
-    let state = State::new(global.config.as_deref())?;
-
-    crate::tui::app::open(state.settings, state.gai)
+    // todo deprecate
+    //let state = State::new(global.config.as_deref())?;
+    //crate::tui::open(state.settings, state.gai)
+    Ok(())
 }

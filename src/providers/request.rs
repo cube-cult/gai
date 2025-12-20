@@ -1,7 +1,10 @@
 use std::{collections::HashMap, fmt};
 
 use crate::{
-    git::repo::GaiGit,
+    git::{
+        StagingStrategy, StatusStrategy, log::get_logs,
+        repo::GitRepo, status::get_status,
+    },
     settings::{PromptRules, Settings},
     utils::consts::*,
 };
@@ -13,7 +16,10 @@ pub struct Request {
 }
 
 impl fmt::Display for Request {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
         writeln!(f, "Request Prompt:")?;
         writeln!(f, "{}", self.prompt)?;
 
@@ -28,14 +34,14 @@ impl fmt::Display for Request {
 
 pub fn build_request(
     cfg: &Settings,
-    gai: &GaiGit,
-    spinner: &crate::utils::print::SpinDeez,
+    repo: &GitRepo,
+    diffs: &str,
 ) -> Request {
-    spinner.start("Building Request...");
     let mut req = Request::default();
-    req.build_prompt(cfg, gai);
-    req.build_diffs_string(gai.get_file_diffs_as_str());
-    spinner.stop(None);
+
+    req.build_prompt(repo, cfg);
+    req.diffs = diffs.to_owned();
+
     req
 }
 
@@ -58,7 +64,11 @@ impl Request {
         self.diffs = diffs_str;
     }
 
-    pub fn build_prompt(&mut self, cfg: &Settings, gai: &GaiGit) {
+    pub fn build_prompt(
+        &mut self,
+        repo: &GitRepo,
+        cfg: &Settings,
+    ) {
         let mut prompt = String::new();
 
         let rules = build_rules(&cfg.rules);
@@ -97,55 +107,52 @@ impl Request {
             prompt.push_str(COMMIT_CONVENTION);
         }
 
-        if cfg.commit.stage_hunks {
-            prompt.push_str(PROMPT_STAGE_HUNKS);
-        } else {
-            prompt.push_str(PROMPT_STAGE_FILES);
+        match cfg.staging_type {
+            // todo impl other staging methods
+            // likely during validation as well
+            StagingStrategy::Hunks => {
+                prompt.push_str(PROMPT_STAGE_HUNKS)
+            }
+            _ => prompt.push_str(PROMPT_STAGE_FILES),
         }
 
         prompt.push('\n');
 
         if cfg.context.include_file_tree {
             prompt.push_str("Current File Tree: \n");
-            prompt.push_str(&gai.get_repo_tree());
+            //prompt.push_str(&git.get_repo_tree());
             prompt.push('\n');
         }
 
         if cfg.context.include_git_status {
             prompt.push_str("Current Git Status: \n");
-            prompt.push_str(&gai.get_repo_status_as_str());
+            // todo impl separation when fmt::Display
+            let staged =
+                get_status(&repo.repo, &StatusStrategy::Stage)
+                    .unwrap();
+            let working_dir =
+                get_status(&repo.repo, &StatusStrategy::WorkingDir)
+                    .unwrap();
+
+            prompt.push_str(&format!("Staged\n{}", staged));
+            prompt.push_str(&format!("WorkingDir\n{}", working_dir));
         }
 
         if cfg.context.include_log {
-            let count = if cfg.context.log_amount == 0 {
-                None
-            } else {
-                Some(cfg.context.log_amount as usize)
-            };
+            let gai_logs = get_logs(
+                &repo.repo,
+                cfg.context.log_amount as usize,
+                false,
+            )
+            .unwrap_or_default();
 
-            let mut logs = String::new();
+            let log_str = format!(
+                "{} Recent Git Logs:\n{}\n",
+                gai_logs.git_logs.len(),
+                gai_logs
+            );
 
-            if let Ok(gai_logs) = gai.get_logs(count, false) {
-                for gai_log in gai_logs {
-                    if let Some(header) = gai_log.header
-                        && let Some(prefix) = gai_log.prefix
-                    {
-                        logs.push_str(&format!(
-                            "{}:{}",
-                            prefix, header
-                        ));
-                    } else {
-                        logs.push_str(&gai_log.message.unwrap_or(
-                            "No Commit Message".to_owned(),
-                        ));
-                    }
-                    logs.push('\n');
-                }
-            }
-
-            prompt.push_str("Recent Git Logs: \n");
-            prompt.push_str(&logs);
-            prompt.push('\n');
+            prompt.push_str(&log_str);
         }
 
         self.prompt = prompt;

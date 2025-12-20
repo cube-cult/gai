@@ -1,157 +1,534 @@
-use git2::{DiffHunk, DiffLine, DiffOptions};
-use walkdir::WalkDir;
+use std::{cell::RefCell, fmt, path::Path, rc::Rc};
 
-use crate::git::repo::{
-    DiffType, GaiFile, GaiGit, HunkDiff, LineDiff,
+use git2::{
+    Delta, Diff, DiffDelta, DiffFormat, DiffHunk, Patch, Repository,
 };
 
-impl GaiGit {
-    pub fn create_diffs(
-        &mut self,
-        files_to_truncate: Option<&[String]>,
-    ) -> Result<(), git2::Error> {
-        // start this puppy up
-        let mut opts = DiffOptions::new();
-        opts.include_untracked(true)
-            .recurse_untracked_dirs(true)
-            .enable_fast_untracked_dirs(true);
+use super::{
+    errors::GitError,
+    repo::GitRepo,
+    status::StatusStrategy,
+    status::get_status,
+    utils::{get_head_repo, is_newline, new_file_content},
+};
 
-        let repo = &self.repo;
+// populated after
+// loading config
+// NOT NEEDED FOR SETTINGs
+// but can be modified
+// dont think passing around
+// config is needed for this case
+/// diffing strategy
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct DiffStrategy {
+    /// send the diffs with the
+    /// staged files ONLy
+    pub status_strategy: StatusStrategy,
 
-        let head = repo.head()?.peel_to_tree()?;
-        let diff = if self.only_staged {
-            repo.diff_tree_to_index(
-                Some(&head),
-                None,
-                Some(&mut opts),
-            )?
-        } else {
-            repo.diff_tree_to_workdir(Some(&head), Some(&mut opts))?
-        };
+    /// files to truncate
+    /// will show as
+    /// "TRUNCATED FILE"
+    /// ideally this could be set
+    /// automatically
+    pub truncated_files: Vec<String>,
 
-        let mut gai_files: Vec<GaiFile> = Vec::new();
+    /// files to ignore separate
+    /// from .gitignore
+    pub ignored_files: Vec<String>,
+}
 
-        // hilarious
-        let files_to_truncate = if let Some(f) = files_to_truncate {
-            f
-        } else {
-            &Vec::new()
-        };
+/// diff set
+#[derive(Default)]
+pub struct Diffs {
+    pub files: Vec<FileDiff>,
+}
 
-        diff.print(git2::DiffFormat::Patch, |delta, hunk, line| {
-            let path = delta
-                .new_file()
-                .path()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned();
+/// helper struct for ez LLM hunk
+/// designation, instead of copying
+/// entire hunk headers, hunks are ordered
+/// as they are found within a file
+/// this converts to src/main.rs:0 for the
+/// first hunk in a src/main.rs diff
+pub struct HunkId {
+    pub path: String,
+    pub index: usize,
+}
 
-            let should_truncate =
-                files_to_truncate.iter().any(|f| path.ends_with(f));
+#[derive(Debug, Default)]
+pub struct FileDiff {
+    pub path: String,
+    pub hunks: Vec<Hunk>,
+    pub lines: usize,
+    pub untracked: bool,
+}
 
-            let gai_file =
-                match gai_files.iter_mut().find(|g| g.path == path) {
-                    Some(existing) => existing,
-                    None => {
-                        gai_files.push(GaiFile {
-                            path: path.clone(),
-                            should_truncate,
-                            hunks: Vec::new(),
-                        });
-                        gai_files.last_mut().unwrap()
-                    }
-                };
+#[derive(Debug, Clone)]
+pub struct Hunk {
+    pub id: usize,
+    pub header: HunkHeader,
+    pub lines: Vec<DiffLine>,
+}
 
-            process_file_diff(&mut gai_file.hunks, &hunk, &line);
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HunkHeader {
+    // copied from DiffHunk
+    pub old_start: u32,
+    pub old_lines: u32,
+    pub new_start: u32,
+    pub new_lines: u32,
+    // full raw header
+    //raw: String,
+}
 
-            true
-        })?;
+/// type of diff of a single line
+#[derive(Copy, Clone, Default, PartialEq, Eq, Hash, Debug)]
+pub enum DiffLineType {
+    /// just surrounding line, no change
+    #[default]
+    None,
+    /// header of the hunk
+    Header,
+    /// line added
+    Add,
+    /// line deleted
+    Delete,
+}
 
-        if self.only_staged {
-            return Ok(());
+#[derive(Clone, Copy, Default, Hash, Debug, PartialEq, Eq)]
+pub struct DiffLinePosition {
+    pub old_lineno: Option<u32>,
+    pub new_lineno: Option<u32>,
+}
+
+#[derive(Default, Clone, Hash, Debug)]
+pub struct DiffLine {
+    pub content: Box<str>,
+    pub line_type: DiffLineType,
+    pub position: DiffLinePosition,
+}
+
+impl From<git2::DiffLineType> for DiffLineType {
+    fn from(line_type: git2::DiffLineType) -> Self {
+        match line_type {
+            git2::DiffLineType::HunkHeader => Self::Header,
+            git2::DiffLineType::DeleteEOFNL
+            | git2::DiffLineType::Deletion => Self::Delete,
+            git2::DiffLineType::AddEOFNL
+            | git2::DiffLineType::Addition => Self::Add,
+            _ => Self::None,
         }
+    }
+}
 
-        self.files = gai_files;
+impl fmt::Display for DiffLineType {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        let prefix = match self {
+            DiffLineType::None => " ",
+            DiffLineType::Header => "",
+            DiffLineType::Add => "+",
+            DiffLineType::Delete => "-",
+        };
 
-        // handle untracked files here
-        for path in &self.status.u_new {
-            let should_truncate =
-                files_to_truncate.iter().any(|f| path.ends_with(f));
+        write!(f, "{}", prefix)
+    }
+}
 
-            for entry in WalkDir::new(path)
-                .follow_links(true)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                if entry.path().is_file()
-                    && let Ok(content) =
-                        std::fs::read_to_string(entry.path())
-                {
-                    let path = entry.path().to_str().unwrap();
-                    let lines: Vec<LineDiff> = content
-                        .lines()
-                        .map(|line| LineDiff {
-                            diff_type: DiffType::Additions,
-                            content: format!("{}\n", line),
-                        })
-                        .collect();
+impl PartialEq<&git2::DiffLine<'_>> for DiffLinePosition {
+    fn eq(
+        &self,
+        other: &&git2::DiffLine,
+    ) -> bool {
+        other.new_lineno() == self.new_lineno
+            && other.old_lineno() == self.old_lineno
+    }
+}
 
-                    self.files.push(GaiFile {
-                        path: path.to_owned(),
-                        should_truncate,
-                        hunks: vec![HunkDiff {
-                            header: format!(
-                                "New File {}",
-                                lines.len()
-                            ),
-                            line_diffs: lines,
-                        }],
-                    });
+impl From<&git2::DiffLine<'_>> for DiffLinePosition {
+    fn from(line: &git2::DiffLine<'_>) -> Self {
+        Self {
+            old_lineno: line.old_lineno(),
+            new_lineno: line.new_lineno(),
+        }
+    }
+}
+
+impl From<DiffHunk<'_>> for HunkHeader {
+    fn from(h: DiffHunk) -> Self {
+        Self {
+            old_start: h.old_start(),
+            old_lines: h.old_lines(),
+            new_start: h.new_start(),
+            new_lines: h.new_lines(),
+            /* raw: String::from_utf8(h.header().to_vec())
+            .unwrap_or_default(), */
+        }
+    }
+}
+
+impl TryFrom<&str> for HunkId {
+    type Error = GitError;
+
+    fn try_from(v: &str) -> Result<Self, Self::Error> {
+        let (path, index) = v
+            .split_once(':')
+            .ok_or_else(|| GitError::InvalidHunk(v.to_owned()))?;
+
+        let path = path.to_owned();
+        let index = index
+            .parse()
+            .map_err(|_| GitError::InvalidHunk(v.to_owned()))?;
+
+        Ok(Self { path, index })
+    }
+}
+
+/// helper for printing for
+/// the LLM request
+impl fmt::Display for Diffs {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        let mut s = String::new();
+
+        for file in &self.files {
+            let mut f_str = String::new();
+            for hunk in file.hunks.iter() {
+                f_str.push_str(&format!(
+                    "HunkId[{}:{}]\n",
+                    file.path, hunk.id
+                ));
+
+                /* f_str.push_str(&hunk.header.raw);
+                f_str.push('\n'); */
+
+                for line in &hunk.lines {
+                    f_str.push_str(&format!(
+                        "{}{}",
+                        line.line_type, line.content
+                    ));
+                    f_str.push('\n');
                 }
             }
+            s.push_str(&f_str);
+            s.push('\n');
         }
 
-        self.files.sort_by_key(|g| g.should_truncate);
-
-        Ok(())
+        write!(f, "{}", s)
     }
 }
 
-fn process_file_diff(
-    diff_hunks: &mut Vec<HunkDiff>,
-    hunk: &Option<DiffHunk>,
-    line: &DiffLine,
+/// helper to remove specified
+/// hunks from a specific
+/// file diff
+pub fn remove_hunks(
+    file_diffs: &mut [FileDiff],
+    file_path: &str,
+    used_ids: &[usize],
 ) {
-    if let Some(h) = hunk {
-        let header = str::from_utf8(h.header())
-            .unwrap_or("not a valid utf8 header from hunk")
-            .to_owned();
-        let content = str::from_utf8(line.content())
-            .unwrap_or("not a valid utf8 line from hunk")
-            .to_owned();
+    if let Some(file_diff) =
+        file_diffs.iter_mut().find(|f| f.path == file_path)
+    {
+        file_diff.hunks.retain(|hunk| !used_ids.contains(&hunk.id));
+    }
+}
 
-        let diff_type = match line.origin() {
-            '+' => DiffType::Additions,
-            '-' => DiffType::Deletions,
-            ' ' => DiffType::Unchanged,
-            _ => return,
-        };
+/// helper to find a specific file_diff
+pub fn find_file_diff<'a>(
+    og_file_diffs: &'a [FileDiff],
+    file_path: &str,
+) -> anyhow::Result<&'a FileDiff> {
+    og_file_diffs
+        .iter()
+        .find(|f| f.path == file_path)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "{} is not in the og_file_diffs",
+                file_path
+            )
+        })
+}
 
-        let diff_line = LineDiff { diff_type, content };
+/// helper to find file_hunks
+/// using a lsit of hunk_ids
+/// indices
+pub fn find_file_hunks(
+    file_diff: &FileDiff,
+    ids: Vec<usize>,
+) -> anyhow::Result<Vec<Hunk>> {
+    let mut hunks = Vec::new();
 
-        // instead of storing the different types.
-        // we can just push line diffs in a clear order
-        // if i want to filter it out, i can do that
-        // later, this should just care about the diff itself
-        match diff_hunks.iter_mut().find(|h| h.header == header) {
-            Some(existing) => existing.line_diffs.push(diff_line),
-            None => {
-                diff_hunks.push(HunkDiff {
-                    header,
-                    line_diffs: vec![diff_line],
-                });
+    for hunk in file_diff.hunks.clone() {
+        if ids.contains(&hunk.id) {
+            hunks.push(hunk);
+        }
+    }
+
+    if hunks.is_empty() {
+        return Err(GitError::Generic(format!(
+            "no matching hunks found in {}",
+            file_diff.path
+        ))
+        .into());
+    }
+
+    Ok(hunks)
+}
+
+/// build a list of FileDiff's
+/// calls get_status() first
+pub fn get_diffs(
+    git_repo: &GitRepo,
+    strategy: &DiffStrategy,
+) -> anyhow::Result<Diffs> {
+    let mut files = Vec::new();
+
+    let status =
+        get_status(&git_repo.repo, &strategy.status_strategy)?;
+
+    for file in status.statuses {
+        let raw_diff =
+            get_diff_raw(&git_repo.repo, &file.path, strategy)?;
+
+        let file_diff = raw_diff_to_file_diff(
+            &raw_diff,
+            &file.path,
+            &git_repo.workdir,
+        )?;
+
+        files.push(file_diff);
+    }
+
+    Ok(Diffs { files })
+}
+
+/// helper to fill out the valid schema options
+pub fn get_hunk_ids(file_diffs: &[FileDiff]) -> Vec<HunkId> {
+    let mut hunk_ids = Vec::new();
+
+    for file_diff in file_diffs.iter() {
+        for hunk in file_diff.hunks.iter() {
+            let hunk = HunkId {
+                path: file_diff.path.to_owned(),
+                index: hunk.id,
+            };
+
+            hunk_ids.push(hunk);
+        }
+    }
+
+    hunk_ids
+}
+
+fn get_diff_raw<'a>(
+    repo: &'a Repository,
+    path: &str,
+    strategy: &DiffStrategy,
+) -> anyhow::Result<Diff<'a>> {
+    let mut opt = git2::DiffOptions::new();
+
+    opt.pathspec(path);
+
+    let diff = match strategy.status_strategy {
+        StatusStrategy::Stage => {
+            // diff against head
+            if let Ok(id) = get_head_repo(repo) {
+                let parent = repo.find_commit(id)?;
+
+                let tree = parent.tree()?;
+                repo.diff_tree_to_index(
+                    Some(&tree),
+                    Some(&repo.index()?),
+                    Some(&mut opt),
+                )?
+            } else {
+                repo.diff_tree_to_index(
+                    None,
+                    Some(&repo.index()?),
+                    Some(&mut opt),
+                )?
             }
         }
-    }
+        StatusStrategy::WorkingDir => {
+            opt.include_untracked(true);
+            opt.recurse_untracked_dirs(true);
+            repo.diff_index_to_workdir(None, Some(&mut opt))?
+        }
+        StatusStrategy::Both => {
+            if let Ok(id) = get_head_repo(repo) {
+                let parent = repo.find_commit(id)?;
+                let tree = parent.tree()?;
+                opt.include_untracked(true);
+                opt.recurse_untracked_dirs(true);
+                repo.diff_tree_to_workdir(
+                    Some(&tree),
+                    Some(&mut opt),
+                )?
+            } else {
+                opt.include_untracked(true);
+                opt.recurse_untracked_dirs(true);
+                repo.diff_tree_to_workdir(None, Some(&mut opt))?
+            }
+        }
+    };
+
+    Ok(diff)
 }
+
+// use original asyncgit to read
+// diff per file then filter/process
+// todo process all diffs together
+// filter as you come acorss
+fn raw_diff_to_file_diff(
+    diff: &Diff,
+    path: &str,
+    work_dir: &Path,
+) -> anyhow::Result<FileDiff> {
+    let res = Rc::new(RefCell::new(FileDiff {
+        path: path.to_owned(),
+        ..Default::default()
+    }));
+    {
+        let mut current_lines = Vec::new();
+        let mut current_hunk: Option<HunkHeader> = None;
+
+        let res_cell = Rc::clone(&res);
+        let adder = move |header: &HunkHeader,
+                          lines: &Vec<DiffLine>| {
+            let mut res = res_cell.borrow_mut();
+            let id = res.hunks.len();
+            res.hunks.push(Hunk {
+                id,
+                header: header.to_owned(),
+                lines: lines.to_owned(),
+            });
+            res.lines += lines.len();
+        };
+
+        let mut put = |_: DiffDelta,
+                       hunk: Option<DiffHunk>,
+                       line: git2::DiffLine| {
+            if let Some(hunk) = hunk {
+                let hunk_header = HunkHeader::from(hunk);
+
+                match current_hunk {
+                    None => current_hunk = Some(hunk_header),
+                    Some(h) => {
+                        if h != hunk_header {
+                            adder(&h, &current_lines);
+                            current_lines.clear();
+                            current_hunk = Some(hunk_header);
+                        }
+                    }
+                }
+
+                let diff_line = DiffLine {
+                    position: DiffLinePosition::from(&line),
+                    content: String::from_utf8_lossy(line.content())
+                        //Note: trim await trailing newline characters
+                        .trim_matches(is_newline)
+                        .into(),
+                    line_type: line.origin_value().into(),
+                };
+
+                current_lines.push(diff_line);
+            }
+        };
+
+        let new_file_diff = if diff.deltas().len() == 1 {
+            if let Some(delta) = diff.deltas().next() {
+                if delta.status() == Delta::Untracked {
+                    let relative_path =
+                        delta.new_file().path().ok_or_else(|| {
+                            GitError::Generic(
+                                "new file path is unspecified."
+                                    .to_string(),
+                            )
+                        })?;
+
+                    let newfile_path = work_dir.join(relative_path);
+
+                    if let Some(newfile_content) =
+                        new_file_content(&newfile_path)
+                    {
+                        let mut patch = Patch::from_buffers(
+                            &[],
+                            None,
+                            newfile_content.as_slice(),
+                            Some(&newfile_path),
+                            None,
+                        )?;
+
+                        patch.print(
+							&mut |delta,
+							      hunk: Option<DiffHunk>,
+							      line: git2::DiffLine| {
+								put(delta, hunk, line);
+								true
+							},
+						)?;
+
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if !new_file_diff {
+            diff.print(
+                DiffFormat::Patch,
+                move |delta, hunk, line: git2::DiffLine| {
+                    put(delta, hunk, line);
+                    true
+                },
+            )?;
+        }
+
+        if !current_lines.is_empty() {
+            adder(
+                &current_hunk.map_or_else(
+                    || {
+                        Err(GitError::InvalidHunk(
+                            "invalid hunk".to_owned(),
+                        ))
+                    },
+                    Ok,
+                )?,
+                &current_lines,
+            );
+        }
+
+        if new_file_diff {
+            res.borrow_mut().untracked = true;
+        }
+    }
+
+    let res = Rc::try_unwrap(res).map_err(|_| {
+        GitError::Generic("rc unwrap error".to_owned())
+    })?;
+
+    Ok(res.into_inner())
+}
+
+/* // for tracked files
+fn create_file_diff() -> anyhow::Result<FileDiff> {
+    //let mut patch = Patch::from_blob()
+
+    todo!()
+}
+
+// for untracked files
+fn create_new_file_diff() -> anyhow::Result<FileDiff> {
+    todo!()
+} */

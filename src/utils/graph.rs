@@ -53,18 +53,30 @@ impl Arena {
     }
 
     // sets optional count
-    pub fn set_count(&mut self, node_id: usize, count: usize) {
+    pub fn set_count(
+        &mut self,
+        node_id: usize,
+        count: usize,
+    ) {
         self.nodes[node_id].count = Some(count);
     }
 
-    pub fn add_child(&mut self, parent_id: usize, child_id: usize) {
+    pub fn add_child(
+        &mut self,
+        parent_id: usize,
+        child_id: usize,
+    ) {
         self.nodes[parent_id].children.push(child_id);
         self.nodes[child_id].parent = Some(parent_id);
     }
 
     // helper for truncating, honestly specific to commit msg bodiesy
     // dont want to deal with multiline wrapping
-    pub fn truncate(&self, text: &str, max_len: usize) -> String {
+    pub fn truncate(
+        &self,
+        text: &str,
+        max_len: usize,
+    ) -> String {
         if text.len() > max_len {
             format!("{}...", &text[..max_len])
         } else {

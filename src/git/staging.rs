@@ -1,200 +1,198 @@
-use anyhow::Result;
-use std::path::Path;
+// https://github.com/gitui-org/gitui/blob/master/asyncgit/src/sync/staging/mod.rs
 
-use crate::git::{
-    commit::GaiCommit,
-    repo::{DiffType, GaiGit},
+// ripped from asyncgit
+// necessary for staging math
+// since we're getting multiple
+// commits at a time
+// we're gonna need to have to stage
+// individual hunks as specified
+// in the response separately
+// depending on the accuracy,
+// will make these operations separate
+//
+// NOPE, i dont think the patch math works or is
+// necessary for this,
+// i was thinking of doing something
+// similar to reassemble_patch from
+// https://github.com/git/git/blob/master/add-patch.c
+// but like before, the count will change when we apply
+// the commit
+//
+// new plan.
+// we store the old diffs, in a sort of
+// database in state.rs.
+// the LLM replies with the hunkids
+// then we do a match for that hunkid
+// in the database. grab the relevant lines,
+// addition, deletion, etc.
+// then compare those changes with each new diff
+// if it matches take that hunk and subtract it
+// from the old diff db. We do this for each file
+// so that means all relevant hunks need to grouped
+// per file per commit
+//
+// an issue might come up, if for example there are multiple
+// of the same changes
+// do we try to increase the diff context in this case?
+// to try and get a bigger match?
+// for now lets bail
+//
+
+/// for different types
+/// of adding/staging per commit
+#[derive(
+    Debug, Clone, Default, serde::Serialize, serde::Deserialize,
+)]
+pub enum StagingStrategy {
+    /// as individual hunks
+    Hunks,
+
+    /// only stage one file PER commit
+    OneFilePerCommit,
+
+    /// small group of files
+    /// files SHOULD represent
+    /// a DISTINCT change per commit
+    #[default]
+    AtomicCommits,
+
+    /// stage all changes together
+    /// as monolithic commit
+    /// best to enable allow_body
+    /// so the LLM can generate
+    /// a descriptive commit description
+    AllFilesOneCommit,
+}
+
+use git2::{IndexAddOption, Repository};
+use std::{collections::HashSet, path::Path};
+
+use crate::git::lines::{get_changes_from_gai, get_changes_from_raw};
+
+use super::{
+    diffs::Hunk,
+    errors::GitError,
+    lines::stage_lines,
+    patches::{get_file_diff_patch, patch_get_hunklines},
 };
 
-impl GaiGit {
-    pub fn apply_commits(&self, commits: &[GaiCommit]) -> Result<()> {
-        //println!("{:#?}", self.commits);
-        for commit in commits {
-            self.commit(commit)?;
-        }
-
-        Ok(())
+/// for hunk staging, this will
+/// return a list of hunk ids that
+/// were succesfully processed
+/// HUNKS that are passed here are what
+/// need to be processed from
+/// this file_path
+/// these HUNKS should be taken
+/// directly from og_hunk_diffs
+pub fn stage_hunks(
+    repo: &Repository,
+    file_path: &str,
+    og_hunks_to_stage: &[Hunk],
+) -> anyhow::Result<Vec<usize>> {
+    if og_hunks_to_stage.is_empty() {
+        return Err(GitError::Generic(
+            "cannot stage empty hunk list".to_owned(),
+        )
+        .into());
     }
 
-    // todo rid of unwraps
-    fn commit(&self, commit: &GaiCommit) -> Result<()> {
-        let mut index = self.repo.index().unwrap();
+    // regen diff
+    let patch = get_file_diff_patch(repo, file_path)?;
+    let new_hunks = patch_get_hunklines(&patch)?;
 
-        index.clear().unwrap();
+    let mut already_used_new_hunks: HashSet<usize> = HashSet::new();
 
-        if let Ok(head) = self.repo.head()
-            && let Ok(tree) = head.peel_to_tree()
-        {
-            index.read_tree(&tree).unwrap();
-        }
+    let mut used = Vec::new();
+    let mut lines = Vec::new();
 
-        // todo impl validation and add failed hunks
-        if self.stage_hunks {
-            // going to bypass the index
-            // and instead use the stored hunks
-            // from create_diffs to create patches
-            self.stage_hunks(commit);
-        } else {
-            self.stage_files(&mut index, commit);
-        }
+    for hunk in og_hunks_to_stage {
+        let gai_diff_lines = get_changes_from_gai(hunk);
 
-        index.write().unwrap();
+        // attempt to find matching hunk
+        let matching_hunk = new_hunks
+            .iter()
+            .enumerate()
+            .filter(|(idx, _new_hunk)| {
+                !already_used_new_hunks.contains(idx)
+            })
+            .find(|(_idx, new_hunk)| {
+                let raw_diff_lines = get_changes_from_raw(new_hunk);
+                if gai_diff_lines.len() != raw_diff_lines.len() {
+                    false
+                } else {
+                    gai_diff_lines
+                        .iter()
+                        .zip(raw_diff_lines.iter())
+                        .all(|(a, b)| {
+                            a.line_type == b.line_type
+                                && a.content == b.content
+                        })
+                }
+            });
 
-        let tree_oid = index.write_tree().unwrap();
-        let tree = self.repo.find_tree(tree_oid).unwrap();
-
-        let parent_commit = match self.repo.revparse_single("HEAD") {
-            Ok(obj) => Some(obj.into_commit().unwrap()),
-            // ignore first commit
-            Err(_) => None,
-        };
-
-        let mut parents = Vec::new();
-        if let Some(parent) = parent_commit.as_ref() {
-            parents.push(parent);
-        }
-
-        let sig = self.repo.signature().unwrap();
-
-        let commit_msg = &commit.message;
-
-        self.repo
-            .commit(
-                Some("HEAD"),
-                &sig,
-                &sig,
-                commit_msg,
-                &tree,
-                &parents[..],
-            )
-            .unwrap();
-
-        Ok(())
-    }
-
-    pub fn stage_hunks(&self, commit: &GaiCommit) {
-        let patch = self.create_patches(&commit.hunk_ids);
-
-        match git2::Diff::from_buffer(patch.as_bytes()) {
-            Ok(diff) => {
-                match self.repo.apply(
-                    &diff,
-                    git2::ApplyLocation::Index,
-                    None,
-                ) {
-                    Ok(_) => println!("Staged and Applied Hunks!"),
-                    Err(e) => {
-                        println!("failed to stage hunks: {}", e);
-
-                        std::fs::write("failed.patch", &patch)
-                            .unwrap()
+        match matching_hunk {
+            Some((idx, matching_hunk)) => {
+                already_used_new_hunks.insert(idx);
+                for line in &matching_hunk.lines {
+                    let origin = line.origin_value();
+                    if origin == git2::DiffLineType::Addition
+                        || origin == git2::DiffLineType::Deletion
+                    {
+                        lines.push(super::diffs::DiffLinePosition {
+                            old_lineno: line.old_lineno(),
+                            new_lineno: line.new_lineno(),
+                        });
                     }
                 }
+                used.push(hunk.id);
             }
-
-            Err(e) => println!("failed parse patches: {}", e),
-        }
-    }
-
-    fn stage_files(
-        &self,
-        index: &mut git2::Index,
-        commit: &GaiCommit,
-    ) {
-        for path in &commit.files {
-            let path = Path::new(&path);
-            let status = self.repo.status_file(path).unwrap();
-
-            // todo: some changes will implement a combo
-            // ex: modified + renamed
-            // i think we need to explicitly handle those
-            // maybe by storing it in a buffer of some sort
-            if status.contains(git2::Status::WT_MODIFIED)
-                || status.contains(git2::Status::WT_NEW)
-            {
-                index.add_path(path).unwrap();
-            }
-            if status.contains(git2::Status::WT_DELETED) {
-                index.remove_path(path).unwrap();
-            }
-            if status.contains(git2::Status::WT_TYPECHANGE) {
-                index.remove_path(path).unwrap();
-                index.add_path(path).unwrap();
+            None => {
+                return Err(GitError::Generic(
+                    "no matching hunk found".to_owned(),
+                )
+                .into());
             }
         }
     }
 
-    fn create_patches(&self, hunk_ids: &[String]) -> String {
-        let mut patch = String::new();
-        let mut current_file = String::new();
-
-        for hunk_id in hunk_ids {
-            // this may be relatively flimsy
-            // todo: ideally we want to build out the schemars
-            // based on a predetermined set and instead of having
-            // an LLM 'write' it out, it can just choose it from the
-            // set
-            let Some((file_path, index_str)) =
-                hunk_id.split_once(':')
-            else {
-                println!("not a valid hunk_id format:{}", hunk_id);
-                continue;
-            };
-
-            let Ok(i) = index_str.parse::<usize>() else {
-                println!("not a valid hunk_index:{}", index_str);
-                continue;
-            };
-
-            let Some(file) =
-                self.files.iter().find(|f| f.path == file_path)
-            else {
-                println!("not a valid file: {}", file_path);
-                continue;
-            };
-
-            let Some(hunk) = file.hunks.get(i) else {
-                println!(
-                    "le hunk {} not found in file {}",
-                    i, file_path
-                );
-
-                continue;
-            };
-
-            // creating a patch
-            // the other methods, using a hunk hash
-            // or using headers, kinda sucked
-            // manually creating patches
-            // helps, since we can also print them out
-            // if they lets say fail
-            if current_file != file_path {
-                patch.push_str(&format!(
-                    "diff --git a/{} b/{}\n",
-                    file_path, file_path
-                ));
-                patch.push_str(&format!("--- a/{}\n", file_path));
-                patch.push_str(&format!("+++ b/{}\n", file_path));
-                current_file = file_path.to_string();
-            }
-
-            patch.push_str(&hunk.header);
-            if !hunk.header.ends_with('\n') {
-                patch.push('\n');
-            }
-
-            for line in &hunk.line_diffs {
-                let prefix = match line.diff_type {
-                    DiffType::Additions => '+',
-                    DiffType::Deletions => '-',
-                    DiffType::Unchanged => ' ',
-                };
-
-                patch.push(prefix);
-                patch.push_str(&line.content);
-            }
-        }
-
-        patch
+    if lines.is_empty() {
+        return Err(GitError::Generic(
+            "did you we not store any DiffLinePositions?".to_owned(),
+        )
+        .into());
     }
+
+    // todo we regen diff here again
+    // collapse this fucntion to here
+    // and optimize
+    stage_lines(repo, file_path, &lines)?;
+
+    Ok(used)
+}
+
+/// for atomic commits
+pub fn stage_file(
+    repo: &Repository,
+    path: &str,
+) -> anyhow::Result<()> {
+    let mut index = repo.index()?;
+
+    index.add_path(Path::new(path))?;
+    index.write()?;
+
+    Ok(())
+}
+
+/// for allfilesonecommit
+pub fn stage_all(
+    repo: &Repository,
+    pattern: &str,
+) -> anyhow::Result<()> {
+    let mut index = repo.index()?;
+
+    index.add_all(vec![pattern], IndexAddOption::DEFAULT, None)?;
+
+    index.write()?;
+
+    Ok(())
 }

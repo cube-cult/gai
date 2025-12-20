@@ -7,6 +7,8 @@ impl Default for Settings {
         Self {
             provider: crate::providers::provider::ProviderKind::Gai,
             providers: Default::default(),
+            staging_type: Default::default(),
+            status_type: Default::default(),
             prompt: Default::default(),
             rules: Default::default(),
             context: Default::default(),
@@ -37,7 +39,8 @@ impl Default for ContextSettings {
             include_file_tree: false,
             include_git_status: true,
             include_untracked: true,
-            files_to_truncate: None,
+            ignore_files: None,
+            truncate_files: None,
             include_log: false,
             log_amount: 10,
         }
@@ -48,7 +51,6 @@ impl Default for CommitSettings {
     fn default() -> Self {
         Self {
             only_staged: false,
-            stage_hunks: false,
             capitalize_prefix: false,
             include_scope: true,
             include_breaking: true,

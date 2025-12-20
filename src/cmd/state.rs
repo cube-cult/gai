@@ -1,24 +1,32 @@
 use crate::{
-    git::repo::GaiGit,
+    git::{Diffs, GitRepo},
     settings::{Settings, load},
 };
 
 pub struct State {
     pub settings: Settings,
-    pub gai: GaiGit,
+    pub git: GitRepo,
+
+    /// diff database
+    /// we'll use this to compare difflines
+    /// over the next commits
+    /// during hunk staging
+    /// otherwise, diffs
+    /// in these will get removed
+    /// as we apply them
+    pub diffs: Diffs,
 }
 
 impl State {
     pub fn new(overrides: Option<&[String]>) -> anyhow::Result<Self> {
         let settings = load::load(overrides)?;
+        let git = GitRepo::open(None)?;
+        let diffs = Diffs::default();
 
-        let gai = GaiGit::new(
-            settings.commit.only_staged,
-            settings.commit.stage_hunks,
-            settings.commit.capitalize_prefix,
-            settings.commit.include_scope,
-        )?;
-
-        Ok(Self { settings, gai })
+        Ok(Self {
+            settings,
+            git,
+            diffs,
+        })
     }
 }

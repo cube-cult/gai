@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 
 use super::{
@@ -5,10 +7,21 @@ use super::{
     state::State,
 };
 use crate::{
-    git::{commit::GaiCommit, repo::GaiGit},
-    providers::{provider::extract_from_provider, request::Request},
+    git::{
+        DiffStrategy, Diffs, GitRepo, StagingStrategy,
+        StatusStrategy,
+        commit::{GitCommit, commit},
+        diffs::{
+            FileDiff, HunkId, find_file_hunks, get_diffs,
+            remove_hunks,
+        },
+        staging::{stage_file, stage_hunks},
+    },
+    providers::{
+        provider::extract_from_provider,
+        request::{Request, build_request},
+    },
     settings::Settings,
-    tui::app::open,
     utils::print::{
         SpinDeez, pretty_print_commits, pretty_print_status,
     },
@@ -25,40 +38,63 @@ pub fn run(
     if args.staged {
         state.settings.commit.only_staged = true;
     }
-    if args.hunks {
-        state.settings.commit.stage_hunks = true;
-    }
-    if args.files {
-        state.settings.commit.stage_hunks = false;
-    }
 
     if let Some(provider) = global.provider {
         state.settings.provider = provider;
     }
 
-    state.gai.create_diffs(
-        state.settings.context.files_to_truncate.as_deref(),
-    )?;
+    /* state.git.create_diffs(
+        state.settings.context.truncate_files.as_deref(),
+    )?; */
 
-    pretty_print_status(&state.gai, global.compact)?;
+    pretty_print_status(&state.git, global.compact)?;
 
-    if state.gai.files.is_empty() {
+    /* if state.git.files.is_empty() {
         return Ok(());
-    }
+    } */
 
     let spinner = SpinDeez::new();
+    spinner.start("Building Request");
 
-    let req = crate::providers::request::build_request(
+    let status_strategy = if state.settings.commit.only_staged {
+        StatusStrategy::Stage
+    } else {
+        StatusStrategy::default()
+    };
+
+    let mut diff_strategy = DiffStrategy {
+        status_strategy,
+        ..Default::default()
+    };
+
+    if let Some(ref files_to_truncate) =
+        state.settings.context.truncate_files
+    {
+        diff_strategy.truncated_files = files_to_truncate.to_owned();
+    }
+
+    if let Some(ref files_to_ignore) =
+        state.settings.context.ignore_files
+    {
+        diff_strategy.ignored_files = files_to_ignore.to_owned();
+    }
+
+    state.diffs = get_diffs(&state.git, &diff_strategy)?;
+
+    let req = build_request(
         &state.settings,
-        &state.gai,
-        &spinner,
+        &state.git,
+        &state.diffs.to_string(),
     );
+
+    spinner.stop(None);
 
     run_commit(
         &spinner,
         req,
         state.settings,
-        state.gai,
+        state.git,
+        state.diffs,
         args.skip_confirmation,
         global.compact,
     )?;
@@ -70,7 +106,8 @@ fn run_commit(
     spinner: &SpinDeez,
     req: Request,
     cfg: Settings,
-    gai: GaiGit,
+    git: GitRepo,
+    mut diffs: Diffs,
     skip_confirmation: bool,
     compact: bool,
 ) -> anyhow::Result<()> {
@@ -128,23 +165,17 @@ fn run_commit(
             if result.commits.len() == 1 { "" } else { "s" }
         );
 
-        pretty_print_commits(&result.commits, &cfg, &gai, compact)?;
+        pretty_print_commits(&result.commits, &cfg, &git, compact)?;
 
-        let commits: Vec<GaiCommit> = result
+        let git_commits: Vec<GitCommit> = result
             .commits
             .iter()
-            .map(|resp_commit| {
-                GaiCommit::from_response(
-                    resp_commit,
-                    cfg.commit.capitalize_prefix,
-                    cfg.commit.include_scope,
-                )
-            })
+            .map(|resp_commit| resp_commit.into())
             .collect();
 
         if skip_confirmation {
-            println!("Skipping confirmation and applying commits...");
-            match gai.apply_commits(&commits) {
+            match apply_commits(&git, &git_commits, &mut diffs.files)
+            {
                 Ok(_) => break,
                 Err(e) => {
                     println!("Failed to Apply Commits: {}", e);
@@ -180,7 +211,8 @@ fn run_commit(
 
         if selection == 0 {
             println!("Applying Commits...");
-            match gai.apply_commits(&commits) {
+            match apply_commits(&git, &git_commits, &mut diffs.files)
+            {
                 Ok(_) => break,
                 Err(e) => {
                     println!("Failed to Apply Commits: {}", e);
@@ -204,7 +236,7 @@ fn run_commit(
                 }
             }
         } else if selection == 1 {
-            let _ = open(cfg, gai);
+            //let _ = open(cfg, git);
         } else if selection == 2 {
             println!("Retrying...");
             continue;
@@ -213,6 +245,95 @@ fn run_commit(
         }
 
         break;
+    }
+
+    Ok(())
+}
+
+fn apply_commits(
+    git: &GitRepo,
+    git_commits: &[GitCommit],
+    og_file_diffs: &mut Vec<FileDiff>,
+) -> anyhow::Result<()> {
+    let staging_stragey = StagingStrategy::Hunks;
+
+    //todo when we implement verbose logging
+    // make sure we log the files, hunks etc
+    // before we apply commits
+
+    for git_commit in git_commits {
+        match staging_stragey {
+            StagingStrategy::AtomicCommits => {
+                for file in &git_commit.files {
+                    stage_file(&git.repo, file)?;
+                    og_file_diffs.retain(|f| f.path != file.as_str());
+                }
+            }
+            StagingStrategy::Hunks => {
+                // this commit should define its hunkids
+                // to stage like:
+                // commit 1: src/main.rs:0, src/main.rs:1 etc
+                // group hunks based on the file paths
+                // iterate over each file
+                // find what hunks to stage
+                // pass it into stage_hunks
+                // stage_hunks should be able to apply
+                // only the hunks it gets from here
+
+                // file_path and a list of hunk indecises
+                let mut files: HashMap<String, Vec<usize>> =
+                    HashMap::new();
+
+                // group hunks to their file_paths
+                for hunk in &git_commit.hunk_ids {
+                    let hunk_id = HunkId::try_from(hunk.as_str())?;
+                    files
+                        .entry(hunk_id.path.clone())
+                        .or_default()
+                        .push(hunk_id.index);
+                }
+
+                // now process each file
+                for (file_path, hunk_ids) in files {
+                    // find the original file associated
+                    // with this from the og database
+                    let og_file_diff = og_file_diffs
+                        .iter()
+                        .find(|f| f.path == file_path)
+                        .ok_or({
+                            anyhow::anyhow!(
+                                "{} is not in the og_file_diffs",
+                                file_path
+                            )
+                        })?;
+
+                    if og_file_diff.untracked {
+                        stage_file(&git.repo, &file_path)?;
+                        og_file_diffs.retain(|f| f.path != file_path);
+                        continue;
+                    }
+
+                    // get relevant hunk ids
+                    let hunks =
+                        find_file_hunks(og_file_diff, hunk_ids)?;
+
+                    // stage hunks relevant to this file ONLY
+                    let used =
+                        stage_hunks(&git.repo, &file_path, &hunks)?;
+
+                    remove_hunks(og_file_diffs, &file_path, &used);
+                }
+            }
+            _ => (),
+        }
+
+        commit(&git.repo, git_commit)?;
+    }
+
+    for file in og_file_diffs {
+        for hunk in &file.hunks {
+            println!("hunk [{}:{}] not applied", file.path, hunk.id);
+        }
     }
 
     Ok(())
