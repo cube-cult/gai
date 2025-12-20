@@ -1,7 +1,10 @@
 use std::{collections::HashMap, fmt};
 
 use crate::{
-    git::{StatusStrategy, repo::GitRepo, status::get_status},
+    git::{
+        StagingStrategy, StatusStrategy, repo::GitRepo,
+        status::get_status,
+    },
     settings::{PromptRules, Settings},
     utils::consts::*,
 };
@@ -104,15 +107,14 @@ impl Request {
             prompt.push_str(COMMIT_CONVENTION);
         }
 
-        prompt.push_str(PROMPT_STAGE_HUNKS);
-
-        /* match cfg.staging_type {
+        match cfg.staging_type {
+            // todo impl other staging methods
+            // likely during validation as well
             StagingStrategy::Hunks => {
                 prompt.push_str(PROMPT_STAGE_HUNKS)
             }
-
             _ => prompt.push_str(PROMPT_STAGE_FILES),
-        } */
+        }
 
         prompt.push('\n');
 
