@@ -124,12 +124,12 @@ pub fn is_workdir_clean(repo: &Repository) -> anyhow::Result<bool> {
 
 pub fn get_status(
     repo: &Repository,
-    strategy: StatusStrategy,
+    strategy: &StatusStrategy,
 ) -> anyhow::Result<GitStatus> {
     let mut opts = StatusOptions::default();
 
     // filter
-    opts.show(strategy.into());
+    opts.show(strategy.to_owned().into());
 
     opts.update_index(true);
     opts.include_untracked(true);

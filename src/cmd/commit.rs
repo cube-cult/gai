@@ -9,6 +9,7 @@ use super::{
 use crate::{
     git::{
         DiffStrategy, Diffs, GitRepo, StagingStrategy,
+        StatusStrategy,
         commit::{GitCommit, commit},
         diffs::{
             FileDiff, HunkId, find_file_hunks, get_diffs,
@@ -55,8 +56,14 @@ pub fn run(
     let spinner = SpinDeez::new();
     spinner.start("Building Request");
 
+    let status_strategy = if state.settings.commit.only_staged {
+        StatusStrategy::Stage
+    } else {
+        StatusStrategy::default()
+    };
+
     let mut diff_strategy = DiffStrategy {
-        staged_only: state.settings.commit.only_staged,
+        status_strategy,
         ..Default::default()
     };
 

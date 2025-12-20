@@ -3,9 +3,9 @@ use super::{
     state::State,
 };
 use crate::{
-    git::{DiffStrategy, diffs::get_diffs},
+    git::{DiffStrategy, diffs::get_diffs, status::get_status},
     providers::request::build_request,
-    utils::print::{SpinDeez, pretty_print_status},
+    utils::print::SpinDeez,
 };
 
 pub fn run(
@@ -14,13 +14,18 @@ pub fn run(
 ) -> anyhow::Result<()> {
     let state = State::new(global.config.as_deref())?;
 
-    pretty_print_status(&state.git, global.compact)?;
+    let status_strategy = crate::git::StatusStrategy::default();
+
+    let status = get_status(&state.git.repo, &status_strategy)?;
+    println!("{}", status);
+
+    //pretty_print_status(&state.git, global.compact)?;
 
     if args.verbose {
         let spinner = SpinDeez::new();
 
         let mut diff_strategy = DiffStrategy {
-            staged_only: state.settings.commit.only_staged,
+            status_strategy,
             ..Default::default()
         };
 

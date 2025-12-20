@@ -23,7 +23,7 @@ use super::{
 pub struct DiffStrategy {
     /// send the diffs with the
     /// staged files ONLy
-    pub staged_only: bool,
+    pub status_strategy: StatusStrategy,
 
     /// files to truncate
     /// will show as
@@ -286,13 +286,8 @@ pub fn get_diffs(
 ) -> anyhow::Result<Diffs> {
     let mut files = Vec::new();
 
-    let status_strategy = if strategy.staged_only {
-        StatusStrategy::Stage
-    } else {
-        StatusStrategy::Both
-    };
-
-    let status = get_status(&git_repo.repo, status_strategy)?;
+    let status =
+        get_status(&git_repo.repo, &strategy.status_strategy)?;
 
     for file in status.statuses {
         let raw_diff =
@@ -337,28 +332,47 @@ fn get_diff_raw<'a>(
 
     opt.pathspec(path);
 
-    let diff = if strategy.staged_only {
-        // diff against head
-        if let Ok(id) = get_head_repo(repo) {
-            let parent = repo.find_commit(id)?;
+    let diff = match strategy.status_strategy {
+        StatusStrategy::Stage => {
+            // diff against head
+            if let Ok(id) = get_head_repo(repo) {
+                let parent = repo.find_commit(id)?;
 
-            let tree = parent.tree()?;
-            repo.diff_tree_to_index(
-                Some(&tree),
-                Some(&repo.index()?),
-                Some(&mut opt),
-            )?
-        } else {
-            repo.diff_tree_to_index(
-                None,
-                Some(&repo.index()?),
-                Some(&mut opt),
-            )?
+                let tree = parent.tree()?;
+                repo.diff_tree_to_index(
+                    Some(&tree),
+                    Some(&repo.index()?),
+                    Some(&mut opt),
+                )?
+            } else {
+                repo.diff_tree_to_index(
+                    None,
+                    Some(&repo.index()?),
+                    Some(&mut opt),
+                )?
+            }
         }
-    } else {
-        opt.include_untracked(true);
-        opt.recurse_untracked_dirs(true);
-        repo.diff_index_to_workdir(None, Some(&mut opt))?
+        StatusStrategy::WorkingDir => {
+            opt.include_untracked(true);
+            opt.recurse_untracked_dirs(true);
+            repo.diff_index_to_workdir(None, Some(&mut opt))?
+        }
+        StatusStrategy::Both => {
+            if let Ok(id) = get_head_repo(repo) {
+                let parent = repo.find_commit(id)?;
+                let tree = parent.tree()?;
+                opt.include_untracked(true);
+                opt.recurse_untracked_dirs(true);
+                repo.diff_tree_to_workdir(
+                    Some(&tree),
+                    Some(&mut opt),
+                )?
+            } else {
+                opt.include_untracked(true);
+                opt.recurse_untracked_dirs(true);
+                repo.diff_tree_to_workdir(None, Some(&mut opt))?
+            }
+        }
     };
 
     Ok(diff)

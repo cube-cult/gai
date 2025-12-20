@@ -124,11 +124,12 @@ impl Request {
 
         if cfg.context.include_git_status {
             prompt.push_str("Current Git Status: \n");
+            // todo impl separation when fmt::Display
             let staged =
-                get_status(&repo.repo, StatusStrategy::Stage)
+                get_status(&repo.repo, &StatusStrategy::Stage)
                     .unwrap();
             let working_dir =
-                get_status(&repo.repo, StatusStrategy::WorkingDir)
+                get_status(&repo.repo, &StatusStrategy::WorkingDir)
                     .unwrap();
 
             prompt.push_str(&format!("Staged\n{}", staged));
