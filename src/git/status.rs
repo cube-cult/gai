@@ -142,7 +142,7 @@ pub fn get_status(
     opts.renames_index_to_workdir(true);
 
     let statuses = repo.statuses(Some(&mut opts))?;
-    let branch_name = get_branch_name(&repo)?;
+    let branch_name = get_branch_name(repo)?;
 
     let mut statuses: Vec<FileStatus> = statuses
         .iter()
