@@ -8,11 +8,13 @@ use super::{
 };
 use crate::{
     git::{
-        Diffs, GitRepo,
+        DiffStrategy, Diffs, GitRepo, StagingStrategy,
         commit::{GitCommit, commit},
-        diffs::{FileDiff, HunkId, find_file_hunks, get_diffs},
+        diffs::{
+            FileDiff, HunkId, find_file_hunks, get_diffs,
+            remove_hunks,
+        },
         staging::{stage_file, stage_hunks},
-        {DiffStrategy, StagingStrategy},
     },
     providers::{
         provider::extract_from_provider,
@@ -244,15 +246,20 @@ fn run_commit(
 fn apply_commits(
     git: &GitRepo,
     git_commits: &[GitCommit],
-    og_file_diffs: &mut [FileDiff],
+    og_file_diffs: &mut Vec<FileDiff>,
 ) -> anyhow::Result<()> {
     let staging_stragey = StagingStrategy::Hunks;
+
+    //todo when we implement verbose logging
+    // make sure we log the files, hunks etc
+    // before we apply commits
 
     for git_commit in git_commits {
         match staging_stragey {
             StagingStrategy::AtomicCommits => {
                 for file in &git_commit.files {
                     stage_file(&git.repo, file)?;
+                    og_file_diffs.retain(|f| f.path != file.as_str());
                 }
             }
             StagingStrategy::Hunks => {
@@ -295,6 +302,7 @@ fn apply_commits(
 
                     if og_file_diff.untracked {
                         stage_file(&git.repo, &file_path)?;
+                        og_file_diffs.retain(|f| f.path != file_path);
                         continue;
                     }
 
@@ -306,14 +314,7 @@ fn apply_commits(
                     let used =
                         stage_hunks(&git.repo, &file_path, &hunks)?;
 
-                    // remove already used from db
-                    for file_diff in &mut *og_file_diffs {
-                        if file_diff.path == file_path {
-                            file_diff.hunks.retain(|hunk| {
-                                !used.contains(&hunk.id)
-                            });
-                        }
-                    }
+                    remove_hunks(og_file_diffs, &file_path, &used);
                 }
             }
             _ => (),
@@ -322,16 +323,9 @@ fn apply_commits(
         commit(&git.repo, git_commit)?;
     }
 
-    if !og_file_diffs.is_empty() {
-        for file in og_file_diffs {
-            if !file.hunks.is_empty() {
-                for hunk in &file.hunks {
-                    println!(
-                        "hunk [{}:{}] not applied",
-                        file.path, hunk.id
-                    );
-                }
-            }
+    for file in og_file_diffs {
+        for hunk in &file.hunks {
+            println!("hunk [{}:{}] not applied", file.path, hunk.id);
         }
     }
 

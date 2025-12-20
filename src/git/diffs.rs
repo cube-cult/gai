@@ -221,7 +221,40 @@ impl fmt::Display for Diffs {
     }
 }
 
-/// apply_commits() helper
+/// helper to remove specified
+/// hunks from a specific
+/// file diff
+pub fn remove_hunks(
+    file_diffs: &mut [FileDiff],
+    file_path: &str,
+    used_ids: &[usize],
+) {
+    if let Some(file_diff) =
+        file_diffs.iter_mut().find(|f| f.path == file_path)
+    {
+        file_diff.hunks.retain(|hunk| !used_ids.contains(&hunk.id));
+    }
+}
+
+/// helper to find a specific file_diff
+pub fn find_file_diff<'a>(
+    og_file_diffs: &'a [FileDiff],
+    file_path: &str,
+) -> anyhow::Result<&'a FileDiff> {
+    og_file_diffs
+        .iter()
+        .find(|f| f.path == file_path)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "{} is not in the og_file_diffs",
+                file_path
+            )
+        })
+}
+
+/// helper to find file_hunks
+/// using a lsit of hunk_ids
+/// indices
 pub fn find_file_hunks(
     file_diff: &FileDiff,
     ids: Vec<usize>,
