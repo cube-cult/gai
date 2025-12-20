@@ -6,7 +6,6 @@ pub mod commit;
 pub mod log;
 pub mod state;
 pub mod status;
-pub mod tui;
 
 pub fn run() -> anyhow::Result<()> {
     let args = args::Cli::parse();
@@ -14,7 +13,6 @@ pub fn run() -> anyhow::Result<()> {
     match &args.command {
         args::Commands::Auth(a) => auth::run(&a.auth)?,
         args::Commands::Status(a) => status::run(a, &args.global)?,
-        args::Commands::TUI(a) => tui::run(a, &args.global)?,
         args::Commands::Commit(a) => commit::run(a, &args.global)?,
         args::Commands::Log(a) => log::run(a, &args.global)?,
         /* args::Commands::Rebase => {}

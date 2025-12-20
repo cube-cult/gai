@@ -54,9 +54,6 @@ pub enum Commands {
     /// Show the commit history in the format of gai commits
     Log(LogArgs),
 
-    /// Launch the Terminal User Interface
-    TUI(TUIArgs),
-
     /// Create commits from the diffs in the working tree
     Commit(CommitArgs),
     /* /// Create a rebase plan for commits
@@ -87,13 +84,6 @@ pub enum Auth {
 pub struct AuthArgs {
     #[command(subcommand)]
     pub auth: Auth,
-}
-
-#[derive(Debug, Args)]
-pub struct TUIArgs {
-    #[command(flatten)]
-    pub commit_args: CommitArgs,
-    //todo implement rebase, find args
 }
 
 // Each command has its own args struct
