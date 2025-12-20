@@ -2,8 +2,8 @@ use std::{collections::HashMap, fmt};
 
 use crate::{
     git::{
-        StagingStrategy, StatusStrategy, repo::GitRepo,
-        status::get_status,
+        StagingStrategy, StatusStrategy, log::get_logs,
+        repo::GitRepo, status::get_status,
     },
     settings::{PromptRules, Settings},
     utils::consts::*,
@@ -136,6 +136,23 @@ impl Request {
 
             prompt.push_str(&format!("Staged\n{}", staged));
             prompt.push_str(&format!("WorkingDir\n{}", working_dir));
+        }
+
+        if cfg.context.include_log {
+            let gai_logs = get_logs(
+                &repo.repo,
+                cfg.context.log_amount as usize,
+                false,
+            )
+            .unwrap_or_default();
+
+            let log_str = format!(
+                "{} Recent Git Logs:\n{}\n",
+                gai_logs.git_logs.len(),
+                gai_logs
+            );
+
+            prompt.push_str(&log_str);
         }
 
         self.prompt = prompt;

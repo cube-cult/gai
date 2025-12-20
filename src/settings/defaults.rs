@@ -41,8 +41,8 @@ impl Default for ContextSettings {
             include_untracked: true,
             ignore_files: None,
             truncate_files: None,
-            include_log: true,
-            log_amount: 5,
+            include_log: false,
+            log_amount: 10,
         }
     }
 }
