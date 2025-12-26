@@ -56,6 +56,9 @@ pub enum Commands {
 
     /// Create commits from the diffs in the working tree
     Commit(CommitArgs),
+
+    #[command(hide = true)]
+    Test(TestArgs),
     /* /// Create a rebase plan for commits
     Rebase,
 
@@ -114,4 +117,18 @@ pub struct LogArgs {
     /// Reverse the order of commits
     #[arg(short = 'r', long)]
     pub reverse: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct TestArgs {
+    pub count: Option<usize>,
+
+    #[command(subcommand)]
+    pub command: TestCommands,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum TestCommands {
+    Status,
+    Commit,
 }
