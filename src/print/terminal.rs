@@ -12,14 +12,16 @@ use ratatui::{Terminal, TerminalOptions, prelude::Backend};
 // would work well enough
 
 /// initialize ratatui
-pub fn start() -> anyhow::Result<Terminal<impl Backend>> {
+pub fn start(
+    initial_height: u16
+) -> anyhow::Result<Terminal<impl Backend>> {
     // inline view
     // this is will essentially fullscreen
     // if the content exceeds the term height
     // we should handle this per view
     // likely turning it into a scrolling view
     let (_width, term_height) = ratatui::crossterm::terminal::size()?;
-    let height = term_height.min(20);
+    let height = term_height.min(initial_height);
 
     let terminal = ratatui::init_with_options(TerminalOptions {
         viewport: ratatui::Viewport::Inline(height),

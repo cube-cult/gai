@@ -8,7 +8,7 @@ pub fn print(
 ) -> anyhow::Result<Option<usize>> {
     let selected = None;
 
-    let terminal = terminal::start()?;
+    let terminal = terminal::start(0)?;
 
     terminal::stop()?;
 
