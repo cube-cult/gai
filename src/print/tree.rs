@@ -13,34 +13,50 @@ use ratatui::{
 // crate that implements ratatui's widget trait
 //
 // the main difference, being this doesn't
-// have state, since i dont plan on having
+// have state as well as only goes two levels deep,
+// since i dont plan on having
 // interactivity for this. but rather
 // the root be exposed as a "list" that
 // we can select through
 
+pub enum TreeDepth {
+    Level0 = 0,
+    Level1 = 1,
+    Level2 = 2,
+}
+
+impl From<TreeDepth> for usize {
+    fn from(value: TreeDepth) -> Self {
+        value as usize
+    }
+}
+
 pub struct TreeItem<'text> {
     text: Text<'text>,
-    children: Vec<Self>,
+    depth: TreeDepth,
+    is_last: bool,
 }
 
 pub struct Tree<'a> {
-    items: &'a [TreeItem<'a>],
+    root: TreeItem<'a>,
+
+    children: &'a [TreeItem<'a>],
 
     style: Style,
 
     highlight_style: Style,
 
     /// pre - pipe "│"
-    other_child: &'a str,
+    other_child: Text<'a>,
 
     /// connector - tee "├──"
-    other_entry: &'a str,
+    other_entry: Text<'a>,
 
     /// pre - no more siblings " "
-    final_child: &'a str,
+    final_child: Text<'a>,
 
     /// connector - elbow "└── "
-    final_entry: &'a str,
+    final_entry: Text<'a>,
 }
 
 #[derive(Default, Clone)]
@@ -59,13 +75,6 @@ pub struct TreeState {
 }
 
 impl TreeState {
-    pub fn flatten<'a>(
-        &self,
-        items: &'a [TreeItem<'a>],
-    ) -> Vec<Flattened<'a>> {
-        todo!()
-    }
-
     pub fn select_next(&mut self) {
         self.selected =
             Some(self.selected.map_or(0, |i| i.saturating_add(1)));
@@ -81,76 +90,7 @@ impl TreeState {
     }
 }
 
-/// from tui-rs-tree-widget
-/// modified wihtout the Identifier
-/// and since we dont have any of the identifiers
-/// gonna need to know depth,
-/// likely stored here,
-/// as well as which root this belongs too
-pub struct Flattened<'text> {
-    pub item: &'text TreeItem<'text>,
-
-    pub depth: usize,
-    pub root: usize,
-
-    /// is this last in the tree?
-    pub is_last: bool,
-}
-
 impl<'text> TreeItem<'text> {
-    /// create new treeitem, needs children
-    pub fn new<T>(
-        text: T,
-        children: Vec<Self>,
-    ) -> Self
-    where
-        T: Into<Text<'text>>,
-    {
-        Self {
-            text: text.into(),
-            children,
-        }
-    }
-
-    /// create new leaf, no children
-    pub fn new_leaf<T>(text: T) -> Self
-    where
-        T: Into<Text<'text>>,
-    {
-        Self {
-            text: text.into(),
-            children: Vec::new(),
-        }
-    }
-
-    pub fn children(&self) -> &[Self] {
-        &self.children
-    }
-
-    /// add a child to treeitem
-    pub fn add_child(
-        &mut self,
-        child: Self,
-    ) {
-        self.children.push(child);
-    }
-
-    /// Get a reference to a child by index.
-    pub fn child(
-        &self,
-        index: usize,
-    ) -> Option<&Self> {
-        self.children.get(index)
-    }
-
-    /// Get a mutable reference to a child by index.
-    pub fn child_mut(
-        &mut self,
-        index: usize,
-    ) -> Option<&mut Self> {
-        self.children.get_mut(index)
-    }
-
     /// text widget height
     pub fn height(&self) -> usize {
         self.text.height()
@@ -158,15 +98,24 @@ impl<'text> TreeItem<'text> {
 }
 
 impl<'a> Tree<'a> {
-    pub fn new(items: &'a [TreeItem]) -> Self {
+    pub fn new(
+        root: TreeItem<'a>,
+        children: &'a [TreeItem],
+    ) -> Self {
+        let other_child = Text::raw("│  ");
+        let other_entry = Text::raw("├──");
+        let final_child = Text::raw("   ");
+        let final_entry = Text::raw("└──");
+
         Self {
-            items,
+            root,
+            children,
             style: Style::default(),
             highlight_style: Style::default(),
-            other_child: "│ ",
-            other_entry: "├──",
-            final_child: "  ",
-            final_entry: "└──",
+            other_child,
+            other_entry,
+            final_child,
+            final_entry,
         }
     }
 
@@ -174,7 +123,7 @@ impl<'a> Tree<'a> {
         mut self,
         items: &'a [TreeItem],
     ) -> Self {
-        self.items = items;
+        self.children = items;
         self
     }
 
@@ -196,7 +145,7 @@ impl<'a> Tree<'a> {
 
     pub fn other_child(
         mut self,
-        other_child: &'a str,
+        other_child: Text<'a>,
     ) -> Self {
         self.other_child = other_child;
         self
@@ -204,7 +153,7 @@ impl<'a> Tree<'a> {
 
     pub fn other_entry(
         mut self,
-        other_entry: &'a str,
+        other_entry: Text<'a>,
     ) -> Self {
         self.other_entry = other_entry;
         self
@@ -212,7 +161,7 @@ impl<'a> Tree<'a> {
 
     pub fn final_child(
         mut self,
-        final_child: &'a str,
+        final_child: Text<'a>,
     ) -> Self {
         self.final_child = final_child;
         self
@@ -220,7 +169,7 @@ impl<'a> Tree<'a> {
 
     pub fn final_entry(
         mut self,
-        final_entry: &'a str,
+        final_entry: Text<'a>,
     ) -> Self {
         self.final_entry = final_entry;
         self
@@ -236,7 +185,6 @@ impl StatefulWidget for Tree<'_> {
         buf: &mut ratatui::prelude::Buffer,
         state: &mut Self::State,
     ) {
-        todo!()
     }
 }
 
