@@ -1,8 +1,6 @@
-use ratatui::{
-    style::Style,
-    text::Text,
-    widgets::{StatefulWidget, Widget},
-};
+use std::collections::HashSet;
+
+use ratatui::{style::Style, text::Text, widgets::Widget};
 
 // this is a util widget that helps
 // pretty printing trees
@@ -19,112 +17,159 @@ use ratatui::{
 // the root be exposed as a "list" that
 // we can select through
 
-pub enum TreeDepth {
-    Level0 = 0,
-    Level1 = 1,
-    Level2 = 2,
-}
+#[derive(Debug, Clone)]
+pub struct TreeItem<'text, Identifier> {
+    identifier: Identifier,
+    children: Vec<Self>,
 
-impl From<TreeDepth> for usize {
-    fn from(value: TreeDepth) -> Self {
-        value as usize
-    }
-}
-
-pub struct TreeItem<'text> {
     text: Text<'text>,
-    depth: TreeDepth,
-    is_last: bool,
 }
 
-pub struct Tree<'a> {
-    root: TreeItem<'a>,
-
-    children: &'a [TreeItem<'a>],
+#[derive(Debug, Clone)]
+pub struct Tree<'a, Identifier> {
+    items: &'a [TreeItem<'a, Identifier>],
 
     style: Style,
 
-    highlight_style: Style,
+    collapsed: bool,
 
     /// pre - pipe "│"
-    other_child: Text<'a>,
+    other_child: &'a str,
 
     /// connector - tee "├──"
-    other_entry: Text<'a>,
+    other_entry: &'a str,
 
     /// pre - no more siblings " "
-    final_child: Text<'a>,
+    final_child: &'a str,
 
     /// connector - elbow "└── "
-    final_entry: Text<'a>,
+    final_entry: &'a str,
 }
 
-#[derive(Default, Clone)]
-pub struct TreeState {
-    /// optional selection
-    /// this should select over
-    /// the root tree nodes
-    /// and not go any deeper
-    /// i dont think ill support that
-    /// for now
-    pub selected: Option<usize>,
+impl<'text, Identifier> TreeItem<'text, Identifier>
+where
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
+{
+    pub fn new_leaf<T>(
+        identifier: Identifier,
+        text: T,
+    ) -> Self
+    where
+        T: Into<Text<'text>>,
+    {
+        let text = text.into();
+        // todo temp fix, add style to line
+        // conversely, user can use Line::styled
+        let text = Text::from(
+            text.lines
+                .into_iter()
+                .map(|line| line.patch_style(text.style))
+                .collect::<Vec<_>>(),
+        );
 
-    /// collapse trees
-    /// onto a single line
-    pub collapsed: bool,
-}
-
-impl TreeState {
-    pub fn select_next(&mut self) {
-        self.selected =
-            Some(self.selected.map_or(0, |i| i.saturating_add(1)));
+        Self {
+            identifier,
+            text,
+            children: Vec::new(),
+        }
     }
 
-    pub fn select_prev(&mut self) {
-        self.selected =
-            Some(self.selected.map_or(0, |i| i.saturating_sub(1)));
+    pub fn new<T>(
+        identifier: Identifier,
+        text: T,
+        children: Vec<Self>,
+    ) -> std::io::Result<Self>
+    where
+        T: Into<Text<'text>>,
+    {
+        let identifiers: HashSet<_> =
+            children.iter().map(|item| &item.identifier).collect();
+
+        if identifiers.len() != children.len() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                "The children contain duplicate identifiers",
+            ));
+        }
+
+        let text = text.into();
+        // todo temp fix, add style to line
+        // conversely, user can use Line::styled
+        let text = Text::from(
+            text.lines
+                .into_iter()
+                .map(|line| line.patch_style(text.style))
+                .collect::<Vec<_>>(),
+        );
+
+        Ok(Self {
+            identifier,
+            text,
+            children,
+        })
     }
 
-    pub fn selected(&self) -> Option<usize> {
-        self.selected
+    pub const fn identifier(&self) -> &Identifier {
+        &self.identifier
     }
-}
 
-impl<'text> TreeItem<'text> {
+    pub fn children(&self) -> &[Self] {
+        &self.children
+    }
+
+    pub fn child(
+        &self,
+        index: usize,
+    ) -> Option<&Self> {
+        self.children.get(index)
+    }
+
+    pub fn child_mut(
+        &mut self,
+        index: usize,
+    ) -> Option<&mut Self> {
+        self.children.get_mut(index)
+    }
+
     /// text widget height
     pub fn height(&self) -> usize {
         self.text.height()
     }
 }
 
-impl<'a> Tree<'a> {
+impl<'a, Identifier> Tree<'a, Identifier>
+where
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
+{
     pub fn new(
-        root: TreeItem<'a>,
-        children: &'a [TreeItem],
-    ) -> Self {
-        let other_child = Text::raw("│  ");
-        let other_entry = Text::raw("├──");
-        let final_child = Text::raw("   ");
-        let final_entry = Text::raw("└──");
+        items: &'a [TreeItem<'a, Identifier>]
+    ) -> std::io::Result<Self> {
+        let identifiers = items
+            .iter()
+            .map(|item| &item.identifier)
+            .collect::<HashSet<_>>();
 
-        Self {
-            root,
-            children,
+        if identifiers.len() != items.len() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AlreadyExists,
+                "The items contain duplicate identifiers",
+            ));
+        }
+
+        let other_child = "│  ";
+        let other_entry = "├──";
+        let final_child = "   ";
+        let final_entry = "└──";
+
+        Ok(Self {
+            items,
             style: Style::default(),
-            highlight_style: Style::default(),
+            collapsed: false,
             other_child,
             other_entry,
             final_child,
             final_entry,
-        }
-    }
-
-    pub fn items(
-        mut self,
-        items: &'a [TreeItem],
-    ) -> Self {
-        self.children = items;
-        self
+        })
     }
 
     pub fn style(
@@ -135,17 +180,21 @@ impl<'a> Tree<'a> {
         self
     }
 
-    pub fn highlight_style(
+    pub fn toggle_collapse(&mut self) {
+        self.collapsed = !self.collapsed;
+    }
+
+    pub fn collapsed(
         mut self,
-        style: Style,
+        collapsed: bool,
     ) -> Self {
-        self.highlight_style = style;
+        self.collapsed = collapsed;
         self
     }
 
     pub fn other_child(
         mut self,
-        other_child: Text<'a>,
+        other_child: &'a str,
     ) -> Self {
         self.other_child = other_child;
         self
@@ -153,7 +202,7 @@ impl<'a> Tree<'a> {
 
     pub fn other_entry(
         mut self,
-        other_entry: Text<'a>,
+        other_entry: &'a str,
     ) -> Self {
         self.other_entry = other_entry;
         self
@@ -161,7 +210,7 @@ impl<'a> Tree<'a> {
 
     pub fn final_child(
         mut self,
-        final_child: Text<'a>,
+        final_child: &'a str,
     ) -> Self {
         self.final_child = final_child;
         self
@@ -169,26 +218,50 @@ impl<'a> Tree<'a> {
 
     pub fn final_entry(
         mut self,
-        final_entry: Text<'a>,
+        final_entry: &'a str,
     ) -> Self {
         self.final_entry = final_entry;
         self
     }
-}
 
-impl StatefulWidget for Tree<'_> {
-    type State = TreeState;
+    // util create the prefix character
+    // based on a flattened item
+    fn prefix(
+        &self,
+        is_last_at_depth: &[bool],
+    ) -> String {
+        let depth = is_last_at_depth.len();
 
-    fn render(
-        self,
-        area: ratatui::prelude::Rect,
-        buf: &mut ratatui::prelude::Buffer,
-        state: &mut Self::State,
-    ) {
+        if depth == 0 {
+            return String::new();
+        }
+
+        let mut prefix = String::new();
+
+        // add continuation characters
+        for &is_last in &is_last_at_depth[..depth - 1] {
+            if is_last {
+                prefix.push_str(self.final_child);
+            } else {
+                prefix.push_str(self.other_child);
+            }
+        }
+
+        // add connector for curr_level
+        if is_last_at_depth[depth - 1] {
+            prefix.push_str(self.final_entry);
+        } else {
+            prefix.push_str(self.other_entry);
+        }
+
+        prefix
     }
 }
 
-impl Widget for Tree<'_> {
+impl<Identifier> Widget for Tree<'_, Identifier>
+where
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
+{
     fn render(
         self,
         area: ratatui::prelude::Rect,
@@ -196,7 +269,120 @@ impl Widget for Tree<'_> {
     ) where
         Self: Sized,
     {
-        let mut state = TreeState::default();
-        StatefulWidget::render(self, area, buf, &mut state);
+        buf.set_style(area, self.style);
+
+        if area.width < 1 || area.height < 1 || self.items.is_empty()
+        {
+            return;
+        }
+
+        let flattened = flatten(self.items, &[], self.collapsed, 0);
+
+        let mut y = area.y;
+
+        for flat in flattened.iter() {
+            if y >= area.y + area.height {
+                break;
+            }
+
+            let prefix = self.prefix(&flat.is_last_at_depth);
+            let prefix_char_count = prefix.chars().count() as u16;
+
+            // render prefix
+            if !prefix.is_empty() {
+                buf.set_string(area.x, y, &prefix, self.style);
+            }
+
+            // render content
+            let text_x = area.x + prefix_char_count;
+            let text_width =
+                area.width.saturating_sub(prefix_char_count);
+
+            for (i, line) in flat.item.text.lines.iter().enumerate() {
+                let line_y = y + i as u16;
+                if line_y >= area.y + area.height {
+                    break;
+                }
+
+                // handle continuing lines dont need a connector
+                if i > 0 {
+                    let mut prefix = String::new();
+
+                    for &is_last in &flat.is_last_at_depth {
+                        if is_last {
+                            prefix.push_str(self.final_child);
+                        } else {
+                            prefix.push_str(self.other_child);
+                        }
+                    }
+
+                    buf.set_string(
+                        area.x, line_y, &prefix, line.style,
+                    );
+                }
+
+                buf.set_line(text_x, line_y, line, text_width);
+            }
+
+            y += flat.item.height() as u16;
+        }
     }
+}
+
+// util flatten function, compared to tui-rs-tree-widget
+// we don't collapse per tree item, the entire tree is collapsed
+// but i think keeping the identifier is fine here, in case
+// i do want to track which tree item corresponds to whatever
+// likely wont use it though
+
+struct Flattened<'text, Identifier> {
+    item: &'text TreeItem<'text, Identifier>,
+    /// assign the last item for the each depth
+    is_last_at_depth: Vec<bool>,
+}
+
+fn flatten<'text, Identifier>(
+    items: &'text [TreeItem<'text, Identifier>],
+    parent_is_last_chain: &[bool],
+    collapsed: bool,
+    depth: usize,
+) -> Vec<Flattened<'text, Identifier>>
+where
+    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
+{
+    let mut flattened = Vec::new();
+    let len = items.len();
+
+    for (i, item) in items.iter().enumerate() {
+        let is_last = i == len - 1;
+
+        // Roots (depth 0) have empty is_last_at_depth (no prefix)
+        // Children extend parent's chain with their own is_last status
+        let is_last_at_depth = if depth == 0 {
+            Vec::new()
+        } else {
+            let mut chain = parent_is_last_chain.to_vec();
+            chain.push(is_last);
+            chain
+        };
+
+        flattened.push(Flattened {
+            item,
+            is_last_at_depth: is_last_at_depth.clone(),
+        });
+
+        // handle children with recursion
+        if !collapsed {
+            let children = flatten(
+                &item.children,
+                &is_last_at_depth,
+                collapsed,
+                depth + 1,
+            );
+
+            flattened.extend(children);
+        }
+    }
+
+    flattened
 }
