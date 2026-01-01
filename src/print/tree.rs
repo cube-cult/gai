@@ -21,18 +21,18 @@ use std::collections::HashSet;
 /// open/closed state, ill still keep it, mainly for when
 /// we implement any type of fuzzy searching
 #[derive(Debug, Clone)]
-pub struct TreeItem<'text, Identifier> {
+pub struct TreeItem<Identifier> {
     identifier: Identifier,
     children: Vec<Self>,
 
-    text: &'text str,
+    text: String,
     style: Style,
 }
 
 /// A Tree which can be rendered
 #[derive(Debug, Clone)]
 pub struct Tree<'a, Identifier> {
-    items: &'a [TreeItem<'a, Identifier>],
+    items: &'a [TreeItem<Identifier>],
 
     style: Style,
 
@@ -51,7 +51,7 @@ pub struct Tree<'a, Identifier> {
     final_entry: &'a str,
 }
 
-impl<'text, Identifier> TreeItem<'text, Identifier>
+impl<Identifier> TreeItem<Identifier>
 where
     Identifier: Clone + PartialEq + Eq + core::hash::Hash,
 {
@@ -62,7 +62,7 @@ where
         text: T,
     ) -> Self
     where
-        T: Into<&'text str>,
+        T: Into<String>,
     {
         let text = text.into();
 
@@ -84,7 +84,7 @@ where
         children: Vec<Self>,
     ) -> std::io::Result<Self>
     where
-        T: Into<&'text str>,
+        T: Into<String>,
     {
         let identifiers: HashSet<_> =
             children.iter().map(|item| &item.identifier).collect();
@@ -117,7 +117,7 @@ where
 
     pub fn text(
         mut self,
-        text: &'text str,
+        text: String,
     ) -> Self {
         self.text = text;
         self
@@ -151,7 +151,7 @@ where
     Identifier: Clone + PartialEq + Eq + core::hash::Hash,
 {
     pub fn new(
-        items: &'a [TreeItem<'a, Identifier>]
+        items: &'a [TreeItem<Identifier>]
     ) -> std::io::Result<Self> {
         let identifiers = items
             .iter()
@@ -193,7 +193,8 @@ where
         for flat in flattened.iter() {
             let prefix = self.prefix(&flat.is_last_at_depth);
             let prefix = self.style.apply_to(&prefix);
-            let text = flat.item.style.apply_to(flat.item.text);
+            let text = flat.item.style.apply_to(&flat.item.text);
+
             println!("{prefix}{text}");
         }
     }
@@ -289,13 +290,13 @@ where
 // i do want to track which tree item corresponds to whatever
 // likely wont use it though
 struct Flattened<'text, Identifier> {
-    item: &'text TreeItem<'text, Identifier>,
+    item: &'text TreeItem<Identifier>,
     /// assign the last item for the each depth
     is_last_at_depth: Vec<bool>,
 }
 
 fn flatten<'text, Identifier>(
-    items: &'text [TreeItem<'text, Identifier>],
+    items: &'text [TreeItem<Identifier>],
     parent_is_last_chain: &[bool],
     collapsed: bool,
     depth: usize,
