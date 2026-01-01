@@ -1,5 +1,4 @@
 pub mod commits;
-pub mod events;
+pub mod loading;
 pub mod status;
-pub mod terminal;
 pub mod tree;
