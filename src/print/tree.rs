@@ -1,8 +1,7 @@
+use console::Style;
 use std::collections::HashSet;
 
-use ratatui::{style::Style, text::Text, widgets::Widget};
-
-// this is a util widget that helps
+// this is a tree printing util that helps
 // pretty printing trees
 // it's a modified version of the original
 // arena graph that used crossterm
@@ -11,20 +10,26 @@ use ratatui::{style::Style, text::Text, widgets::Widget};
 // crate that implements ratatui's widget trait
 //
 // the main difference, being this doesn't
-// have state as well as only goes two levels deep,
-// since i dont plan on having
-// interactivity for this. but rather
-// the root be exposed as a "list" that
-// we can select through
+// have state  since i dont plan on having
+// interactivity for this.
+//
+// styling is done by console-rs
 
+/// tui-rs-tree-widget esque TreeItem
+/// while identifier is not really being used
+/// since we dont have selected state or tracking
+/// open/closed state, ill still keep it, mainly for when
+/// we implement any type of fuzzy searching
 #[derive(Debug, Clone)]
 pub struct TreeItem<'text, Identifier> {
     identifier: Identifier,
     children: Vec<Self>,
 
-    text: Text<'text>,
+    text: &'text str,
+    style: Style,
 }
 
+/// A Tree which can be rendered
 #[derive(Debug, Clone)]
 pub struct Tree<'a, Identifier> {
     items: &'a [TreeItem<'a, Identifier>],
@@ -50,37 +55,36 @@ impl<'text, Identifier> TreeItem<'text, Identifier>
 where
     Identifier: Clone + PartialEq + Eq + core::hash::Hash,
 {
+    /// create a new treeitem but
+    /// without children
     pub fn new_leaf<T>(
         identifier: Identifier,
         text: T,
     ) -> Self
     where
-        T: Into<Text<'text>>,
+        T: Into<&'text str>,
     {
         let text = text.into();
-        // todo temp fix, add style to line
-        // conversely, user can use Line::styled
-        let text = Text::from(
-            text.lines
-                .into_iter()
-                .map(|line| line.patch_style(text.style))
-                .collect::<Vec<_>>(),
-        );
 
         Self {
             identifier,
             text,
             children: Vec::new(),
+            style: Style::default(),
         }
     }
 
+    /// create a new treeitem
+    /// with children
+    /// fails if the identifiers in the children are not
+    /// unique
     pub fn new<T>(
         identifier: Identifier,
         text: T,
         children: Vec<Self>,
     ) -> std::io::Result<Self>
     where
-        T: Into<Text<'text>>,
+        T: Into<&'text str>,
     {
         let identifiers: HashSet<_> =
             children.iter().map(|item| &item.identifier).collect();
@@ -93,20 +97,30 @@ where
         }
 
         let text = text.into();
-        // todo temp fix, add style to line
-        // conversely, user can use Line::styled
-        let text = Text::from(
-            text.lines
-                .into_iter()
-                .map(|line| line.patch_style(text.style))
-                .collect::<Vec<_>>(),
-        );
 
         Ok(Self {
             identifier,
             text,
             children,
+            style: Style::default(),
         })
+    }
+
+    /// text content styling
+    pub fn style(
+        mut self,
+        style: Style,
+    ) -> Self {
+        self.style = style;
+        self
+    }
+
+    pub fn text(
+        mut self,
+        text: &'text str,
+    ) -> Self {
+        self.text = text;
+        self
     }
 
     pub const fn identifier(&self) -> &Identifier {
@@ -130,11 +144,6 @@ where
     ) -> Option<&mut Self> {
         self.children.get_mut(index)
     }
-
-    /// text widget height
-    pub fn height(&self) -> usize {
-        self.text.height()
-    }
 }
 
 impl<'a, Identifier> Tree<'a, Identifier>
@@ -156,10 +165,10 @@ where
             ));
         }
 
-        let other_child = "│  ";
-        let other_entry = "├──";
-        let final_child = "   ";
-        let final_entry = "└──";
+        let other_child = "│   ";
+        let other_entry = "├── ";
+        let final_child = "    ";
+        let final_entry = "└── ";
 
         Ok(Self {
             items,
@@ -172,6 +181,24 @@ where
         })
     }
 
+    /// render tree
+    /// using console-rs styling
+    pub fn render(self) {
+        if self.items.is_empty() {
+            return;
+        }
+
+        let flattened = flatten(self.items, &[], self.collapsed, 0);
+
+        for flat in flattened.iter() {
+            let prefix = self.prefix(&flat.is_last_at_depth);
+            let prefix = self.style.apply_to(&prefix);
+            let text = flat.item.style.apply_to(flat.item.text);
+            println!("{prefix}{text}");
+        }
+    }
+
+    /// prefix styling
     pub fn style(
         mut self,
         style: Style,
@@ -180,10 +207,8 @@ where
         self
     }
 
-    pub fn toggle_collapse(&mut self) {
-        self.collapsed = !self.collapsed;
-    }
-
+    /// show the tree as collapsed
+    /// which only displays the roots
     pub fn collapsed(
         mut self,
         collapsed: bool,
@@ -258,83 +283,11 @@ where
     }
 }
 
-impl<Identifier> Widget for Tree<'_, Identifier>
-where
-    Identifier: Clone + PartialEq + Eq + core::hash::Hash,
-{
-    fn render(
-        self,
-        area: ratatui::prelude::Rect,
-        buf: &mut ratatui::prelude::Buffer,
-    ) where
-        Self: Sized,
-    {
-        buf.set_style(area, self.style);
-
-        if area.width < 1 || area.height < 1 || self.items.is_empty()
-        {
-            return;
-        }
-
-        let flattened = flatten(self.items, &[], self.collapsed, 0);
-
-        let mut y = area.y;
-
-        for flat in flattened.iter() {
-            if y >= area.y + area.height {
-                break;
-            }
-
-            let prefix = self.prefix(&flat.is_last_at_depth);
-            let prefix_char_count = prefix.chars().count() as u16;
-
-            // render prefix
-            if !prefix.is_empty() {
-                buf.set_string(area.x, y, &prefix, self.style);
-            }
-
-            // render content
-            let text_x = area.x + prefix_char_count;
-            let text_width =
-                area.width.saturating_sub(prefix_char_count);
-
-            for (i, line) in flat.item.text.lines.iter().enumerate() {
-                let line_y = y + i as u16;
-                if line_y >= area.y + area.height {
-                    break;
-                }
-
-                // handle continuing lines dont need a connector
-                if i > 0 {
-                    let mut prefix = String::new();
-
-                    for &is_last in &flat.is_last_at_depth {
-                        if is_last {
-                            prefix.push_str(self.final_child);
-                        } else {
-                            prefix.push_str(self.other_child);
-                        }
-                    }
-
-                    buf.set_string(
-                        area.x, line_y, &prefix, line.style,
-                    );
-                }
-
-                buf.set_line(text_x, line_y, line, text_width);
-            }
-
-            y += flat.item.height() as u16;
-        }
-    }
-}
-
 // util flatten function, compared to tui-rs-tree-widget
 // we don't collapse per tree item, the entire tree is collapsed
 // but i think keeping the identifier is fine here, in case
 // i do want to track which tree item corresponds to whatever
 // likely wont use it though
-
 struct Flattened<'text, Identifier> {
     item: &'text TreeItem<'text, Identifier>,
     /// assign the last item for the each depth
