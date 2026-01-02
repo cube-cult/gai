@@ -3,9 +3,12 @@ use super::{
     state::State,
 };
 use crate::{
-    git::{DiffStrategy, diffs::get_diffs, status::get_status},
+    git::{
+        DiffStrategy, StatusStrategy, diffs::get_diffs,
+        status::get_status,
+    },
+    print::status,
     providers::request::build_request,
-    utils::print::SpinDeez,
 };
 
 pub fn run(
@@ -14,18 +17,23 @@ pub fn run(
 ) -> anyhow::Result<()> {
     let state = State::new(global.config.as_deref())?;
 
-    let status_strategy = crate::git::StatusStrategy::default();
+    // todo impl something for this
+    // so we dont have to pass in two vectors
+    // into print
+    // likely gonna be handled within git::GitStatus
+    let staged = get_status(&state.git.repo, &StatusStrategy::Stage)?;
+    let working_dir =
+        get_status(&state.git.repo, &StatusStrategy::WorkingDir)?;
 
-    let status = get_status(&state.git.repo, &status_strategy)?;
-    println!("{}", status);
-
-    //pretty_print_status(&state.git, global.compact)?;
+    status::print(
+        &staged.branch_name,
+        &staged.statuses,
+        &working_dir.statuses,
+        global.compact,
+    )?;
 
     if args.verbose {
-        let spinner = SpinDeez::new();
-
         let mut diff_strategy = DiffStrategy {
-            status_strategy,
             ..Default::default()
         };
 
@@ -50,7 +58,6 @@ pub fn run(
             &diffs.to_string(),
         );
 
-        spinner.stop(None);
         println!("{}", req);
     }
 

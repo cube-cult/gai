@@ -22,9 +22,6 @@ use crate::{
         request::{Request, build_request},
     },
     settings::Settings,
-    utils::print::{
-        SpinDeez, pretty_print_commits, pretty_print_status,
-    },
 };
 
 pub fn run(
@@ -47,14 +44,14 @@ pub fn run(
         state.settings.context.truncate_files.as_deref(),
     )?; */
 
-    pretty_print_status(&state.git, global.compact)?;
+    //pretty_print_status(&state.git, global.compact)?;
 
     /* if state.git.files.is_empty() {
         return Ok(());
     } */
 
-    let spinner = SpinDeez::new();
-    spinner.start("Building Request");
+    //let spinner = SpinDeez::new();
+    //spinner.start("Building Request");
 
     let status_strategy = if state.settings.commit.only_staged {
         StatusStrategy::Stage
@@ -87,10 +84,10 @@ pub fn run(
         &state.diffs.to_string(),
     );
 
-    spinner.stop(None);
+    //spinner.stop(None);
 
     run_commit(
-        &spinner,
+        //&spinner,
         req,
         state.settings,
         state.git,
@@ -103,7 +100,7 @@ pub fn run(
 }
 
 fn run_commit(
-    spinner: &SpinDeez,
+    //spinner: &SpinDeez,
     req: Request,
     cfg: Settings,
     git: GitRepo,
@@ -112,11 +109,11 @@ fn run_commit(
     compact: bool,
 ) -> anyhow::Result<()> {
     loop {
-        spinner.start(&format!(
+        /* spinner.start(&format!(
             "Awaiting response from {} using {}",
             &cfg.provider.to_string(),
             cfg.providers.get_model(&cfg.provider)
-        ));
+        )); */
 
         let response = extract_from_provider(
             &cfg.provider,
@@ -127,9 +124,9 @@ fn run_commit(
         let result = match response {
             Ok(r) => r,
             Err(e) => {
-                spinner.stop(Some(
+                /* spinner.stop(Some(
                     "Done! But Gai received an error from the provider:"
-                ));
+                )); */
 
                 println!("{:#}", e);
 
@@ -157,7 +154,7 @@ fn run_commit(
             }
         }
 
-        spinner.stop(None);
+        //spinner.stop(None);
 
         println!(
             "Done! Received {} Commit{}",
@@ -165,7 +162,7 @@ fn run_commit(
             if result.commits.len() == 1 { "" } else { "s" }
         );
 
-        pretty_print_commits(&result.commits, &cfg, &git, compact)?;
+        //pretty_print_commits(&result.commits, &cfg, &git, compact)?;
 
         let git_commits: Vec<GitCommit> = result
             .commits

@@ -35,7 +35,12 @@ fn test_cmd(
     match args.command {
         args::TestCommands::Status => {
             let status = test_gen_status(count);
-            status::print(&status, global.compact)?;
+            status::print(
+                &status.branch_name,
+                &status.statuses,
+                &status.statuses,
+                global.compact,
+            )?;
         }
         args::TestCommands::Commit => {
             let commits = test_gen_commits(count);
