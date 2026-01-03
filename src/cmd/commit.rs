@@ -80,6 +80,10 @@ pub fn run(
 
     state.diffs = get_diffs(&state.git, &diff_strategy)?;
 
+    if state.diffs.files.is_empty() {
+        return Ok(());
+    }
+
     let req = build_request(
         &state.settings,
         &state.git,
