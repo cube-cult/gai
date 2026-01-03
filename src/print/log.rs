@@ -1,68 +1,18 @@
-use std::fmt;
-
-use console::{Color, Style, style};
+use console::{Color, style};
 use dialoguer::{FuzzySelect, theme::Theme};
-
-/// theme impl to avoid
-/// overriding console-rs styles
-pub struct LogTheme;
-impl Theme for LogTheme {
-    fn format_fuzzy_select_prompt(
-        &self,
-        f: &mut dyn fmt::Write,
-        prompt: &str,
-        search_term: &str,
-        _cursor_pos: usize,
-    ) -> fmt::Result {
-        write!(f, "{}: {}", prompt, search_term)
-    }
-
-    fn format_fuzzy_select_prompt_item(
-        &self,
-        f: &mut dyn fmt::Write,
-        text: &str,
-        active: bool,
-        _highlight_matches: bool,
-        _matcher: &fuzzy_matcher::skim::SkimMatcherV2,
-        _search_term: &str,
-    ) -> fmt::Result {
-        if active {
-            let prefix = style(">").green().bold();
-            write!(f, "{} {}", prefix, text)
-        } else {
-            write!(f, " {}", text)
-        }
-    }
-}
+use std::fmt;
 
 use crate::git::log::GitLog;
 
-use super::tree::{Tree, TreeItem};
-
-pub fn print(
-    git_logs: &[GitLog],
-    compact: bool,
-    interactive: bool,
-) -> anyhow::Result<()> {
-    let mut items = Vec::new();
+pub fn print_logs(
+    git_logs: &[GitLog]
+) -> anyhow::Result<Option<usize>> {
     let mut selection_display = Vec::new();
 
     for git_log in git_logs {
-        let mut commit_children = Vec::new();
-
         // not caring about message bodies
         // though, they will be accounted
         // for in the raw when we implement selection
-
-        // author + date
-        let info =
-            format!("By {} on {}", &git_log.author, &git_log.date);
-
-        let info_item =
-            TreeItem::new_leaf(git_log.commit_hash.to_owned(), &info)
-                .style(Style::new().fg(Color::Color256(240)));
-
-        commit_children.push(info_item);
 
         // short hash
         let short_hash =
@@ -99,31 +49,49 @@ pub fn print(
         let display = format!("{} {}", hash_display, message);
 
         selection_display.push(display.to_owned());
-
-        let item = TreeItem::new(
-            git_log.commit_hash.to_owned(),
-            display,
-            commit_children,
-        )?;
-
-        items.push(item);
     }
 
-    if !interactive {
-        Tree::new(&items)?
-            .collapsed(compact)
-            .style(Style::new().dim())
-            .render();
-    } else {
-        match FuzzySelect::with_theme(&LogTheme)
-            .with_prompt("Select a commit")
-            .items(&selection_display)
-            .interact_opt()?
-        {
-            Some(s) => println!("{s}"),
-            None => println!("None selcted"),
+    let selected = FuzzySelect::with_theme(&LogTheme)
+        .with_prompt("Select a commit")
+        .items(&selection_display)
+        .interact_opt()?;
+
+    Ok(selected)
+}
+
+/// theme impl to avoid
+/// overriding console-rs styles
+struct LogTheme;
+impl Theme for LogTheme {
+    fn format_fuzzy_select_prompt(
+        &self,
+        f: &mut dyn fmt::Write,
+        prompt: &str,
+        search_term: &str,
+        _cursor_pos: usize,
+    ) -> fmt::Result {
+        write!(
+            f,
+            "{}: {}",
+            style(prompt).bold(),
+            style(search_term).dim()
+        )
+    }
+
+    fn format_fuzzy_select_prompt_item(
+        &self,
+        f: &mut dyn fmt::Write,
+        text: &str,
+        active: bool,
+        _highlight_matches: bool,
+        _matcher: &fuzzy_matcher::skim::SkimMatcherV2,
+        _search_term: &str,
+    ) -> fmt::Result {
+        if active {
+            let prefix = style(">").green().bold();
+            write!(f, "{} {}", prefix, text)
+        } else {
+            write!(f, " {}", text)
         }
     }
-
-    Ok(())
 }
