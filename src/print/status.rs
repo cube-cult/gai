@@ -142,7 +142,10 @@ pub fn print(
     println!("On Branch: {}", style(branch).cyan());
 
     if !root_items.is_empty() {
-        Tree::new(&root_items)?.collapsed(compact).render();
+        Tree::new(&root_items)?
+            .collapsed(compact)
+            .style(Style::new().dim())
+            .render();
     }
 
     Ok(())
