@@ -8,7 +8,7 @@ pub struct Logs {
     pub git_logs: Vec<GitLog>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct GitLog {
     pub prefix: Option<String>,
     pub breaking: bool,
@@ -26,14 +26,88 @@ pub struct GitLog {
     pub commit_hash: String,
 }
 
+// parse a possible conventional commit
+// with the format: prefix(scope)!: header
 impl From<&[u8]> for GitLog {
     fn from(value: &[u8]) -> Self {
-        let raw = String::from_utf8(value.to_owned())
-            .unwrap_or("Failed to convert msg from utf8".to_owned());
+        let raw = String::from_utf8(value.to_owned()).unwrap_or_else(
+            |_| "Failed to convert msg from utf8".to_owned(),
+        );
 
-        GitLog {
-            raw,
-            ..Default::default()
+        let first_line = raw.lines().next().unwrap_or("");
+        let body = raw.lines().skip(1).collect::<Vec<_>>().join("\n");
+
+        let body = if body.trim().is_empty() {
+            None
+        } else {
+            Some(body.trim().to_string())
+        };
+
+        if let Some(colon_pos) = first_line.find(':') {
+            let prefix_part = &first_line[..colon_pos];
+
+            let header =
+                first_line[colon_pos + 1..].trim().to_string();
+
+            let header = if header.is_empty() {
+                None
+            } else {
+                Some(header)
+            };
+
+            let breaking = prefix_part.contains('!');
+            let prefix_part = prefix_part.replace('!', "");
+
+            if let (Some(paren_start), Some(paren_end)) =
+                (prefix_part.find('('), prefix_part.find(')'))
+            {
+                let prefix =
+                    prefix_part[..paren_start].trim().to_string();
+                let scope = prefix_part[paren_start + 1..paren_end]
+                    .trim()
+                    .to_string();
+
+                GitLog {
+                    prefix: if prefix.is_empty() {
+                        None
+                    } else {
+                        Some(prefix)
+                    },
+                    scope: if scope.is_empty() {
+                        None
+                    } else {
+                        Some(scope)
+                    },
+                    breaking,
+                    header,
+                    body,
+                    raw,
+                    ..Default::default()
+                }
+            } else {
+                let prefix = prefix_part.trim().to_string();
+
+                GitLog {
+                    prefix: if prefix.is_empty() {
+                        None
+                    } else {
+                        Some(prefix)
+                    },
+                    scope: None,
+                    breaking,
+                    header,
+                    body,
+                    raw,
+                    ..Default::default()
+                }
+            }
+        } else {
+            // return raw if not a conventional commit standard
+            // though, raw should always be filled
+            GitLog {
+                raw,
+                ..Default::default()
+            }
         }
     }
 }
@@ -53,6 +127,39 @@ impl fmt::Display for Logs {
         }
 
         write!(f, "{}", s)
+    }
+}
+
+// for displaying in print::log
+// ideally with conventional
+// commit components otherwise... raw
+impl From<GitLog> for String {
+    fn from(v: GitLog) -> Self {
+        match (&v.prefix, &v.scope, &v.header) {
+            (Some(prefix), Some(scope), Some(header)) => {
+                let breaking = if v.breaking { "!" } else { "" };
+                format!(
+                    "{}({}){}: {}",
+                    prefix, scope, breaking, header
+                )
+            }
+            (Some(prefix), None, Some(header)) => {
+                let breaking = if v.breaking { "!" } else { "" };
+                format!("{}{}: {}", prefix, breaking, header)
+            }
+            (Some(prefix), Some(scope), None) => {
+                let breaking = if v.breaking { "!" } else { "" };
+                format!("{}({}){}", prefix, scope, breaking)
+            }
+            (Some(prefix), None, None) => {
+                let breaking = if v.breaking { "!" } else { "" };
+                format!("{}{}", prefix, breaking)
+            }
+            // only return the first line of the raw message
+            // otherwise we'll get newlines and break
+            // the display for logs
+            _ => v.raw.lines().next().unwrap_or(&v.raw).to_string(),
+        }
     }
 }
 
