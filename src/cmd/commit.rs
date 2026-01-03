@@ -169,6 +169,13 @@ fn run_commit(
             if result.commits.len() == 1 { "" } else { "s" }
         );
 
+        let selected = commits::print_response_commits(
+            &result.commits,
+            compact,
+            matches!(cfg.staging_type, StagingStrategy::Hunks),
+            skip_confirmation,
+        )?;
+
         //pretty_print_commits(&result.commits, &cfg, &git, compact)?;
 
         let git_commits: Vec<GitCommit> = result
@@ -177,74 +184,25 @@ fn run_commit(
             .map(|resp_commit| resp_commit.into())
             .collect();
 
-        if skip_confirmation {
-            match apply_commits(&git, &git_commits, &mut diffs.files)
-            {
-                Ok(_) => break,
-                Err(e) => {
-                    println!("Failed to Apply Commits: {}", e);
-
-                    let options = ["Retry", "Exit"];
-                    let selection =
-                        Select::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Select an option:")
-                            .items(options)
-                            .default(0)
-                            .interact()
-                            .unwrap();
-
-                    if selection == 0 {
-                        println!("Retrying...");
-                        continue;
-                    } else if selection == 1 {
-                        println!("Exiting");
-                        break;
-                    }
+        let selected = match selected {
+            Some(s) => s,
+            None => {
+                if apply_commits(&git, &git_commits, &mut diffs.files)
+                {
+                    continue;
                 }
-            };
-        }
-
-        let options = ["Apply All", "Show in TUI", "Retry", "Exit"];
-
-        let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Select an option:")
-            .items(options)
-            .default(0)
-            .interact()
-            .unwrap();
-
-        if selection == 0 {
-            println!("Applying Commits...");
-            match apply_commits(&git, &git_commits, &mut diffs.files)
-            {
-                Ok(_) => break,
-                Err(e) => {
-                    println!("Failed to Apply Commits: {}", e);
-
-                    let options = ["Retry", "Exit"];
-                    let selection =
-                        Select::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Select an option:")
-                            .items(options)
-                            .default(0)
-                            .interact()
-                            .unwrap();
-
-                    if selection == 0 {
-                        println!("Retrying...");
-                        continue;
-                    } else if selection == 1 {
-                        println!("Exiting");
-                        break;
-                    }
-                }
+                0
             }
-        } else if selection == 1 {
-            //let _ = open(cfg, git);
-        } else if selection == 2 {
-            println!("Retrying...");
+        };
+
+        if selected == 0 {
+            if apply_commits(&git, &git_commits, &mut diffs.files) {
+                continue;
+            }
+        } else if selected == 1 {
+            println!("Regenerating");
             continue;
-        } else if selection == 3 {
+        } else if selected == 2 {
             println!("Exiting");
         }
 
@@ -255,6 +213,37 @@ fn run_commit(
 }
 
 fn apply_commits(
+    repo: &GitRepo,
+    git_commits: &[GitCommit],
+    og_file_diffs: &mut Vec<FileDiff>,
+) -> bool {
+    println!("Applying Commits...");
+    match apply(repo, git_commits, og_file_diffs) {
+        Ok(_) => false,
+        Err(e) => {
+            println!("Failed to Apply Commits: {}", e);
+
+            let options = ["Retry", "Exit"];
+            let selection =
+                Select::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Select an option:")
+                    .items(options)
+                    .default(0)
+                    .interact()
+                    .unwrap();
+
+            if selection == 0 {
+                println!("Regenerating...");
+                true
+            } else {
+                println!("Exiting");
+                false
+            }
+        }
+    }
+}
+
+fn apply(
     git: &GitRepo,
     git_commits: &[GitCommit],
     og_file_diffs: &mut Vec<FileDiff>,

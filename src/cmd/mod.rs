@@ -44,7 +44,7 @@ fn test_cmd(
         }
         args::TestCommands::Commit => {
             let commits = test_gen_commits(count);
-            commits::print(&commits, global.compact)?;
+            //commits::print(&commits, global.compact)?;
         }
     }
 
