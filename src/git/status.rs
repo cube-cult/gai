@@ -138,8 +138,8 @@ pub fn get_status(
     opts.update_index(true);
     opts.include_untracked(true);
     opts.recurse_untracked_dirs(true);
-    opts.renames_head_to_index(true);
-    opts.renames_index_to_workdir(true);
+    /* opts.renames_head_to_index(true);
+    opts.renames_index_to_workdir(true); */
 
     let statuses = repo.statuses(Some(&mut opts))?;
     let branch_name = get_branch_name(repo)?;
@@ -147,10 +147,24 @@ pub fn get_status(
     let mut statuses: Vec<FileStatus> = statuses
         .iter()
         .filter_map(|entry| {
-            Some(FileStatus {
-                path: entry.path()?.to_string(),
-                status: entry.status().into(),
-            })
+            let status: StatusItemType = entry.status().into();
+            let path = entry.path()?.to_string();
+
+            // for workdir renames entry.path returns the older path
+            // this is a temp fix so we can get the
+            // NEW path where the file actually exists
+            /* let path = if status == StatusItemType::Renamed {
+                entry
+                    .index_to_workdir()?
+                    .new_file()
+                    .path()?
+                    .to_string_lossy()
+                    .to_string()
+            } else {
+                entry.path()?.to_string()
+            }; */
+
+            Some(FileStatus { path, status })
         })
         .collect();
 

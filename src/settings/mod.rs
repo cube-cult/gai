@@ -38,9 +38,6 @@ pub struct Settings {
     /// commit process settings after receiving
     /// llm generated commits
     pub commit: CommitSettings,
-
-    /// styling, keybinds, etc
-    pub tui: TuiSettings,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -174,11 +171,4 @@ pub struct CommitSettings {
     pub breaking_symbol: char,
     // todo make hashmap for customizable prefix types
     // todo allow user customizable format
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-#[serde(default)]
-pub struct TuiSettings {
-    // todo, implement keybinds
-    // and style settings
 }

@@ -22,3 +22,17 @@ version control with the added benefit of a clean commit history.
 - [ ] Magic Sync [#29](https://github.com/cube-cult/gai/issues/29)
 - [ ] Recreate/Amend Existing Commits
       [#7](https://github.com/cube-cult/gai/issues/7)
+
+# Attribution
+
+[`asyncgit`](https://github.com/gitui-org/gitui/tree/master/asyncgit)
+
+Copied and modified from their `sync` module, generating diffs, status, commit,
+and staging. Ideally, I didn't want to introduce an async runtime as well as the
+dependencies needed from using the crate.
+
+[`tui-rs-tree-widget`](https://github.com/EdJoPaTo/tui-rs-tree-widget)
+
+Copied and modified the `TreeItem` struct and `Tree` widget to create a similar
+customizable tree. Removed most of the `ratatui` related implementations, in
+favor of printing directly to the terminal or as a string.

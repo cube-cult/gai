@@ -13,7 +13,6 @@ impl Default for Settings {
             rules: Default::default(),
             context: Default::default(),
             commit: Default::default(),
-            tui: Default::default(),
         }
     }
 }

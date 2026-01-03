@@ -51,11 +51,8 @@ pub enum Commands {
     /// Prints gai repository status
     Status(StatusArgs),
 
-    /// Show the commit history in the format of gai commits
+    /// Fuzzy find a commit to do Gai related operations
     Log(LogArgs),
-
-    /// Launch the Terminal User Interface
-    TUI(TUIArgs),
 
     /// Create commits from the diffs in the working tree
     Commit(CommitArgs),
@@ -89,13 +86,6 @@ pub struct AuthArgs {
     pub auth: Auth,
 }
 
-#[derive(Debug, Args)]
-pub struct TUIArgs {
-    #[command(flatten)]
-    pub commit_args: CommitArgs,
-    //todo implement rebase, find args
-}
-
 // Each command has its own args struct
 #[derive(Debug, Args)]
 pub struct CommitArgs {
@@ -117,7 +107,7 @@ pub struct StatusArgs {
 
 #[derive(Debug, Args)]
 pub struct LogArgs {
-    /// Max number of commits to show
+    /// Max number of commits to query from
     #[arg(short = 'n', long)]
     pub number: Option<usize>,
 

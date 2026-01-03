@@ -2,15 +2,12 @@ use anyhow::Result;
 use dialoguer::{Password, theme::ColorfulTheme};
 use std::{fs, io::ErrorKind, path::PathBuf};
 
-use super::args::Auth;
-use crate::utils::print::SpinDeez;
+use crate::args::Auth;
 
 pub fn run(auth: &Auth) -> Result<()> {
-    let spinner = SpinDeez::new();
-
     match auth {
         Auth::Login => auth_login()?,
-        Auth::Status => auth_status(&spinner)?,
+        Auth::Status => auth_status()?,
         Auth::Logout => clear_auth()?,
     }
 
@@ -30,8 +27,7 @@ fn auth_login() -> Result<()> {
     Ok(())
 }
 
-fn auth_status(spinner: &SpinDeez) -> Result<()> {
-    spinner.start("Fetching User Status");
+fn auth_status() -> Result<()> {
     let token = get_token()?;
 
     #[derive(serde::Deserialize, serde::Serialize, Debug)]
@@ -45,8 +41,6 @@ fn auth_status(spinner: &SpinDeez) -> Result<()> {
         .call()?
         .body_mut()
         .read_json::<Status>()?;
-
-    spinner.stop(None);
 
     if let Some(date) = chrono::DateTime::from_timestamp(
         resp.expiration.try_into()?,

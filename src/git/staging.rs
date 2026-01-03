@@ -177,7 +177,27 @@ pub fn stage_file(
 ) -> anyhow::Result<()> {
     let mut index = repo.index()?;
 
-    index.add_path(Path::new(path))?;
+    match index.add_path(Path::new(path)) {
+        Ok(_) => {}
+        // OMG LOL, this is super cursed
+        // todo do not do this, instead
+        // handle this upwards
+        Err(_) => remove_file(repo, path)?,
+    }
+
+    index.write()?;
+
+    Ok(())
+}
+
+/// used for deletions, renames, etc
+pub fn remove_file(
+    repo: &Repository,
+    path: &str,
+) -> anyhow::Result<()> {
+    let mut index = repo.index()?;
+
+    index.remove_path(Path::new(path))?;
     index.write()?;
 
     Ok(())

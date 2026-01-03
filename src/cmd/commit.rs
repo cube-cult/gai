@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 
+use console::style;
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 
-use super::{
-    args::{CommitArgs, GlobalArgs},
-    state::State,
-};
 use crate::{
+    args::{CommitArgs, GlobalArgs},
     git::{
         DiffStrategy, Diffs, GitRepo, StagingStrategy,
         StatusStrategy,
@@ -17,14 +15,13 @@ use crate::{
         },
         staging::{stage_file, stage_hunks},
     },
+    print::{commits, loading::Loading},
     providers::{
         provider::extract_from_provider,
         request::{Request, build_request},
     },
     settings::Settings,
-    utils::print::{
-        SpinDeez, pretty_print_commits, pretty_print_status,
-    },
+    state::State,
 };
 
 pub fn run(
@@ -47,14 +44,14 @@ pub fn run(
         state.settings.context.truncate_files.as_deref(),
     )?; */
 
-    pretty_print_status(&state.git, global.compact)?;
+    //pretty_print_status(&state.git, global.compact)?;
 
     /* if state.git.files.is_empty() {
         return Ok(());
     } */
 
-    let spinner = SpinDeez::new();
-    spinner.start("Building Request");
+    //let spinner = SpinDeez::new();
+    //spinner.start("Building Request");
 
     let status_strategy = if state.settings.commit.only_staged {
         StatusStrategy::Stage
@@ -81,16 +78,23 @@ pub fn run(
 
     state.diffs = get_diffs(&state.git, &diff_strategy)?;
 
+    if state.diffs.files.is_empty() {
+        println!(
+            "{}",
+            style("Repository does not have any known changes.")
+                .yellow()
+                .bold()
+        );
+        return Ok(());
+    }
+
     let req = build_request(
         &state.settings,
         &state.git,
         &state.diffs.to_string(),
     );
 
-    spinner.stop(None);
-
     run_commit(
-        &spinner,
         req,
         state.settings,
         state.git,
@@ -103,7 +107,6 @@ pub fn run(
 }
 
 fn run_commit(
-    spinner: &SpinDeez,
     req: Request,
     cfg: Settings,
     git: GitRepo,
@@ -111,12 +114,16 @@ fn run_commit(
     skip_confirmation: bool,
     compact: bool,
 ) -> anyhow::Result<()> {
+    let provider_display = format!(
+        "Generating Commits Using {}({})",
+        style(&cfg.provider).blue(),
+        style(cfg.providers.get_model(&cfg.provider)).dim()
+    );
+
     loop {
-        spinner.start(&format!(
-            "Awaiting response from {} using {}",
-            &cfg.provider.to_string(),
-            cfg.providers.get_model(&cfg.provider)
-        ));
+        let loading = Loading::new(&provider_display, compact)?;
+
+        loading.start();
 
         let response = extract_from_provider(
             &cfg.provider,
@@ -127,11 +134,15 @@ fn run_commit(
         let result = match response {
             Ok(r) => r,
             Err(e) => {
-                spinner.stop(Some(
-                    "Done! But Gai received an error from the provider:"
-                ));
+                loading.stop();
+                println!(
+                    "Done but Gai received an error from the provider: {:#}",
+                    e
+                );
 
-                println!("{:#}", e);
+                /* spinner.stop(Some(
+                    "Done! But Gai received an error from the provider:"
+                )); */
 
                 if Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt("Retry?")
@@ -157,7 +168,8 @@ fn run_commit(
             }
         }
 
-        spinner.stop(None);
+        //spinner.stop(None);
+        loading.stop();
 
         println!(
             "Done! Received {} Commit{}",
@@ -165,7 +177,14 @@ fn run_commit(
             if result.commits.len() == 1 { "" } else { "s" }
         );
 
-        pretty_print_commits(&result.commits, &cfg, &git, compact)?;
+        let selected = commits::print_response_commits(
+            &result.commits,
+            compact,
+            matches!(cfg.staging_type, StagingStrategy::Hunks),
+            skip_confirmation,
+        )?;
+
+        //pretty_print_commits(&result.commits, &cfg, &git, compact)?;
 
         let git_commits: Vec<GitCommit> = result
             .commits
@@ -173,74 +192,34 @@ fn run_commit(
             .map(|resp_commit| resp_commit.into())
             .collect();
 
-        if skip_confirmation {
-            match apply_commits(&git, &git_commits, &mut diffs.files)
-            {
-                Ok(_) => break,
-                Err(e) => {
-                    println!("Failed to Apply Commits: {}", e);
-
-                    let options = ["Retry", "Exit"];
-                    let selection =
-                        Select::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Select an option:")
-                            .items(options)
-                            .default(0)
-                            .interact()
-                            .unwrap();
-
-                    if selection == 0 {
-                        println!("Retrying...");
-                        continue;
-                    } else if selection == 1 {
-                        println!("Exiting");
-                        break;
-                    }
+        let selected = match selected {
+            Some(s) => s,
+            None => {
+                if apply_commits(
+                    &git,
+                    &git_commits,
+                    &mut diffs.files,
+                    &cfg.staging_type,
+                ) {
+                    continue;
                 }
-            };
-        }
-
-        let options = ["Apply All", "Show in TUI", "Retry", "Exit"];
-
-        let selection = Select::with_theme(&ColorfulTheme::default())
-            .with_prompt("Select an option:")
-            .items(options)
-            .default(0)
-            .interact()
-            .unwrap();
-
-        if selection == 0 {
-            println!("Applying Commits...");
-            match apply_commits(&git, &git_commits, &mut diffs.files)
-            {
-                Ok(_) => break,
-                Err(e) => {
-                    println!("Failed to Apply Commits: {}", e);
-
-                    let options = ["Retry", "Exit"];
-                    let selection =
-                        Select::with_theme(&ColorfulTheme::default())
-                            .with_prompt("Select an option:")
-                            .items(options)
-                            .default(0)
-                            .interact()
-                            .unwrap();
-
-                    if selection == 0 {
-                        println!("Retrying...");
-                        continue;
-                    } else if selection == 1 {
-                        println!("Exiting");
-                        break;
-                    }
-                }
+                0
             }
-        } else if selection == 1 {
-            //let _ = open(cfg, git);
-        } else if selection == 2 {
-            println!("Retrying...");
+        };
+
+        if selected == 0 {
+            if apply_commits(
+                &git,
+                &git_commits,
+                &mut diffs.files,
+                &cfg.staging_type,
+            ) {
+                continue;
+            }
+        } else if selected == 1 {
+            println!("Regenerating");
             continue;
-        } else if selection == 3 {
+        } else if selected == 2 {
             println!("Exiting");
         }
 
@@ -251,12 +230,43 @@ fn run_commit(
 }
 
 fn apply_commits(
+    repo: &GitRepo,
+    git_commits: &[GitCommit],
+    og_file_diffs: &mut Vec<FileDiff>,
+    staging_stragey: &StagingStrategy,
+) -> bool {
+    println!("Applying Commits...");
+    match apply(repo, git_commits, og_file_diffs, staging_stragey) {
+        Ok(_) => false,
+        Err(e) => {
+            println!("Failed to Apply Commits: {}", e);
+
+            let options = ["Retry", "Exit"];
+            let selection =
+                Select::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Select an option:")
+                    .items(options)
+                    .default(0)
+                    .interact()
+                    .unwrap();
+
+            if selection == 0 {
+                println!("Regenerating...");
+                true
+            } else {
+                println!("Exiting");
+                false
+            }
+        }
+    }
+}
+
+fn apply(
     git: &GitRepo,
     git_commits: &[GitCommit],
     og_file_diffs: &mut Vec<FileDiff>,
+    staging_stragey: &StagingStrategy,
 ) -> anyhow::Result<()> {
-    let staging_stragey = StagingStrategy::Hunks;
-
     //todo when we implement verbose logging
     // make sure we log the files, hunks etc
     // before we apply commits
@@ -266,6 +276,8 @@ fn apply_commits(
             StagingStrategy::AtomicCommits => {
                 for file in &git_commit.files {
                     stage_file(&git.repo, file)?;
+                    // remove if status matches
+                    //remove_file(&git.repo, file)?;
                     og_file_diffs.retain(|f| f.path != file.as_str());
                 }
             }
