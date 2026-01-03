@@ -5,36 +5,47 @@ use indicatif::{ProgressBar, ProgressStyle};
 /// util loading bar
 pub struct Loading {
     bar: ProgressBar,
+    interval: Duration,
 }
 
 impl Loading {
-    /// compact spinner
-    pub fn new_compact(text: &str) -> anyhow::Result<Self> {
+    /// create loading widget
+    /// compact is a single line
+    /// otherwise, a multiline loading spinner
+    pub fn new(
+        text: &str,
+        compact: bool,
+    ) -> anyhow::Result<Self> {
         let bar = ProgressBar::new_spinner();
 
-        let style =
-            ProgressStyle::with_template("{spinner:.cyan} {msg}")?
-                .tick_strings(TICK_COMPACT);
+        let (style, interval) = if compact {
+            (
+                ProgressStyle::with_template("{spinner:.red} {msg}")?
+                    .tick_strings(TICK_COMPACT),
+                Duration::from_millis(80),
+            )
+        } else {
+            (
+                ProgressStyle::with_template(
+                    "{msg}\n{spinner:.red}",
+                )?
+                .tick_strings(TICK_LONG),
+                Duration::from_millis(300),
+            )
+        };
 
         bar.set_style(style);
         bar.set_message(text.to_owned());
 
-        Ok(Self { bar })
+        Ok(Self { bar, interval })
     }
 
-    /// large loading message
-    /// looks like an email being sent two to pcs
-    pub fn new(text: &str) -> anyhow::Result<Self> {
-        let bar = ProgressBar::new_spinner();
-
-        let style =
-            ProgressStyle::with_template("{msg}\n{spinner}\n")?
-                .tick_strings(TICK_LONG);
-
-        bar.set_style(style);
-        bar.set_message(text.to_owned());
-
-        Ok(Self { bar })
+    pub fn interval(
+        mut self,
+        interval: Duration,
+    ) -> Self {
+        self.interval = interval;
+        self
     }
 
     pub fn set_text(
@@ -45,15 +56,23 @@ impl Loading {
     }
 
     pub fn start(&self) {
-        let interval = Duration::from_millis(80);
+        self.bar.enable_steady_tick(self.interval);
+    }
 
-        self.bar.enable_steady_tick(interval);
+    pub fn stop_clear(&self) {
+        self.bar.finish_and_clear();
+        //self.bar.reset();
+    }
+
+    pub fn stop_with_message(
+        &self,
+        text: &str,
+    ) {
+        self.bar.finish_with_message(text.to_owned());
     }
 
     pub fn stop(&self) {
-        self.bar.finish_and_clear();
-
-        self.bar.reset();
+        self.bar.finish();
     }
 }
 
@@ -63,73 +82,87 @@ pub const TICK_COMPACT: &[&str; 9] =
 /// made with ascii-motion.app
 const TICK_LONG: &[&str] = &[
     concat!(
-        " __          __\n",
-        "|▪▪|@-------|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||            \n",
+        " | O  O |  |         \n",
+        " |  vv  |  |         \n",
+        " |      |__|         ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|-@------|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||            \n",
+        " | -  - |  |         \n",
+        " |  vv  |  |         \n",
+        " |      |__|         ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|--@-----|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||            \n",
+        " | O  o |   /        \n",
+        " |  vv  |  /         \n",
+        " |      |_/          ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|---@----|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||            \n",
+        " | ^  ^ |   /        \n",
+        " |  vv  |  /         \n",
+        " |      |_/  []      ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|----@---|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||            \n",
+        " | o  O |  |         \n",
+        " |  vv  |  |  []     \n",
+        " |      |__|  []     ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|-----@--|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||            \n",
+        " | o  o |  |         \n",
+        " |  vv  |  | [][]    \n",
+        " |      |__| [][]    ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|------@-|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||            \n",
+        " | O  O |   /  []    \n",
+        " |  vv  |  / [][]    \n",
+        " |      |_/  [][]    ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|-------@|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||            \n",
+        " | >  < |  | [][]    \n",
+        " |  vv  |  | [][]    \n",
+        " |      |__| [][]    ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|------@-|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||      []    \n",
+        " | O  o |  | [][]    \n",
+        " |  ^^  |  | [][]    \n",
+        " |      |__| [][]    ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|-----@--|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||    [][]    \n",
+        " | @  @ |   /[][]    \n",
+        " |  vv  |  / [][]    \n",
+        " |      |_/  [][]    ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|----@---|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||    [][]    \n",
+        " | o  o |  | [][]    \n",
+        " |  vv  |  | [][]    \n",
+        " |      |__| [][][]    ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|---@----|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||    [][]    \n",
+        " | ^  ^ |  | [][]    \n",
+        " |  uu  |  | [][][]  \n",
+        " |      |__| [][][]  ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|--@-----|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||    [][]    \n",
+        " | O  O |   /[][][]  \n",
+        " |  uu  |  / [][][]  \n",
+        " |      |_/  [][][]  ",
     ),
     concat!(
-        " __          __\n",
-        "|▪▪|-@------|▪▪|\n",
-        "|__|        |__|",
+        " ||    ||    [][][]  \n",
+        " | ^  ^ |  v [][][]  \n",
+        " |  UU  |  | [][][]  \n",
+        " |      |__| [][][]  ",
     ),
 ];

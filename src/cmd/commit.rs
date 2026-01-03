@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use console::style;
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 
 use super::{
@@ -17,6 +18,7 @@ use crate::{
         },
         staging::{stage_file, stage_hunks},
     },
+    print::{commits, loading::Loading},
     providers::{
         provider::extract_from_provider,
         request::{Request, build_request},
@@ -84,10 +86,7 @@ pub fn run(
         &state.diffs.to_string(),
     );
 
-    //spinner.stop(None);
-
     run_commit(
-        //&spinner,
         req,
         state.settings,
         state.git,
@@ -100,7 +99,6 @@ pub fn run(
 }
 
 fn run_commit(
-    //spinner: &SpinDeez,
     req: Request,
     cfg: Settings,
     git: GitRepo,
@@ -108,12 +106,16 @@ fn run_commit(
     skip_confirmation: bool,
     compact: bool,
 ) -> anyhow::Result<()> {
+    let provider_display = format!(
+        "Generating Commits Using {}({})",
+        style(&cfg.provider).blue(),
+        style(cfg.providers.get_model(&cfg.provider)).dim()
+    );
+
     loop {
-        /* spinner.start(&format!(
-            "Awaiting response from {} using {}",
-            &cfg.provider.to_string(),
-            cfg.providers.get_model(&cfg.provider)
-        )); */
+        let loading = Loading::new(&provider_display, compact)?;
+
+        loading.start();
 
         let response = extract_from_provider(
             &cfg.provider,
@@ -124,11 +126,15 @@ fn run_commit(
         let result = match response {
             Ok(r) => r,
             Err(e) => {
+                loading.stop();
+                println!(
+                    "Done but Gai received an error from the provider: {:#}",
+                    e
+                );
+
                 /* spinner.stop(Some(
                     "Done! But Gai received an error from the provider:"
                 )); */
-
-                println!("{:#}", e);
 
                 if Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt("Retry?")
@@ -155,6 +161,7 @@ fn run_commit(
         }
 
         //spinner.stop(None);
+        loading.stop();
 
         println!(
             "Done! Received {} Commit{}",
