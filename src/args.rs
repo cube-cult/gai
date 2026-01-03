@@ -51,7 +51,7 @@ pub enum Commands {
     /// Prints gai repository status
     Status(StatusArgs),
 
-    /// Show the commit history in the format of gai commits
+    /// Fuzzy find a commit to do Gai related operations
     Log(LogArgs),
 
     /// Create commits from the diffs in the working tree
@@ -107,15 +107,11 @@ pub struct StatusArgs {
 
 #[derive(Debug, Args)]
 pub struct LogArgs {
-    /// Max number of commits to show
+    /// Max number of commits to query from
     #[arg(short = 'n', long)]
     pub number: Option<usize>,
 
     /// Reverse the order of commits
     #[arg(short = 'r', long)]
     pub reverse: bool,
-
-    /// Select a commit to checkout
-    #[arg(short = 'i', long)]
-    pub interactive: bool,
 }
