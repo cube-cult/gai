@@ -1,4 +1,39 @@
+use std::fmt;
+
 use console::{Color, Style, style};
+use dialoguer::{FuzzySelect, theme::Theme};
+
+/// theme impl to avoid
+/// overriding console-rs styles
+pub struct LogTheme;
+impl Theme for LogTheme {
+    fn format_fuzzy_select_prompt(
+        &self,
+        f: &mut dyn fmt::Write,
+        prompt: &str,
+        search_term: &str,
+        _cursor_pos: usize,
+    ) -> fmt::Result {
+        write!(f, "{}: {}", prompt, search_term)
+    }
+
+    fn format_fuzzy_select_prompt_item(
+        &self,
+        f: &mut dyn fmt::Write,
+        text: &str,
+        active: bool,
+        _highlight_matches: bool,
+        _matcher: &fuzzy_matcher::skim::SkimMatcherV2,
+        _search_term: &str,
+    ) -> fmt::Result {
+        if active {
+            let prefix = style(">").green().bold();
+            write!(f, "{} {}", prefix, text)
+        } else {
+            write!(f, " {}", text)
+        }
+    }
+}
 
 use crate::git::log::GitLog;
 
@@ -7,8 +42,10 @@ use super::tree::{Tree, TreeItem};
 pub fn print(
     git_logs: &[GitLog],
     compact: bool,
+    interactive: bool,
 ) -> anyhow::Result<()> {
     let mut items = Vec::new();
+    let mut selection_display = Vec::new();
 
     for git_log in git_logs {
         let mut commit_children = Vec::new();
@@ -34,10 +71,14 @@ pub fn print(
 
         let message: String = git_log.to_owned().into();
 
-        // set max to 100
-        // i think we can make this configurable?
-        let truncated = if message.len() > 100 {
-            format!("{}...", &message[..100])
+        // fixes the bad width when doing fuzzy select
+        // though, this may not matter much without interactivity
+        // but i think this is better than hardcoding a specific limit
+        let (_, max_term_width) = console::Term::stderr().size();
+        let avail = (max_term_width as usize).saturating_sub(15);
+
+        let truncated = if message.len() > avail {
+            format!("{}...", &message[..avail])
         } else {
             message
         };
@@ -53,9 +94,11 @@ pub fn print(
             _ => Color::White,
         };
 
-        let message = style(&truncated).fg(color).bold();
+        let message = style(&truncated).fg(color);
 
         let display = format!("{} {}", hash_display, message);
+
+        selection_display.push(display.to_owned());
 
         let item = TreeItem::new(
             git_log.commit_hash.to_owned(),
@@ -66,11 +109,20 @@ pub fn print(
         items.push(item);
     }
 
-    if !items.is_empty() {
+    if !interactive {
         Tree::new(&items)?
             .collapsed(compact)
             .style(Style::new().dim())
             .render();
+    } else {
+        match FuzzySelect::with_theme(&LogTheme)
+            .with_prompt("Select a commit")
+            .items(&selection_display)
+            .interact_opt()?
+        {
+            Some(s) => println!("{s}"),
+            None => println!("None selcted"),
+        }
     }
 
     Ok(())

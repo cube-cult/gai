@@ -15,7 +15,7 @@ pub fn run(
 
     let logs = get_logs(&state.git.repo, count, args.reverse)?;
 
-    log::print(&logs.git_logs, global.compact)?;
+    log::print(&logs.git_logs, global.compact, args.interactive)?;
 
     Ok(())
 }

@@ -114,4 +114,8 @@ pub struct LogArgs {
     /// Reverse the order of commits
     #[arg(short = 'r', long)]
     pub reverse: bool,
+
+    /// Select a commit to checkout
+    #[arg(short = 'i', long)]
+    pub interactive: bool,
 }
