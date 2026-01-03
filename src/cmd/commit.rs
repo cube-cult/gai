@@ -3,11 +3,8 @@ use std::collections::HashMap;
 use console::style;
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
 
-use super::{
-    args::{CommitArgs, GlobalArgs},
-    state::State,
-};
 use crate::{
+    args::{CommitArgs, GlobalArgs},
     git::{
         DiffStrategy, Diffs, GitRepo, StagingStrategy,
         StatusStrategy,
@@ -24,6 +21,7 @@ use crate::{
         request::{Request, build_request},
     },
     settings::Settings,
+    state::State,
 };
 
 pub fn run(
@@ -191,8 +189,12 @@ fn run_commit(
         let selected = match selected {
             Some(s) => s,
             None => {
-                if apply_commits(&git, &git_commits, &mut diffs.files)
-                {
+                if apply_commits(
+                    &git,
+                    &git_commits,
+                    &mut diffs.files,
+                    &cfg.staging_type,
+                ) {
                     continue;
                 }
                 0
@@ -200,7 +202,12 @@ fn run_commit(
         };
 
         if selected == 0 {
-            if apply_commits(&git, &git_commits, &mut diffs.files) {
+            if apply_commits(
+                &git,
+                &git_commits,
+                &mut diffs.files,
+                &cfg.staging_type,
+            ) {
                 continue;
             }
         } else if selected == 1 {
@@ -220,9 +227,10 @@ fn apply_commits(
     repo: &GitRepo,
     git_commits: &[GitCommit],
     og_file_diffs: &mut Vec<FileDiff>,
+    staging_stragey: &StagingStrategy,
 ) -> bool {
     println!("Applying Commits...");
-    match apply(repo, git_commits, og_file_diffs) {
+    match apply(repo, git_commits, og_file_diffs, staging_stragey) {
         Ok(_) => false,
         Err(e) => {
             println!("Failed to Apply Commits: {}", e);
@@ -251,9 +259,8 @@ fn apply(
     git: &GitRepo,
     git_commits: &[GitCommit],
     og_file_diffs: &mut Vec<FileDiff>,
+    staging_stragey: &StagingStrategy,
 ) -> anyhow::Result<()> {
-    let staging_stragey = StagingStrategy::Hunks;
-
     //todo when we implement verbose logging
     // make sure we log the files, hunks etc
     // before we apply commits
@@ -263,6 +270,8 @@ fn apply(
             StagingStrategy::AtomicCommits => {
                 for file in &git_commit.files {
                     stage_file(&git.repo, file)?;
+                    // remove if status matches
+                    //remove_file(&git.repo, file)?;
                     og_file_diffs.retain(|f| f.path != file.as_str());
                 }
             }

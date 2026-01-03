@@ -2,7 +2,7 @@ use anyhow::Result;
 use dialoguer::{Password, theme::ColorfulTheme};
 use std::{fs, io::ErrorKind, path::PathBuf};
 
-use super::args::Auth;
+use crate::args::Auth;
 
 pub fn run(auth: &Auth) -> Result<()> {
     match auth {

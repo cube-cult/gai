@@ -1,14 +1,12 @@
-use super::{
-    args::{GlobalArgs, StatusArgs},
-    state::State,
-};
 use crate::{
+    args::{GlobalArgs, StatusArgs},
     git::{
         DiffStrategy, StatusStrategy, diffs::get_diffs,
         status::get_status,
     },
     print::status,
     providers::request::build_request,
+    state::State,
 };
 
 pub fn run(
