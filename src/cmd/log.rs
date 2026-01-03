@@ -1,4 +1,4 @@
-use crate::git::log::get_logs;
+use crate::{git::log::get_logs, print::log};
 
 use super::{
     args::{GlobalArgs, LogArgs},
@@ -7,7 +7,7 @@ use super::{
 
 pub fn run(
     args: &LogArgs,
-    _global: &GlobalArgs,
+    global: &GlobalArgs,
 ) -> anyhow::Result<()> {
     let state = State::new(None)?;
 
@@ -15,7 +15,7 @@ pub fn run(
 
     let logs = get_logs(&state.git.repo, count, args.reverse)?;
 
-    println!("{}", logs);
+    log::print(&logs.git_logs, global.compact)?;
 
     Ok(())
 }
