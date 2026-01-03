@@ -337,6 +337,7 @@ dependencies = [
  "dialoguer",
  "directories",
  "dotenv",
+ "fuzzy-matcher",
  "git2",
  "indicatif",
  "llmao",
