@@ -79,6 +79,12 @@ pub fn run(
     state.diffs = get_diffs(&state.git, &diff_strategy)?;
 
     if state.diffs.files.is_empty() {
+        println!(
+            "{}",
+            style("Repository does not have any known changes.")
+                .yellow()
+                .bold()
+        );
         return Ok(());
     }
 
