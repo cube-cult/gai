@@ -199,6 +199,29 @@ where
         }
     }
 
+    /// helper util func to return as string
+    /// instead of printing to terminal
+    /// should still apply Stylings
+    /// using this instead a From<> impl
+    pub fn as_string(self) -> String {
+        if self.items.is_empty() {
+            return String::new();
+        }
+
+        let mut s = String::new();
+        let flattened = flatten(self.items, &[], self.collapsed, 0);
+
+        for flat in flattened.iter() {
+            let prefix = self.prefix(&flat.is_last_at_depth);
+            let prefix = self.style.apply_to(&prefix);
+            let text = flat.item.style.apply_to(&flat.item.text);
+
+            s.push_str(&format!("{prefix}{text}\n"));
+        }
+
+        s
+    }
+
     /// prefix styling
     pub fn style(
         mut self,
