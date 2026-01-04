@@ -1,7 +1,7 @@
 pub mod builder;
 pub mod commit;
 
-pub use builder::SchemaBuilder;
+pub use builder::{SchemaBuilder, SchemaSettings};
 
 #[cfg(test)]
 mod tests {
@@ -47,8 +47,11 @@ mod tests {
     #[test]
     fn commit_schema() {
         let prefix_types = vec!["feat".to_owned(), "fix".to_owned()];
+        let schema_settings =
+            SchemaSettings::default().additional_properties(false);
 
         let schema = SchemaBuilder::new()
+            .settings(schema_settings)
             .insert_str("reasoning", None, true)
             .insert_str_array("files", None, true)
             .insert_str_array("hunk_ids", None, true)
@@ -62,7 +65,6 @@ mod tests {
             .insert_bool("breaking", None, true)
             .insert_str("header", None, true)
             .insert_str("body", None, true)
-            .additional_properties(false)
             .build();
 
         let expected = json!({

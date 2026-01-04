@@ -1,12 +1,35 @@
 use serde_json::{Map, Value, json};
 
+/// lightweight schema settings
+#[derive(Default, Debug, Clone)]
+pub struct SchemaSettings {
+    additional_properties: Option<bool>,
+}
+
 /// Jason schema builder
 /// to be used in place of Schemars
+/// based on openai's supported schema properties
+/// https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
 #[derive(Default, Debug, Clone)]
 pub struct SchemaBuilder {
     base: Map<String, Value>,
     properties: Map<String, Value>,
     required: Vec<String>,
+
+    settings: SchemaSettings,
+}
+
+impl SchemaSettings {
+    /// optional additionalProperties bool value
+    /// usually used in providers that require them
+    /// to be false, such as openai
+    pub fn additional_properties(
+        mut self,
+        value: bool,
+    ) -> Self {
+        self.additional_properties = Some(value);
+        self
+    }
 }
 
 impl SchemaBuilder {
@@ -29,6 +52,11 @@ impl SchemaBuilder {
             Value::Object(self.properties),
         );
 
+        if let Some(v) = self.settings.additional_properties {
+            self.base
+                .insert("additionalProperties".to_owned(), json!(v));
+        }
+
         if !self.required.is_empty() {
             self.base
                 .insert("required".to_owned(), json!(self.required));
@@ -37,18 +65,12 @@ impl SchemaBuilder {
         Value::Object(self.base)
     }
 
-    /// optional additionalProperties bool value
-    /// usually used in providers that require them
-    /// to be false, such as openai
-    pub fn additional_properties(
+    /// set schema builder settings
+    pub fn settings(
         mut self,
-        allowed: bool,
+        settings: SchemaSettings,
     ) -> Self {
-        self.base.insert(
-            "additionalProperties".to_owned(),
-            json!(allowed),
-        );
-
+        self.settings = settings.to_owned();
         self
     }
 
