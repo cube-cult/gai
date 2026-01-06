@@ -45,6 +45,30 @@ mod tests {
     }
 
     #[test]
+    fn nested_schema() {
+        let address = SchemaBuilder::new()
+            .insert_str("street", None, true)
+            .insert_str("city", None, true)
+            .build_inner();
+
+        let schema = SchemaBuilder::new()
+            .insert_str("name", None, true)
+            .insert_object(
+                "address",
+                Some("home address"),
+                true,
+                address,
+            )
+            .build();
+
+        assert_eq!(schema["properties"]["address"]["type"], "object");
+        assert!(
+            schema["properties"]["address"]["properties"]["street"]
+                .is_object()
+        );
+    }
+
+    #[test]
     fn commit_schema() {
         let prefix_types = vec!["feat".to_owned(), "fix".to_owned()];
         let schema_settings =

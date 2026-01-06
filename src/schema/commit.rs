@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use strum::EnumIter;
+use serde_json::Value;
+use strum::{EnumIter, IntoEnumIterator};
+
+use crate::git::StagingStrategy;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CommitSchema {
@@ -62,4 +65,27 @@ pub enum PrefixType {
     // create branches?
     //Merge,
     //Revert,
+}
+
+impl PrefixType {
+    /// get all enum variants as a Vec<String>
+    pub fn variants() -> Vec<String> {
+        Self::iter().map(|p| p.to_string()).collect()
+    }
+}
+
+/// creates a schema for commits
+/// staging strategy
+/// determines overall structure
+/// which includes, whether or
+/// not multiple commits are needed
+pub fn create_commit_response_schema(
+    staging_strategy: StagingStrategy
+) -> Value {
+    match staging_strategy {
+        StagingStrategy::Hunks => todo!(),
+        StagingStrategy::OneFilePerCommit => todo!(),
+        StagingStrategy::AtomicCommits => todo!(),
+        StagingStrategy::AllFilesOneCommit => todo!(),
+    }
 }

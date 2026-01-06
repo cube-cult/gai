@@ -65,6 +65,28 @@ impl SchemaBuilder {
         Value::Object(self.base)
     }
 
+    /// build the schema as a raw Value for
+    /// nestin, it does not include
+    /// the outer wrapper
+    pub fn build_inner(self) -> Value {
+        let mut obj = Map::new();
+        obj.insert("type".to_owned(), json!("object"));
+        obj.insert(
+            "properties".to_owned(),
+            Value::Object(self.properties),
+        );
+
+        if let Some(v) = self.settings.additional_properties {
+            obj.insert("additionalProperties".to_owned(), json!(v));
+        }
+
+        if !self.required.is_empty() {
+            obj.insert("required".to_owned(), json!(self.required));
+        }
+
+        Value::Object(obj)
+    }
+
     /// set schema builder settings
     pub fn settings(
         mut self,
@@ -199,6 +221,61 @@ impl SchemaBuilder {
         let mut prop = Map::new();
         prop.insert("type".to_owned(), json!("array"));
         prop.insert("items".to_owned(), Value::Object(items));
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+
+        self
+    }
+
+    /// inserts an array of objects
+    /// using a nested SchemaBuilder
+    /// useful for creating arrays of
+    /// more complex objects like commits
+    pub fn insert_object_array(
+        mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+        item_schema: Value,
+    ) -> Self {
+        let mut prop = Map::new();
+        prop.insert("type".to_owned(), json!("array"));
+        prop.insert("items".to_owned(), item_schema);
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+
+        self
+    }
+
+    /// inserts a nested object using with another
+    /// SchemaBuilder
+    pub fn insert_object(
+        mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+        nested_schema: Value,
+    ) -> Self {
+        let mut prop = match nested_schema {
+            Value::Object(map) => map,
+            _ => Map::new(),
+        };
 
         if let Some(description) = description {
             prop.insert("description".to_owned(), json!(description));
