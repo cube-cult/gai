@@ -185,6 +185,33 @@ impl TryFrom<&str> for HunkId {
     }
 }
 
+impl Diffs {
+    /// helper to returns diffs as a list of files
+    pub fn as_files(&self) -> Vec<String> {
+        let mut vec = Vec::new();
+
+        for diff in &self.files {
+            vec.push(diff.path.to_owned());
+        }
+
+        vec
+    }
+
+    /// helper to return diffs as a list of hunk id strings
+    /// format: file:index
+    pub fn as_hunks(&self) -> Vec<String> {
+        let mut vec = Vec::new();
+
+        for diff in &self.files {
+            for hunk in &diff.hunks {
+                vec.push(format!("{}:{}", diff.path, hunk.id));
+            }
+        }
+
+        vec
+    }
+}
+
 /// helper for printing for
 /// the LLM request
 impl fmt::Display for Diffs {
