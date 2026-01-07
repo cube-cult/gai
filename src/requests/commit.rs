@@ -12,10 +12,11 @@ use super::Request;
 pub fn create_commit_request(
     settings: &Settings,
     repo: &GitRepo,
-    diffs: &[String],
+    diffs: &str,
 ) -> Request {
     let prompt = build_prompt(repo, settings);
-    Request::new(&prompt).insert_contents(diffs)
+
+    Request::new(&prompt).insert_content(diffs)
 }
 
 fn build_prompt(
@@ -120,10 +121,10 @@ fn build_rules(cfg: &PromptRules) -> String {
 
     let scope_rule =
         match (cfg.allow_empty_scope, cfg.extension_in_scope) {
-            (true, true) => RULE_SCOPE_ALLOW_EMPTY_NO_EXTENSION,
-            (true, false) => RULE_SCOPE_ALLOW_EMPTY_WITH_EXTENSION,
-            (false, true) => RULE_SCOPE_REQUIRED_NO_EXTENSION,
-            (false, false) => RULE_SCOPE_REQUIRED_WITH_EXTENSION,
+            (true, true) => RULE_SCOPE_ALLOW_EMPTY_WITH_EXTENSION,
+            (true, false) => RULE_SCOPE_ALLOW_EMPTY_NO_EXTENSION,
+            (false, true) => RULE_SCOPE_REQUIRED_WITH_EXTENSION,
+            (false, false) => RULE_SCOPE_REQUIRED_NO_EXTENSION,
         };
     rules.push_str(scope_rule);
 
