@@ -212,6 +212,39 @@ impl Diffs {
     }
 }
 
+/// helper for converting into a string
+/// the LLM request
+impl From<Diffs> for String {
+    fn from(value: Diffs) -> Self {
+        let mut s = String::new();
+
+        for file in &value.files {
+            let mut f_str = String::new();
+            for hunk in file.hunks.iter() {
+                f_str.push_str(&format!(
+                    "HunkId[{}:{}]\n",
+                    file.path, hunk.id
+                ));
+
+                /* f_str.push_str(&hunk.header.raw);
+                f_str.push('\n'); */
+
+                for line in &hunk.lines {
+                    f_str.push_str(&format!(
+                        "{}{}",
+                        line.line_type, line.content
+                    ));
+                    f_str.push('\n');
+                }
+            }
+            s.push_str(&f_str);
+            s.push('\n');
+        }
+
+        s
+    }
+}
+
 /// helper for printing for
 /// the LLM request
 impl fmt::Display for Diffs {
