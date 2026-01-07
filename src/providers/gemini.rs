@@ -1,17 +1,18 @@
 use llmao::{Provider, extract::Extract};
-use schemars::generate::SchemaSettings;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde_json::Value;
 use ureq::Agent;
 
-use super::{provider::ProviderError, schema::ResponseSchema};
+use super::provider::ProviderError;
 
 #[derive(Debug)]
 pub struct GeminiProvider {
     agent: ureq::Agent,
 
-    #[allow(dead_code)]
     config: GeminiConfig,
     api_key: String,
+
+    schema: Option<Value>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -36,7 +37,17 @@ impl GeminiProvider {
             agent: Agent::new_with_defaults(),
             config: GeminiConfig::default(),
             api_key,
+            schema: None,
         }
+    }
+
+    /// insert schema
+    pub fn schema(
+        mut self,
+        schema: Value,
+    ) -> Self {
+        self.schema = Some(schema);
+        self
     }
 }
 
@@ -50,28 +61,24 @@ impl Provider for GeminiProvider {
     type Error = ProviderError;
 }
 
-impl Extract<ResponseSchema> for GeminiProvider {
+impl<T> Extract<T> for GeminiProvider
+where
+    T: DeserializeOwned,
+{
     type Prompt = String;
     type Content = String;
 
     fn extract(
         &mut self,
         prompt: String,
-        diffs: String,
-    ) -> Result<ResponseSchema, ProviderError> {
-        let generator = SchemaSettings::draft2020_12()
-            .for_serialize()
-            .with(|s| {
-                s.meta_schema = None;
-                s.inline_subschemas = true;
-            })
-            .into_generator();
+        content: String,
+    ) -> Result<T, ProviderError> {
+        let schema = match &self.schema {
+            Some(s) => s.to_owned(),
+            None => return Err(ProviderError::InvalidSchema),
+        };
 
-        let schema = serde_json::to_value(
-            generator.into_root_schema_for::<ResponseSchema>(),
-        )?;
-
-        let text = format!("{}\n\n{}", prompt, diffs);
+        let text = format!("{}\n\n{}", prompt, content);
 
         let request_body = serde_json::json!({
             "contents": [{
@@ -112,8 +119,7 @@ impl Extract<ResponseSchema> for GeminiProvider {
             .and_then(|t| t.as_str())
             .ok_or_else(|| ProviderError::NoContent)?;
 
-        let extracted: ResponseSchema =
-            serde_json::from_str(generated_text)?;
+        let extracted: T = serde_json::from_str(generated_text)?;
 
         Ok(extracted)
     }
