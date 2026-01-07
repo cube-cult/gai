@@ -37,9 +37,11 @@ impl Request {
     /// insert a single content text entry
     pub fn insert_content(
         mut self,
-        text: String,
+        text: &str,
     ) -> Self {
-        self.content.push(ContentPart::Text { text });
+        self.content.push(ContentPart::Text {
+            text: text.to_owned(),
+        });
         self
     }
 
