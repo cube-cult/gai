@@ -14,7 +14,7 @@ use crate::{
             FileDiff, HunkId, find_file_hunks, get_diffs,
             remove_hunks,
         },
-        staging::{stage_file, stage_hunks},
+        staging::{stage_all, stage_file, stage_hunks},
     },
     print::{commits, loading::Loading},
     providers::{extract_from_provider, provider::ProviderKind},
@@ -86,7 +86,7 @@ pub fn run(
 
     let schema = create_commit_response_schema(
         schema_settings,
-        &state.settings.staging_type,
+        &state.settings,
         &state.diffs.as_files(),
         &state.diffs.as_hunks(),
     )?;
@@ -94,10 +94,11 @@ pub fn run(
     let req = create_commit_request(
         &state.settings,
         &state.git,
-        &state.diffs.as_files(),
+        &state.diffs.to_string(),
     );
 
-    //println!("{}", serde_json::to_string_pretty(&schema)?);
+    /* println!("{}", serde_json::to_string_pretty(&schema)?);
+    println!("{:#?}", req); */
 
     run_commit(
         req,
@@ -260,7 +261,16 @@ fn apply(
 
     for git_commit in git_commits {
         match staging_stragey {
-            StagingStrategy::AtomicCommits => {
+            StagingStrategy::AllFilesOneCommit => {
+                stage_all(&git.repo, ".")?;
+                og_file_diffs.clear();
+                commit(&git.repo, git_commit)?;
+
+                // return early
+                return Ok(());
+            }
+            StagingStrategy::AtomicCommits
+            | StagingStrategy::OneFilePerCommit => {
                 for file in &git_commit.files {
                     stage_file(&git.repo, file)?;
                     // remove if status matches
@@ -323,7 +333,6 @@ fn apply(
                     remove_hunks(og_file_diffs, &file_path, &used);
                 }
             }
-            _ => (),
         }
 
         commit(&git.repo, git_commit)?;
