@@ -3,7 +3,7 @@ use serde_json::{Map, Value, json};
 /// lightweight schema settings
 #[derive(Default, Debug, Clone)]
 pub struct SchemaSettings {
-    additional_properties: Option<bool>,
+    pub additional_properties: Option<bool>,
 }
 
 /// Jason schema builder

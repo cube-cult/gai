@@ -2,9 +2,38 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use strum::{EnumIter, IntoEnumIterator};
 
-use crate::git::StagingStrategy;
+use crate::{
+    git::StagingStrategy,
+    schema::{SchemaBuilder, SchemaSettings},
+};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+/// wrapper struct to house Responses
+#[derive(Debug, Deserialize)]
+pub struct CommitResponse {
+    #[serde(default)]
+    pub commits: Vec<CommitSchema>,
+
+    /// optional single commit
+    /// for AllFilesOneCommit
+    #[serde(default)]
+    pub commit: Option<CommitSchema>,
+}
+
+/// helper util to convert from CommitResponse
+/// into a CommitSchema vec
+impl From<CommitResponse> for Vec<CommitSchema> {
+    fn from(value: CommitResponse) -> Self {
+        if let Some(c) = value.commit {
+            vec![c]
+        } else {
+            value.commits
+        }
+    }
+}
+
+/// raw commit schema struct, used when we
+/// deserialize the response Value object
+#[derive(Clone, Debug, Deserialize)]
 pub struct CommitSchema {
     /// reason why you decided to make this
     /// commit. ex. why are they grouped together?
@@ -12,33 +41,45 @@ pub struct CommitSchema {
     /// diffs
     pub reasoning: String,
 
+    /// only populated during a
+    /// OneFilePerCommit strategy
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+
     /// paths to apply commit to
     /// ex. main.rs doubloon.rs
-    pub files: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub paths: Option<Vec<String>>,
 
     // populated/used when stage_hunks
     // is enabled
     /// hunk "ids" per file
     /// using format file:index
     /// ex: src/main.rs:0
-    pub hunk_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hunk_ids: Option<Vec<String>>,
 
     // commit message components
     /// commit type
     pub prefix: PrefixType,
 
     /// scope of the change
-    pub scope: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
 
     /// is a breaking change?
-    pub breaking: bool,
+    /// this lowk redudant but we'll keep it
+    /// for deserialization sake
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub breaking: Option<bool>,
 
     /// short commit description
     /// used as a initial view
     pub header: String,
 
     /// extended description
-    pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<String>,
 }
 
 /// conventional commit type prefix
@@ -70,7 +111,7 @@ pub enum PrefixType {
 impl PrefixType {
     /// get all enum variants as a Vec<String>
     pub fn variants() -> Vec<String> {
-        Self::iter().map(|p| p.to_string()).collect()
+        Self::iter().map(|p| p.to_string().to_lowercase()).collect()
     }
 }
 
@@ -80,12 +121,106 @@ impl PrefixType {
 /// which includes, whether or
 /// not multiple commits are needed
 pub fn create_commit_response_schema(
-    staging_strategy: StagingStrategy
-) -> Value {
+    schema_settings: SchemaSettings,
+    staging_strategy: &StagingStrategy,
+    files: &[String],
+    hunk_ids: &[String],
+) -> anyhow::Result<Value> {
+    let mut builder = SchemaBuilder::new()
+        .settings(schema_settings.to_owned())
+        .insert_str(
+            "reasoning",
+            Some("reason why you decided to make this commit"),
+            true,
+        );
+
     match staging_strategy {
-        StagingStrategy::Hunks => todo!(),
-        StagingStrategy::OneFilePerCommit => todo!(),
-        StagingStrategy::AtomicCommits => todo!(),
-        StagingStrategy::AllFilesOneCommit => todo!(),
+        // only stage as hunks
+        // populates as enum array for the
+        // llm to multiple choose from
+        StagingStrategy::Hunks => {
+            builder = builder.insert_enum_array(
+                "hunk_ids",
+                Some("hunk IDs to stage, format: file:index (e.g. src/main.rs:0)"),
+                true,
+                hunk_ids,
+            );
+        }
+        // only ONE file PER commit
+        // that means that the file path
+        // for this commit entry can be only
+        // one, chosen from an enum
+        StagingStrategy::OneFilePerCommit => {
+            builder = builder.insert_enum(
+                "path",
+                Some("file path for this commit"),
+                true,
+                files,
+            );
+        }
+        // the response can choose multiple files
+        // from this enum file array
+        StagingStrategy::AtomicCommits => {
+            builder = builder.insert_enum_array(
+                "paths",
+                Some("file paths to include in this commit"),
+                true,
+                files,
+            );
+        }
+        // one block of commit, this should be the
+        // only modifier, that changes the ENTIRE
+        // schema, to respond with ONLY ONE commit
+        // not an array, in this specific match statement
+        // do nothing, this will be handled later
+        // down, after build the inner commit schema
+        StagingStrategy::AllFilesOneCommit => {}
     }
+
+    // builder the inner commit schema
+    // this will be wrapped by a
+    // new SchemaBuilder
+    let commit_schema = builder
+        .insert_enum(
+            "prefix",
+            Some("conventional commit type"),
+            true,
+            &PrefixType::variants(),
+        )
+        .insert_str("scope", Some("scope of the change"), true)
+        .insert_bool(
+            "breaking",
+            Some("is this a breaking change?"),
+            true,
+        )
+        .insert_str("header", Some("short commit description"), true)
+        .insert_str("body", Some("extended description"), true)
+        .build_inner();
+
+    let schema = if matches!(
+        staging_strategy,
+        StagingStrategy::AllFilesOneCommit
+    ) {
+        SchemaBuilder::new()
+            .settings(schema_settings)
+            .insert_object(
+                "commit",
+                Some("single commit for all changes"),
+                true,
+                commit_schema,
+            )
+            .build()
+    } else {
+        SchemaBuilder::new()
+            .settings(schema_settings)
+            .insert_object_array(
+                "commits",
+                Some("list of commits"),
+                true,
+                commit_schema,
+            )
+            .build()
+    };
+
+    Ok(schema)
 }
