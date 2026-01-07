@@ -19,7 +19,6 @@ git2 = { version = "0.20.3", default-features = false}
 indicatif = { version = "0.18.0", default-features = false }
 llmao = { git = "https://github.com/nuttycream/llmao", branch = "main", version = "0.0.0" }
 open = { version = "5.3.2", default-features = false }
-schemars = { version = "1.0.4", default-features = false, features = ["derive"] }
 serde = { version = "1.0.225", features = ["derive"] }
 serde_json = { version = "1.0.145", default-features = false, features = ["std"] }
 strum = { version = "0.27.2", default-features = false, features = ["derive", "strum_macros"] }
