@@ -12,34 +12,13 @@ on:
       - Cargo.toml
       - Cargo.lock
       - rust-toolchain.toml
-      - matrix.json
   pull_request:
     branches:
       - main
 
 jobs:
-  make_matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    env:
-      MATRIX_FILE: matrix.jsonc
-    steps:
-      - name: Clone repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - id: set-matrix
-        run: |
-          echo "matrix=$(grep -v '//' $MATRIX_FILE | jq -c '.')" >> "$GITHUB_OUTPUT"
-
   ci:
-    needs: make_matrix
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix: ${{fromJson(needs.make_matrix.outputs.matrix)}}
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
