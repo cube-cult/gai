@@ -289,4 +289,169 @@ impl SchemaBuilder {
 
         self
     }
+
+    /// add a str property
+    pub fn add_str(
+        &mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+    ) {
+        let mut prop = Map::new();
+        prop.insert("type".to_owned(), json!("string"));
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+    }
+
+    /// add a bool property
+    pub fn add_bool(
+        &mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+    ) {
+        let mut prop = Map::new();
+        prop.insert("type".to_owned(), json!("boolean"));
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+    }
+
+    /// add an enum property
+    pub fn add_enum(
+        &mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+        values: &[String],
+    ) {
+        let mut prop = Map::new();
+
+        prop.insert("type".to_owned(), json!("string"));
+        prop.insert("enum".to_owned(), json!(values));
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+    }
+
+    /// add a string array property
+    pub fn add_str_array(
+        &mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+    ) {
+        let mut items = Map::new();
+        items.insert("type".to_owned(), json!("string"));
+
+        let mut prop = Map::new();
+        prop.insert("type".to_owned(), json!("array"));
+        prop.insert("items".to_owned(), json!(items));
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+    }
+
+    /// oadd an enum array property
+    pub fn add_enum_array(
+        &mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+        values: &[String],
+    ) {
+        let mut items = Map::new();
+        items.insert("type".to_owned(), json!("string"));
+        items.insert("enum".to_owned(), json!(values));
+
+        let mut prop = Map::new();
+        prop.insert("type".to_owned(), json!("array"));
+        prop.insert("items".to_owned(), Value::Object(items));
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+    }
+
+    /// add an object array property
+    pub fn add_object_array(
+        &mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+        item_schema: Value,
+    ) {
+        let mut prop = Map::new();
+        prop.insert("type".to_owned(), json!("array"));
+        prop.insert("items".to_owned(), item_schema);
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+    }
+
+    /// add a nested object property
+    pub fn add_object(
+        &mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+        nested_schema: Value,
+    ) {
+        let mut prop = match nested_schema {
+            Value::Object(map) => map,
+            _ => Map::new(),
+        };
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        self.properties.insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required.push(name.to_owned());
+        }
+    }
 }
