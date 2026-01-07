@@ -5,7 +5,6 @@ use crate::{
         status::get_status,
     },
     print::status,
-    providers::request::build_request,
     state::State,
 };
 
@@ -50,13 +49,7 @@ pub fn run(
 
         let diffs = get_diffs(&state.git, &diff_strategy)?;
 
-        let req = build_request(
-            &state.settings,
-            &state.git,
-            &diffs.to_string(),
-        );
-
-        println!("{}", req);
+        println!("{}", diffs);
     }
 
     Ok(())

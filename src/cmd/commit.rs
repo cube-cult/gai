@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use console::style;
 use dialoguer::{Confirm, Select, theme::ColorfulTheme};
+use serde_json::Value;
 
 use crate::{
     args::{CommitArgs, GlobalArgs},
@@ -16,10 +17,10 @@ use crate::{
         staging::{stage_file, stage_hunks},
     },
     print::{commits, loading::Loading},
-    providers::{
-        provider::extract_from_provider,
-        request::{Request, build_request},
-    },
+    providers::{extract_from_provider, provider::ProviderKind},
+    requests::{Request, commit::create_commit_request},
+    responses::commit::{extract_from_schema, process_commit},
+    schema::{SchemaSettings, commit::create_commit_response_schema},
     settings::Settings,
     state::State,
 };
@@ -39,19 +40,6 @@ pub fn run(
     if let Some(provider) = global.provider {
         state.settings.provider = provider;
     }
-
-    /* state.git.create_diffs(
-        state.settings.context.truncate_files.as_deref(),
-    )?; */
-
-    //pretty_print_status(&state.git, global.compact)?;
-
-    /* if state.git.files.is_empty() {
-        return Ok(());
-    } */
-
-    //let spinner = SpinDeez::new();
-    //spinner.start("Building Request");
 
     let status_strategy = if state.settings.commit.only_staged {
         StatusStrategy::Stage
@@ -88,14 +76,32 @@ pub fn run(
         return Ok(());
     }
 
-    let req = build_request(
+    // openai seems like the only one that needs this
+    let schema_settings =
+        if matches!(state.settings.provider, ProviderKind::OpenAI) {
+            SchemaSettings::default().additional_properties(false)
+        } else {
+            SchemaSettings::default()
+        };
+
+    let schema = create_commit_response_schema(
+        schema_settings,
+        &state.settings.staging_type,
+        &state.diffs.as_files(),
+        &state.diffs.as_hunks(),
+    )?;
+
+    let req = create_commit_request(
         &state.settings,
         &state.git,
-        &state.diffs.to_string(),
+        &state.diffs.as_files(),
     );
+
+    //println!("{}", serde_json::to_string_pretty(&schema)?);
 
     run_commit(
         req,
+        schema,
         state.settings,
         state.git,
         state.diffs,
@@ -108,6 +114,7 @@ pub fn run(
 
 fn run_commit(
     req: Request,
+    schema: Value,
     cfg: Settings,
     git: GitRepo,
     mut diffs: Diffs,
@@ -125,13 +132,11 @@ fn run_commit(
 
         loading.start();
 
-        let response = extract_from_provider(
+        let result: Value = match extract_from_provider(
             &cfg.provider,
-            &req.prompt,
-            &req.diffs,
-        );
-
-        let result = match response {
+            req.to_owned(),
+            schema.to_owned(),
+        ) {
             Ok(r) => r,
             Err(e) => {
                 loading.stop();
@@ -140,14 +145,9 @@ fn run_commit(
                     e
                 );
 
-                /* spinner.stop(Some(
-                    "Done! But Gai received an error from the provider:"
-                )); */
-
                 if Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt("Retry?")
-                    .interact()
-                    .unwrap()
+                    .interact()?
                 {
                     continue;
                 } else {
@@ -156,40 +156,27 @@ fn run_commit(
             }
         };
 
-        if result.commits.is_empty() {
-            if Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt("No commits found... retry?")
-                .interact()
-                .unwrap()
-            {
-                continue;
-            } else {
-                break;
-            }
-        }
+        let raw_commits =
+            extract_from_schema(result, &cfg.staging_type)?;
 
-        //spinner.stop(None);
         loading.stop();
 
         println!(
             "Done! Received {} Commit{}",
-            result.commits.len(),
-            if result.commits.len() == 1 { "" } else { "s" }
+            raw_commits.len(),
+            if raw_commits.len() == 1 { "" } else { "s" }
         );
 
         let selected = commits::print_response_commits(
-            &result.commits,
+            &raw_commits,
             compact,
             matches!(cfg.staging_type, StagingStrategy::Hunks),
             skip_confirmation,
         )?;
 
-        //pretty_print_commits(&result.commits, &cfg, &git, compact)?;
-
-        let git_commits: Vec<GitCommit> = result
-            .commits
-            .iter()
-            .map(|resp_commit| resp_commit.into())
+        let git_commits: Vec<GitCommit> = raw_commits
+            .into_iter()
+            .map(|c| process_commit(c, &cfg))
             .collect();
 
         let selected = match selected {

@@ -5,6 +5,8 @@ pub mod cmd;
 pub mod git;
 pub mod print;
 pub mod providers;
+pub mod requests;
+pub mod responses;
 pub mod schema;
 pub mod settings;
 pub mod state;
