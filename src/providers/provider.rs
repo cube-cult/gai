@@ -1,13 +1,10 @@
-use llmao::extract::{Error, ErrorKind, Extract};
+use llmao::extract::{Error, ErrorKind};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use strum::{Display, EnumIter};
 
 use super::{
-    gai::{GaiConfig, GaiProvider},
-    gemini::{GeminiConfig, GeminiProvider},
-    openai::{OpenAIConfig, OpenAIProvider},
-    schema::ResponseSchema,
+    gai::GaiConfig, gemini::GeminiConfig, openai::OpenAIConfig,
 };
 
 #[derive(
@@ -107,27 +104,5 @@ impl ProviderSettings {
             ProviderKind::Claude => "not yet implemented",
             ProviderKind::Gai => &self.gai.model,
         }
-    }
-}
-
-pub fn extract_from_provider(
-    provider: &ProviderKind,
-    prompt: &str,
-    diffs: &str,
-) -> Result<ResponseSchema, ProviderError> {
-    match provider {
-        ProviderKind::Gai => {
-            let mut gai = GaiProvider::new();
-            gai.extract(prompt.to_owned(), diffs.to_owned())
-        }
-        ProviderKind::OpenAI => {
-            let mut openai = OpenAIProvider::new();
-            openai.extract(prompt.to_owned(), diffs.to_owned())
-        }
-        ProviderKind::Gemini => {
-            let mut gemini = GeminiProvider::new();
-            gemini.extract(prompt.to_owned(), diffs.to_owned())
-        }
-        _ => todo!(),
     }
 }

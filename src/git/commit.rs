@@ -1,43 +1,12 @@
 use git2::{Oid, Repository};
 
-use crate::{
-    git::utils::get_head_repo, providers::schema::ResponseCommit,
-};
+use crate::git::utils::get_head_repo;
 
 #[derive(Debug)]
 pub struct GitCommit {
     pub files: Vec<String>,
     pub hunk_ids: Vec<String>,
     pub message: String,
-}
-
-// post processing happens before this
-// parsing the ResponseCommit
-// wont need any setting vars
-impl From<&ResponseCommit> for GitCommit {
-    fn from(r: &ResponseCommit) -> Self {
-        let breaking = if r.breaking { "!" } else { "" };
-
-        let scope = if !r.scope.is_empty() {
-            format!("({})", r.scope)
-        } else {
-            "".to_owned()
-        };
-
-        let message = format!(
-            "{}{}{}: {}\n{}",
-            r.prefix, breaking, scope, r.header, r.body
-        );
-
-        let files = r.files.to_owned();
-        let hunk_ids = r.hunk_ids.to_owned();
-
-        Self {
-            files,
-            hunk_ids,
-            message,
-        }
-    }
 }
 
 pub fn commit(

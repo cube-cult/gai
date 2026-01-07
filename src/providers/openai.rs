@@ -1,19 +1,18 @@
 use llmao::{Provider, extract::Extract};
-use schemars::{
-    Schema, generate::SchemaSettings, transform::RecursiveTransform,
-};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde_json::Value;
 use ureq::Agent;
 
-use super::{provider::ProviderError, schema::ResponseSchema};
+use super::provider::ProviderError;
 
 #[derive(Debug)]
 pub struct OpenAIProvider {
     agent: ureq::Agent,
 
-    #[allow(dead_code)]
     config: OpenAIConfig,
     api_key: String,
+
+    schema: Option<Value>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -38,7 +37,17 @@ impl OpenAIProvider {
             agent: Agent::new_with_defaults(),
             config: OpenAIConfig::default(),
             api_key,
+            schema: None,
         }
+    }
+
+    /// insert schema
+    pub fn schema(
+        mut self,
+        schema: Value,
+    ) -> Self {
+        self.schema = Some(schema);
+        self
     }
 }
 
@@ -52,36 +61,22 @@ impl Provider for OpenAIProvider {
     type Error = ProviderError;
 }
 
-impl Extract<ResponseSchema> for OpenAIProvider {
+impl<T> Extract<T> for OpenAIProvider
+where
+    T: DeserializeOwned,
+{
     type Prompt = String;
     type Content = String;
 
     fn extract(
         &mut self,
         prompt: String,
-        diffs: String,
-    ) -> Result<ResponseSchema, ProviderError> {
-        let generator = SchemaSettings::default()
-            .for_serialize()
-            .with(|s| {
-                s.meta_schema = None;
-                s.inline_subschemas = true;
-            })
-            .with_transform(RecursiveTransform(
-                |schema: &mut Schema| {
-                    if schema.get("properties").is_some() {
-                        schema.insert(
-                            "additionalProperties".to_owned(),
-                            false.into(),
-                        );
-                    }
-                },
-            ))
-            .into_generator();
-
-        let schema = serde_json::to_value(
-            generator.into_root_schema_for::<ResponseSchema>(),
-        )?;
+        content: String,
+    ) -> Result<T, ProviderError> {
+        let schema = match &self.schema {
+            Some(s) => s.to_owned(),
+            None => return Err(ProviderError::InvalidSchema),
+        };
 
         /* println!(
             "{}",
@@ -97,7 +92,7 @@ impl Extract<ResponseSchema> for OpenAIProvider {
                 },
                 {
                     "role": "user",
-                    "content": diffs
+                    "content": content
                 }
             ],
             "text": {
@@ -141,8 +136,7 @@ impl Extract<ResponseSchema> for OpenAIProvider {
 
         //println!("content:\n{:#?}", content);
 
-        let extracted: ResponseSchema =
-            serde_json::from_str(content)?;
+        let extracted: T = serde_json::from_str(content)?;
 
         Ok(extracted)
     }

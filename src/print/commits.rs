@@ -1,7 +1,7 @@
 use console::{Color, Style, style};
 use dialoguer::{Select, theme::ColorfulTheme};
 
-use crate::providers::schema::{PrefixType, ResponseCommit};
+use crate::schema::commit::{CommitSchema, PrefixType};
 
 use super::tree::{Tree, TreeItem};
 
@@ -10,7 +10,7 @@ use super::tree::{Tree, TreeItem};
 /// git commits
 /// returns an selected option
 pub fn print_response_commits(
-    commits: &[ResponseCommit],
+    commits: &[CommitSchema],
     compact: bool,
     as_hunks: bool,
     skip_confirmation: bool,
@@ -33,11 +33,11 @@ pub fn print_response_commits(
         }
 
         // preview the body if exists
-        if !commit.body.is_empty() {
-            let truncated_body = if commit.body.len() > 20 {
-                format!("{}...", &commit.body[..20])
+        if let Some(ref body) = commit.body {
+            let truncated_body = if body.len() > 20 {
+                format!("{}...", &body[..20])
             } else {
-                commit.body.to_owned()
+                body.to_owned()
             };
 
             let body_item = TreeItem::new_leaf(
@@ -50,7 +50,19 @@ pub fn print_response_commits(
         }
 
         let mut files = Vec::new();
-        for file in &commit.files {
+
+        // for single path, push it, otherwise use all paths
+        let mut paths = Vec::new();
+
+        if let Some(ref p) = commit.path {
+            paths.push(p);
+        }
+
+        if let Some(ref ps) = commit.paths {
+            paths.extend(ps.iter());
+        }
+
+        for file in paths {
             let file_display = format!("{}", style(file).magenta());
 
             // add the hunks as one-line
@@ -64,7 +76,9 @@ pub fn print_response_commits(
                 // imo, this should be handled
                 // within ResponseCommits, for
                 // hunk assignment
-                for hunk_id in &commit.hunk_ids {
+                let hunk_ids =
+                    commit.hunk_ids.as_deref().unwrap_or(&[]);
+                for hunk_id in hunk_ids {
                     if let Some((path, index)) =
                         hunk_id.split_once(':')
                         && path == file
@@ -121,8 +135,19 @@ pub fn print_response_commits(
 
         commit_children.push(files_item);
 
-        let prefix =
-            commit.get_commit_prefix(false, !commit.scope.is_empty());
+        // build prefix(scope)
+        // ignoring commit message
+        // processing, since this would
+        // trigger afterwards
+        // when converting CommitSchemas -> GitCommits
+        let prefix = match &commit.scope {
+            Some(s) if !s.is_empty() => format!(
+                "{}({})",
+                commit.prefix.to_string().to_lowercase(),
+                s
+            ),
+            _ => commit.prefix.to_string().to_lowercase(),
+        };
 
         let color = match commit.prefix {
             PrefixType::Feat => Color::Green,
