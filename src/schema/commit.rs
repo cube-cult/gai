@@ -5,6 +5,7 @@ use strum::{EnumIter, IntoEnumIterator};
 use crate::{
     git::StagingStrategy,
     schema::{SchemaBuilder, SchemaSettings},
+    settings::Settings,
 };
 
 /// wrapper struct to house Responses
@@ -122,7 +123,7 @@ impl PrefixType {
 /// not multiple commits are needed
 pub fn create_commit_response_schema(
     schema_settings: SchemaSettings,
-    staging_strategy: &StagingStrategy,
+    settings: &Settings,
     files: &[String],
     hunk_ids: &[String],
 ) -> anyhow::Result<Value> {
@@ -134,7 +135,7 @@ pub fn create_commit_response_schema(
             true,
         );
 
-    match staging_strategy {
+    match settings.staging_type {
         // only stage as hunks
         // populates as enum array for the
         // llm to multiple choose from
@@ -180,25 +181,36 @@ pub fn create_commit_response_schema(
     // builder the inner commit schema
     // this will be wrapped by a
     // new SchemaBuilder
-    let commit_schema = builder
-        .insert_enum(
-            "prefix",
-            Some("conventional commit type"),
-            true,
-            &PrefixType::variants(),
-        )
-        .insert_str("scope", Some("scope of the change"), true)
-        .insert_bool(
+
+    builder.add_enum(
+        "prefix",
+        Some("conventional commit type"),
+        true,
+        &PrefixType::variants(),
+    );
+
+    if settings.commit.include_scope {
+        builder.add_str("scope", Some("scope of the change"), true);
+    }
+
+    if settings.commit.include_breaking {
+        builder.add_bool(
             "breaking",
             Some("is this a breaking change?"),
             true,
-        )
-        .insert_str("header", Some("short commit description"), true)
-        .insert_str("body", Some("extended description"), true)
-        .build_inner();
+        );
+    }
+
+    builder.add_str("header", Some("short commit description"), true);
+
+    if settings.rules.allow_body {
+        builder.add_str("body", Some("extended description"), true);
+    }
+
+    let commit_schema = builder.build_inner();
 
     let schema = if matches!(
-        staging_strategy,
+        settings.staging_type,
         StagingStrategy::AllFilesOneCommit
     ) {
         SchemaBuilder::new()
