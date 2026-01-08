@@ -1,3 +1,4 @@
+use serde::Serialize;
 use serde_json::{Map, Value, json};
 
 /// lightweight schema settings
@@ -212,12 +213,12 @@ impl SchemaBuilder {
     }
 
     /// inserts enum values as a string array
-    pub fn insert_enum(
+    pub fn insert_enum<S: AsRef<str> + Serialize>(
         mut self,
         name: &str,
         description: Option<&str>,
         required: bool,
-        values: &[String],
+        values: &[S],
     ) -> Self {
         let mut prop = Map::new();
 
@@ -416,12 +417,12 @@ impl SchemaBuilder {
     }
 
     /// add an enum property
-    pub fn add_enum(
+    pub fn add_enum<S: AsRef<str> + Serialize>(
         &mut self,
         name: &str,
         description: Option<&str>,
         required: bool,
-        values: &[String],
+        values: &[S],
     ) {
         let mut prop = Map::new();
 
