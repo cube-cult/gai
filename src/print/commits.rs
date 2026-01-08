@@ -17,12 +17,18 @@ pub fn print_response_commits(
 ) -> anyhow::Result<Option<usize>> {
     let mut items = Vec::new();
 
-    for (i, commit) in commits.iter().enumerate() {
+    for (i, commit) in commits
+        .iter()
+        .enumerate()
+    {
         let mut commit_children = Vec::new();
 
         // if we need to we might have to truncate this
         // similar to the body, but i foresee this as a non-issue?
-        if !commit.header.is_empty() {
+        if !commit
+            .header
+            .is_empty()
+        {
             let header_item = TreeItem::new_leaf(
                 format!("commit_{}_header", i),
                 &commit.header,
@@ -76,8 +82,10 @@ pub fn print_response_commits(
                 // imo, this should be handled
                 // within ResponseCommits, for
                 // hunk assignment
-                let hunk_ids =
-                    commit.hunk_ids.as_deref().unwrap_or(&[]);
+                let hunk_ids = commit
+                    .hunk_ids
+                    .as_deref()
+                    .unwrap_or(&[]);
                 for hunk_id in hunk_ids {
                     if let Some((path, index)) =
                         hunk_id.split_once(':')
@@ -143,10 +151,16 @@ pub fn print_response_commits(
         let prefix = match &commit.scope {
             Some(s) if !s.is_empty() => format!(
                 "{}({})",
-                commit.prefix.to_string().to_lowercase(),
+                commit
+                    .prefix
+                    .to_string()
+                    .to_lowercase(),
                 s
             ),
-            _ => commit.prefix.to_string().to_lowercase(),
+            _ => commit
+                .prefix
+                .to_string()
+                .to_lowercase(),
         };
 
         let color = match commit.prefix {
@@ -167,8 +181,9 @@ pub fn print_response_commits(
 
             format!("{} {}", commit_idx, prefix)
         } else {
-            let prefix =
-                style(format!("{}:", prefix)).fg(color).bold();
+            let prefix = style(format!("{}:", prefix))
+                .fg(color)
+                .bold();
             format!("{} {}", commit_idx, prefix)
         };
 
@@ -180,7 +195,11 @@ pub fn print_response_commits(
 
         let item =
             TreeItem::new(for_fuzzy_id, display, commit_children)?
-                .style(Style::new().fg(color).bold());
+                .style(
+                    Style::new()
+                        .fg(color)
+                        .bold(),
+                );
 
         items.push(item);
     }
@@ -188,7 +207,11 @@ pub fn print_response_commits(
     if !items.is_empty() {
         Tree::new(&items)?
             .collapsed(compact)
-            .style(Style::new().dim().dim())
+            .style(
+                Style::new()
+                    .dim()
+                    .dim(),
+            )
             .render();
     }
 

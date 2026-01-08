@@ -289,10 +289,13 @@ pub fn remove_hunks(
     file_path: &str,
     used_ids: &[usize],
 ) {
-    if let Some(file_diff) =
-        file_diffs.iter_mut().find(|f| f.path == file_path)
+    if let Some(file_diff) = file_diffs
+        .iter_mut()
+        .find(|f| f.path == file_path)
     {
-        file_diff.hunks.retain(|hunk| !used_ids.contains(&hunk.id));
+        file_diff
+            .hunks
+            .retain(|hunk| !used_ids.contains(&hunk.id));
     }
 }
 
@@ -321,7 +324,10 @@ pub fn find_file_hunks(
 ) -> anyhow::Result<Vec<Hunk>> {
     let mut hunks = Vec::new();
 
-    for hunk in file_diff.hunks.clone() {
+    for hunk in file_diff
+        .hunks
+        .clone()
+    {
         if ids.contains(&hunk.id) {
             hunks.push(hunk);
         }
@@ -370,9 +376,14 @@ pub fn get_hunk_ids(file_diffs: &[FileDiff]) -> Vec<HunkId> {
     let mut hunk_ids = Vec::new();
 
     for file_diff in file_diffs.iter() {
-        for hunk in file_diff.hunks.iter() {
+        for hunk in file_diff
+            .hunks
+            .iter()
+        {
             let hunk = HunkId {
-                path: file_diff.path.to_owned(),
+                path: file_diff
+                    .path
+                    .to_owned(),
                 index: hunk.id,
             };
 
@@ -460,11 +471,12 @@ fn raw_diff_to_file_diff(
                           lines: &Vec<DiffLine>| {
             let mut res = res_cell.borrow_mut();
             let id = res.hunks.len();
-            res.hunks.push(Hunk {
-                id,
-                header: header.to_owned(),
-                lines: lines.to_owned(),
-            });
+            res.hunks
+                .push(Hunk {
+                    id,
+                    header: header.to_owned(),
+                    lines: lines.to_owned(),
+                });
             res.lines += lines.len();
         };
 
@@ -491,7 +503,9 @@ fn raw_diff_to_file_diff(
                         //Note: trim await trailing newline characters
                         .trim_matches(is_newline)
                         .into(),
-                    line_type: line.origin_value().into(),
+                    line_type: line
+                        .origin_value()
+                        .into(),
                 };
 
                 current_lines.push(diff_line);
@@ -501,8 +515,10 @@ fn raw_diff_to_file_diff(
         let new_file_diff = if diff.deltas().len() == 1 {
             if let Some(delta) = diff.deltas().next() {
                 if delta.status() == Delta::Untracked {
-                    let relative_path =
-                        delta.new_file().path().ok_or_else(|| {
+                    let relative_path = delta
+                        .new_file()
+                        .path()
+                        .ok_or_else(|| {
                             GitError::Generic(
                                 "new file path is unspecified."
                                     .to_string(),
@@ -570,7 +586,8 @@ fn raw_diff_to_file_diff(
         }
 
         if new_file_diff {
-            res.borrow_mut().untracked = true;
+            res.borrow_mut()
+                .untracked = true;
         }
     }
 

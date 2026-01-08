@@ -52,9 +52,14 @@ pub fn process_commit(
     // body
 
     let prefix = if commit_settings.capitalize_prefix {
-        &raw_commit.prefix.to_string()
+        &raw_commit
+            .prefix
+            .to_string()
     } else {
-        &raw_commit.prefix.to_string().to_lowercase()
+        &raw_commit
+            .prefix
+            .to_string()
+            .to_lowercase()
     };
 
     let scope = if let Some(scope) = raw_commit.scope
@@ -66,10 +71,14 @@ pub fn process_commit(
     };
 
     // again, redudant
-    let breaking = if raw_commit.breaking.is_some_and(|b| b)
+    let breaking = if raw_commit
+        .breaking
+        .is_some_and(|b| b)
         && commit_settings.include_breaking
     {
-        commit_settings.breaking_symbol.to_string()
+        commit_settings
+            .breaking_symbol
+            .to_string()
     } else {
         String::new()
     };
@@ -95,11 +104,14 @@ pub fn process_commit(
             // that files are correct, we can cover that later
             // during application or
             // todo add validation
-            raw_commit.path.map(|p| vec![p]).unwrap_or_default()
+            raw_commit
+                .path
+                .map(|p| vec![p])
+                .unwrap_or_default()
         }
-        StagingStrategy::AtomicCommits => {
-            raw_commit.paths.unwrap_or_default()
-        }
+        StagingStrategy::AtomicCommits => raw_commit
+            .paths
+            .unwrap_or_default(),
         _ => {
             // do nothing for AllFilesOneCommit
             // or hunks
@@ -108,7 +120,9 @@ pub fn process_commit(
         }
     };
 
-    let hunk_ids = raw_commit.hunk_ids.unwrap_or_default();
+    let hunk_ids = raw_commit
+        .hunk_ids
+        .unwrap_or_default();
 
     GitCommit {
         files,

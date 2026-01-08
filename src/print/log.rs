@@ -15,11 +15,16 @@ pub fn print_logs(
         // for in the raw when we implement selection
 
         // short hash
-        let short_hash =
-            &git_log.commit_hash[..7.min(git_log.commit_hash.len())];
+        let short_hash = &git_log.commit_hash[..7.min(
+            git_log
+                .commit_hash
+                .len(),
+        )];
         let hash_display = style(format!("[{}]", short_hash)).dim();
 
-        let message: String = git_log.to_owned().into();
+        let message: String = git_log
+            .to_owned()
+            .into();
 
         // fixes the bad width when doing fuzzy select
         // though, this may not matter much without interactivity
@@ -33,8 +38,10 @@ pub fn print_logs(
             message
         };
 
-        let prefix =
-            git_log.prefix.as_ref().map(|s| s.to_lowercase());
+        let prefix = git_log
+            .prefix
+            .as_ref()
+            .map(|s| s.to_lowercase());
 
         let color = match prefix.as_deref() {
             Some("feat") => Color::Green,
@@ -88,7 +95,9 @@ impl Theme for LogTheme {
         _search_term: &str,
     ) -> fmt::Result {
         if active {
-            let prefix = style(">").green().bold();
+            let prefix = style(">")
+                .green()
+                .bold();
             write!(f, "{} {}", prefix, text)
         } else {
             write!(f, " {}", text)

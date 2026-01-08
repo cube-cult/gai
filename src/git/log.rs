@@ -34,20 +34,34 @@ impl From<&[u8]> for GitLog {
             |_| "Failed to convert msg from utf8".to_owned(),
         );
 
-        let first_line = raw.lines().next().unwrap_or("");
-        let body = raw.lines().skip(1).collect::<Vec<_>>().join("\n");
+        let first_line = raw
+            .lines()
+            .next()
+            .unwrap_or("");
+        let body = raw
+            .lines()
+            .skip(1)
+            .collect::<Vec<_>>()
+            .join("\n");
 
-        let body = if body.trim().is_empty() {
+        let body = if body
+            .trim()
+            .is_empty()
+        {
             None
         } else {
-            Some(body.trim().to_string())
+            Some(
+                body.trim()
+                    .to_string(),
+            )
         };
 
         if let Some(colon_pos) = first_line.find(':') {
             let prefix_part = &first_line[..colon_pos];
 
-            let header =
-                first_line[colon_pos + 1..].trim().to_string();
+            let header = first_line[colon_pos + 1..]
+                .trim()
+                .to_string();
 
             let header = if header.is_empty() {
                 None
@@ -61,8 +75,9 @@ impl From<&[u8]> for GitLog {
             if let (Some(paren_start), Some(paren_end)) =
                 (prefix_part.find('('), prefix_part.find(')'))
             {
-                let prefix =
-                    prefix_part[..paren_start].trim().to_string();
+                let prefix = prefix_part[..paren_start]
+                    .trim()
+                    .to_string();
                 let scope = prefix_part[paren_start + 1..paren_end]
                     .trim()
                     .to_string();
@@ -85,7 +100,9 @@ impl From<&[u8]> for GitLog {
                     ..Default::default()
                 }
             } else {
-                let prefix = prefix_part.trim().to_string();
+                let prefix = prefix_part
+                    .trim()
+                    .to_string();
 
                 GitLog {
                     prefix: if prefix.is_empty() {
@@ -158,7 +175,12 @@ impl From<GitLog> for String {
             // only return the first line of the raw message
             // otherwise we'll get newlines and break
             // the display for logs
-            _ => v.raw.lines().next().unwrap_or(&v.raw).to_string(),
+            _ => v
+                .raw
+                .lines()
+                .next()
+                .unwrap_or(&v.raw)
+                .to_string(),
         }
     }
 }
@@ -184,16 +206,27 @@ pub fn get_logs(
         let oid = oid?;
         let commit = repo.find_commit(oid)?;
 
-        let mut log: GitLog = commit.message_bytes().into();
+        let mut log: GitLog = commit
+            .message_bytes()
+            .into();
 
         let author = commit.author();
-        log.author =
-            author.name().unwrap_or("unknown author").to_string();
+        log.author = author
+            .name()
+            .unwrap_or("unknown author")
+            .to_string();
         log.commit_hash = oid.to_string();
-        log.date =
-            DateTime::from_timestamp(author.when().seconds(), 0)
-                .map(|dt| dt.format("%m/%d/%Y %H:%M:%S").to_string())
-                .unwrap_or_default();
+        log.date = DateTime::from_timestamp(
+            author
+                .when()
+                .seconds(),
+            0,
+        )
+        .map(|dt| {
+            dt.format("%m/%d/%Y %H:%M:%S")
+                .to_string()
+        })
+        .unwrap_or_default();
 
         git_logs.push(log);
     }

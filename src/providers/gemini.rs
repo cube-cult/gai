@@ -100,7 +100,11 @@ where
         let response = self
             .agent
             .post(endpoint)
-            .header("x-goog-api-key", self.api_key.to_owned())
+            .header(
+                "x-goog-api-key",
+                self.api_key
+                    .to_owned(),
+            )
             .header("Content-Type", "application/json")
             .send_json(&request_body)?
             .body_mut()

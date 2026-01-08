@@ -12,7 +12,11 @@ pub fn run(
     args: &StatusArgs,
     global: &GlobalArgs,
 ) -> anyhow::Result<()> {
-    let state = State::new(global.config.as_deref())?;
+    let state = State::new(
+        global
+            .config
+            .as_deref(),
+    )?;
 
     // todo impl something for this
     // so we dont have to pass in two vectors
@@ -34,15 +38,19 @@ pub fn run(
             ..Default::default()
         };
 
-        if let Some(ref files_to_truncate) =
-            state.settings.context.truncate_files
+        if let Some(ref files_to_truncate) = state
+            .settings
+            .context
+            .truncate_files
         {
             diff_strategy.truncated_files =
                 files_to_truncate.to_owned();
         }
 
-        if let Some(ref files_to_ignore) =
-            state.settings.context.ignore_files
+        if let Some(ref files_to_ignore) = state
+            .settings
+            .context
+            .ignore_files
         {
             diff_strategy.ignored_files = files_to_ignore.to_owned();
         }

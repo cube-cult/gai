@@ -6,11 +6,27 @@ use clap::{
 use crate::providers::provider::ProviderKind;
 
 pub const STYLING: styling::Styles = clap::builder::Styles::styled()
-    .header(AnsiColor::White.on_default().bold())
-    .usage(AnsiColor::BrightBlue.on_default().bold())
-    .literal(AnsiColor::Green.on_default().bold())
+    .header(
+        AnsiColor::White
+            .on_default()
+            .bold(),
+    )
+    .usage(
+        AnsiColor::BrightBlue
+            .on_default()
+            .bold(),
+    )
+    .literal(
+        AnsiColor::Green
+            .on_default()
+            .bold(),
+    )
     .placeholder(AnsiColor::Magenta.on_default())
-    .error(AnsiColor::Red.on_default().bold())
+    .error(
+        AnsiColor::Red
+            .on_default()
+            .bold(),
+    )
     .valid(AnsiColor::Green.on_default())
     .invalid(AnsiColor::Yellow.on_default());
 
@@ -61,11 +77,11 @@ pub enum Commands {
 
     /// Create commits from the diffs in the working tree
     Commit(CommitArgs),
-    /* /// Create a rebase plan for commits
-    Rebase,
 
     /// Find a specific commit
-    Find,
+    Find(FindArgs),
+    /* /// Create a rebase plan for commits
+    Rebase,
 
     /// Initiate interactive bisect
     Bisect, */
@@ -112,6 +128,17 @@ pub struct StatusArgs {
 
 #[derive(Debug, Args)]
 pub struct LogArgs {
+    /// Max number of commits to query from
+    #[arg(short = 'n', long)]
+    pub number: Option<usize>,
+
+    /// Reverse the order of commits
+    #[arg(short = 'r', long)]
+    pub reverse: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct FindArgs {
     /// Max number of commits to query from
     #[arg(short = 'n', long)]
     pub number: Option<usize>,

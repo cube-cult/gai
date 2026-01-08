@@ -19,13 +19,15 @@ pub fn extract_from_provider<T>(
 where
     T: DeserializeOwned,
 {
-    let prompt = request.system.to_owned();
+    let prompt = request
+        .system
+        .to_owned();
     let content = request.get_content_as_str();
 
     match provider {
-        ProviderKind::Gai => {
-            GaiProvider::new().schema(schema).extract(prompt, content)
-        }
+        ProviderKind::Gai => GaiProvider::new()
+            .schema(schema)
+            .extract(prompt, content),
         ProviderKind::OpenAI => OpenAIProvider::new()
             .schema(schema)
             .extract(prompt, content),

@@ -37,8 +37,10 @@ impl GitRepo {
             Repository::discover(".")?
         };
 
-        let workdir =
-            repo.workdir().ok_or(GitError::BareRepo)?.to_path_buf();
+        let workdir = repo
+            .workdir()
+            .ok_or(GitError::BareRepo)?
+            .to_path_buf();
 
         Ok(Self { repo, workdir })
     }

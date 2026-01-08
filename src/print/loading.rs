@@ -52,15 +52,18 @@ impl Loading {
         &mut self,
         text: &str,
     ) {
-        self.bar.set_message(text.to_owned());
+        self.bar
+            .set_message(text.to_owned());
     }
 
     pub fn start(&self) {
-        self.bar.enable_steady_tick(self.interval);
+        self.bar
+            .enable_steady_tick(self.interval);
     }
 
     pub fn stop_clear(&self) {
-        self.bar.finish_and_clear();
+        self.bar
+            .finish_and_clear();
         //self.bar.reset();
     }
 
@@ -68,7 +71,8 @@ impl Loading {
         &self,
         text: &str,
     ) {
-        self.bar.finish_with_message(text.to_owned());
+        self.bar
+            .finish_with_message(text.to_owned());
     }
 
     pub fn stop(&self) {

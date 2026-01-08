@@ -38,7 +38,11 @@ pub fn print(
                     status.path.clone(),
                     &status.path,
                 )
-                .style(Style::new().fg(Color::Red).dim());
+                .style(
+                    Style::new()
+                        .fg(Color::Red)
+                        .dim(),
+                );
                 deleted.push(item);
             }
             StatusItemType::Renamed => {
@@ -63,7 +67,11 @@ pub fn print(
                 format!("Modified ({})", count),
                 modified,
             )?
-            .style(Style::new().fg(Color::Yellow).bold()),
+            .style(
+                Style::new()
+                    .fg(Color::Yellow)
+                    .bold(),
+            ),
         );
     }
 
@@ -75,7 +83,12 @@ pub fn print(
                 format!("Deleted ({})", count),
                 deleted,
             )?
-            .style(Style::new().fg(Color::Red).dim().bold()),
+            .style(
+                Style::new()
+                    .fg(Color::Red)
+                    .dim()
+                    .bold(),
+            ),
         );
     }
 
@@ -87,7 +100,11 @@ pub fn print(
                 format!("Renamed ({})", count),
                 renamed,
             )?
-            .style(Style::new().fg(Color::Cyan).bold()),
+            .style(
+                Style::new()
+                    .fg(Color::Cyan)
+                    .bold(),
+            ),
         );
     }
 
@@ -99,7 +116,11 @@ pub fn print(
                 format!("Untracked ({})", count),
                 new,
             )?
-            .style(Style::new().fg(Color::Red).bold()),
+            .style(
+                Style::new()
+                    .fg(Color::Red)
+                    .bold(),
+            ),
         );
     }
 
@@ -122,20 +143,30 @@ pub fn print(
                 format!("Staged Changes ({})", count),
                 staged_items,
             )?
-            .style(Style::new().fg(Color::Green).bold()),
+            .style(
+                Style::new()
+                    .fg(Color::Green)
+                    .bold(),
+            ),
         );
     }
 
     if !unstaged.is_empty() {
-        let count: usize =
-            unstaged.iter().map(|c| c.children().len()).sum();
+        let count: usize = unstaged
+            .iter()
+            .map(|c| c.children().len())
+            .sum();
         root_items.push(
             TreeItem::new(
                 "unstaged".to_owned(),
                 format!("Unstaged Changes ({})", count),
                 unstaged,
             )?
-            .style(Style::new().fg(Color::Yellow).bold()),
+            .style(
+                Style::new()
+                    .fg(Color::Yellow)
+                    .bold(),
+            ),
         );
     }
 

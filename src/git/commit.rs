@@ -25,7 +25,9 @@ pub fn commit(
         Vec::new()
     };
 
-    let parents = parents.iter().collect::<Vec<_>>();
+    let parents = parents
+        .iter()
+        .collect::<Vec<_>>();
 
     let oid = repo.commit(
         Some("HEAD"),

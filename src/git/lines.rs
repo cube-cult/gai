@@ -90,8 +90,9 @@ pub fn stage_lines(
     let mut index = repo.index()?;
     index.read(true)?;
 
-    let mut idx =
-        index.get_path(Path::new(file_path), 0).ok_or_else(|| {
+    let mut idx = index
+        .get_path(Path::new(file_path), 0)
+        .ok_or_else(|| {
             GitError::Generic(String::from(
                 "only non new files supported",
             ))
@@ -99,12 +100,17 @@ pub fn stage_lines(
 
     let blob = repo.find_blob(idx.id)?;
 
-    let indexed_content = String::from_utf8(blob.content().into())?;
+    let indexed_content = String::from_utf8(
+        blob.content()
+            .into(),
+    )?;
 
     let new_content = {
         let patch = get_file_diff_patch(repo, file_path)?;
         let hunks = patch_get_hunklines(&patch)?;
-        let old_lines = indexed_content.lines().collect::<Vec<_>>();
+        let old_lines = indexed_content
+            .lines()
+            .collect::<Vec<_>>();
 
         apply_selection(lines, &hunks, &old_lines)?
     };
@@ -132,7 +138,9 @@ fn apply_selection(
     old_lines: &[&str],
 ) -> anyhow::Result<String> {
     let mut new_content = NewFromOldContent::default();
-    let lines = lines.iter().collect::<HashSet<_>>();
+    let lines = lines
+        .iter()
+        .collect::<HashSet<_>>();
 
     let mut first_hunk_encountered = false;
 
@@ -140,8 +148,10 @@ fn apply_selection(
         let hunk_start = usize::try_from(hunk.hunk.old_start)?;
 
         if !first_hunk_encountered {
-            let any_selection_in_hunk =
-                hunk.lines.iter().any(|line| {
+            let any_selection_in_hunk = hunk
+                .lines
+                .iter()
+                .any(|line| {
                     let line: DiffLinePosition = line.into();
                     lines.contains(&line)
                 });
@@ -202,7 +212,10 @@ impl NewFromOldContent {
         &mut self,
         line: &DiffLine,
     ) -> anyhow::Result<()> {
-        let line = String::from_utf8(line.content().into())?;
+        let line = String::from_utf8(
+            line.content()
+                .into(),
+        )?;
 
         let line = if line.ends_with(NEWLINE) {
             line[0..line.len() - 1].to_string()
@@ -210,7 +223,8 @@ impl NewFromOldContent {
             line
         };
 
-        self.lines.push(line);
+        self.lines
+            .push(line);
 
         Ok(())
     }
@@ -223,7 +237,8 @@ impl NewFromOldContent {
         &mut self,
         old_lines: &[&str],
     ) {
-        self.lines.push(old_lines[self.old_index].to_string());
+        self.lines
+            .push(old_lines[self.old_index].to_string());
         self.old_index += 1;
     }
 
@@ -241,10 +256,16 @@ impl NewFromOldContent {
         mut self,
         old_lines: &[&str],
     ) -> String {
-        for line in old_lines.iter().skip(self.old_index) {
-            self.lines.push((*line).to_string());
+        for line in old_lines
+            .iter()
+            .skip(self.old_index)
+        {
+            self.lines
+                .push((*line).to_string());
         }
-        let lines = self.lines.join("\n");
+        let lines = self
+            .lines
+            .join("\n");
         if lines.ends_with(NEWLINE) {
             lines
         } else {

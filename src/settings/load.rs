@@ -9,8 +9,10 @@ pub fn load(
     let mut builder = Config::builder();
 
     if let Some(cfg_path) =
-        ProjectDirs::from("com", "nuttycream", "gai")
-            .map(|d| d.config_dir().join("config.toml"))
+        ProjectDirs::from("com", "nuttycream", "gai").map(|d| {
+            d.config_dir()
+                .join("config.toml")
+        })
     {
         builder =
             builder.add_source(File::from(cfg_path).required(false));

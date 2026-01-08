@@ -133,7 +133,11 @@ pub fn get_status(
     let mut opts = StatusOptions::default();
 
     // filter
-    opts.show(strategy.to_owned().into());
+    opts.show(
+        strategy
+            .to_owned()
+            .into(),
+    );
 
     opts.update_index(true);
     opts.include_untracked(true);
@@ -147,8 +151,12 @@ pub fn get_status(
     let mut statuses: Vec<FileStatus> = statuses
         .iter()
         .filter_map(|entry| {
-            let status: StatusItemType = entry.status().into();
-            let path = entry.path()?.to_string();
+            let status: StatusItemType = entry
+                .status()
+                .into();
+            let path = entry
+                .path()?
+                .to_string();
 
             // for workdir renames entry.path returns the older path
             // this is a temp fix so we can get the
@@ -181,5 +189,7 @@ fn get_branch_name(repo: &Repository) -> anyhow::Result<String> {
     let binding = repo.head()?;
     let head = binding.shorthand();
 
-    Ok(head.unwrap_or("HEAD").to_string())
+    Ok(head
+        .unwrap_or("HEAD")
+        .to_string())
 }

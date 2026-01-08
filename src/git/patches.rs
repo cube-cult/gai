@@ -27,9 +27,12 @@ pub fn get_file_diff_patch<'a>(
         return Err(GitError::PatchError.into());
     }
 
-    let patch = patches.into_iter().next().ok_or_else(|| {
-        GitError::Generic(String::from("no patch found"))
-    })?;
+    let patch = patches
+        .into_iter()
+        .next()
+        .ok_or_else(|| {
+            GitError::Generic(String::from("no patch found"))
+        })?;
 
     Ok(patch)
 }
@@ -52,7 +55,8 @@ pub fn patch_get_hunklines<'a>(
 
         for line_idx in 0..count_lines {
             let line = patch.line_in_hunk(hunk_idx, line_idx)?;
-            hunk.lines.push(line);
+            hunk.lines
+                .push(line);
         }
 
         res.push(hunk);

@@ -39,9 +39,10 @@ impl Request {
         mut self,
         text: &str,
     ) -> Self {
-        self.content.push(ContentPart::Text {
-            text: text.to_owned(),
-        });
+        self.content
+            .push(ContentPart::Text {
+                text: text.to_owned(),
+            });
         self
     }
 

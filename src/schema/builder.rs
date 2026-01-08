@@ -4,6 +4,7 @@ use serde_json::{Map, Value, json};
 #[derive(Default, Debug, Clone)]
 pub struct SchemaSettings {
     pub additional_properties: Option<bool>,
+    pub allow_min_max_ints: Option<bool>,
 }
 
 /// Jason schema builder
@@ -30,6 +31,18 @@ impl SchemaSettings {
         self.additional_properties = Some(value);
         self
     }
+
+    /// allow optional minimum
+    /// and maximum properties
+    /// for numbers, some providers
+    /// may not support these
+    pub fn allow_min_max_ints(
+        mut self,
+        value: bool,
+    ) -> Self {
+        self.allow_min_max_ints = Some(value);
+        self
+    }
 }
 
 impl SchemaBuilder {
@@ -52,12 +65,18 @@ impl SchemaBuilder {
             Value::Object(self.properties),
         );
 
-        if let Some(v) = self.settings.additional_properties {
+        if let Some(v) = self
+            .settings
+            .additional_properties
+        {
             self.base
                 .insert("additionalProperties".to_owned(), json!(v));
         }
 
-        if !self.required.is_empty() {
+        if !self
+            .required
+            .is_empty()
+        {
             self.base
                 .insert("required".to_owned(), json!(self.required));
         }
@@ -76,11 +95,17 @@ impl SchemaBuilder {
             Value::Object(self.properties),
         );
 
-        if let Some(v) = self.settings.additional_properties {
+        if let Some(v) = self
+            .settings
+            .additional_properties
+        {
             obj.insert("additionalProperties".to_owned(), json!(v));
         }
 
-        if !self.required.is_empty() {
+        if !self
+            .required
+            .is_empty()
+        {
             obj.insert("required".to_owned(), json!(self.required));
         }
 
@@ -93,6 +118,46 @@ impl SchemaBuilder {
         settings: SchemaSettings,
     ) -> Self {
         self.settings = settings.to_owned();
+        self
+    }
+
+    pub fn insert_int(
+        mut self,
+        name: &str,
+        description: Option<&str>,
+        required: bool,
+        min: Option<u32>,
+        max: Option<u32>,
+    ) -> Self {
+        let mut prop = Map::new();
+        prop.insert("type".to_owned(), json!("number"));
+
+        if let Some(description) = description {
+            prop.insert("description".to_owned(), json!(description));
+        }
+
+        if let Some(allow) = self
+            .settings
+            .allow_min_max_ints
+            && allow
+        {
+            if let Some(min) = min {
+                prop.insert("minimum".to_owned(), json!(min));
+            }
+
+            if let Some(max) = max {
+                prop.insert("maximum".to_owned(), json!(max));
+            }
+        }
+
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
+
+        if required {
+            self.required
+                .push(name.to_owned());
+        }
+
         self
     }
 
@@ -110,10 +175,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
 
         self
@@ -133,10 +200,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
 
         self
@@ -159,10 +228,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
 
         self
@@ -195,10 +266,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
 
         self
@@ -226,10 +299,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
 
         self
@@ -254,10 +329,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
 
         self
@@ -281,10 +358,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
 
         self
@@ -304,10 +383,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
     }
 
@@ -325,10 +406,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
     }
 
@@ -349,10 +432,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
     }
 
@@ -374,10 +459,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
     }
 
@@ -401,10 +488,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
     }
 
@@ -424,10 +513,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
     }
 
@@ -448,10 +539,12 @@ impl SchemaBuilder {
             prop.insert("description".to_owned(), json!(description));
         }
 
-        self.properties.insert(name.to_owned(), Value::Object(prop));
+        self.properties
+            .insert(name.to_owned(), Value::Object(prop));
 
         if required {
-            self.required.push(name.to_owned());
+            self.required
+                .push(name.to_owned());
         }
     }
 }
