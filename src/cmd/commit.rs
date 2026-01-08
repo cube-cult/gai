@@ -19,7 +19,7 @@ use crate::{
     print::{commits, loading::Loading},
     providers::{extract_from_provider, provider::ProviderKind},
     requests::{Request, commit::create_commit_request},
-    responses::commit::{extract_from_schema, process_commit},
+    responses::commit::{parse_from_schema, process_commit},
     schema::{SchemaSettings, commit::create_commit_response_schema},
     settings::Settings,
     state::State,
@@ -198,7 +198,7 @@ fn run_commit(
         };
 
         let raw_commits =
-            extract_from_schema(result, &cfg.staging_type)?;
+            parse_from_schema(result, &cfg.staging_type)?;
 
         loading.stop();
 
