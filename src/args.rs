@@ -146,4 +146,23 @@ pub struct FindArgs {
     /// Reverse the order of commits
     #[arg(short = 'r', long)]
     pub reverse: bool,
+
+    /// Show the reason for choosing this commit
+    #[arg(long)]
+    pub reasoning: bool,
+
+    /// Send the file paths for each of the commits as
+    /// additional context.
+    #[arg(short = 'f', long, default_value_t = true)]
+    pub files: bool,
+
+    /// Send the diffs for each of the commits as
+    /// additional context.\n(NOT RECOMMENDED! - This may increase the
+    /// token count by a significant amount!)
+    #[arg(
+        short = 'd',
+        long,
+        help = "Send the diffs for each of the commits as additional context.\n(NOT RECOMMENDED! - This may increases the token count by a significant amount!)"
+    )]
+    pub diffs: bool,
 }

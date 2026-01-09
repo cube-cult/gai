@@ -4,10 +4,7 @@ use serde_json::Value;
 
 use crate::{
     args::{FindArgs, GlobalArgs},
-    git::{
-        checkout::{self, checkout_commit},
-        log::get_logs,
-    },
+    git::{checkout::checkout_commit, log::get_logs},
     print::{InputHistory, find::print, loading, print_query_prompt},
     providers::{extract_from_provider, provider::ProviderKind},
     requests::find::create_find_request,
@@ -31,7 +28,8 @@ pub fn run(
             .provider = provider;
     }
 
-    let logs = get_logs(&state.git.repo, count, args.reverse)?;
+    let logs =
+        get_logs(&state.git.repo, args.files, count, args.reverse)?;
 
     let schema_settings = if matches!(
         state
@@ -53,9 +51,23 @@ pub fn run(
         .iter()
         .enumerate()
     {
-        let item =
-            format!("CommitID:[{}]:CommitMessage:{}", idx, log.raw);
-        log_strs.push(item);
+        if args.files {
+            let files: String = log.files.join(",");
+
+            let item = format!(
+                "CommitID:[{}]:CommitMessage:{}\nFiles:{}",
+                idx, log.raw, files
+            );
+
+            log_strs.push(item);
+        } else {
+            let item = format!(
+                "CommitID:[{}]:CommitMessage:{}",
+                idx, log.raw
+            );
+
+            log_strs.push(item);
+        }
     }
 
     let count = if logs.git_logs.len() > count {
@@ -102,7 +114,7 @@ pub fn run(
             Ok(r) => r,
             Err(e) => {
                 let msg = format!(
-                    "Done but Gai received an error from the provider: {:#}",
+                    "Gai received an error from the provider:\n{:#}",
                     e
                 );
 
@@ -125,18 +137,24 @@ pub fn run(
 
         let log = logs.git_logs[result.commit_id as usize].to_owned();
 
-        let opt = print(
-            &log,
-            &result.reasoning,
-            &result
-                .confidence
-                .to_string(),
-        )?;
+        let reasoning = if args.reasoning {
+            Some(
+                result
+                    .reasoning
+                    .as_str(),
+            )
+        } else {
+            None
+        };
+
+        let opt =
+            print(&log, args.files, reasoning, result.confidence)?;
 
         match opt {
             0 => {
                 println!("Checking out {}", log.commit_hash);
                 checkout_commit(&state.git.repo, &log.commit_hash)?;
+                break;
             }
             1 => {
                 println!("Retrying...");
