@@ -109,8 +109,9 @@ fn build_prompt(
         .include_log
     {
         let gai_logs = get_logs(
-            &repo.repo,
+            repo,
             true,
+            false,
             cfg.context
                 .log_amount as usize,
             false,
