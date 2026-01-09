@@ -101,7 +101,7 @@ pub fn print(
     };
 
     println!(
-        "Found a matching Commit with \"{}\" confidence.",
+        "Found a \"{}\" Commit...",
         style(confidence.to_string())
             .fg(confidence_color)
             .bold()
@@ -113,15 +113,13 @@ pub fn print(
             style("Reasoning")
                 .bold()
                 .cyan(),
-            style(r)
-                .magenta()
-                .dim(),
+            style(r).dim(),
         );
     }
 
     Tree::new(&tree)?.render();
 
-    let options = ["Checkout", "Retry", "Exit"];
+    let options = ["Checkout", "Query Another", "Retry", "Exit"];
 
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select an option:")

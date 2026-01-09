@@ -95,14 +95,23 @@ pub fn run(
     let schema = create_find_schema(schema_settings, count)?;
     let mut history = InputHistory::default();
 
+    let mut query = String::new();
+    let mut should_retry = false;
+
     loop {
-        let q = if let Some(q) =
-            print_query_prompt("What is your query?", &mut history)?
-        {
-            q
+        let q = if should_retry {
+            query.to_owned()
         } else {
-            println!("Exiting...");
-            break;
+            match print_query_prompt(
+                "What is your query?",
+                &mut history,
+            )? {
+                Some(q) => {
+                    query = q.to_owned();
+                    q
+                }
+                None => break,
+            }
         };
 
         let text = format!(
@@ -176,7 +185,13 @@ pub fn run(
                 break;
             }
             1 => {
+                println!("Entering another query...");
+                should_retry = false;
+                continue;
+            }
+            2 => {
                 println!("Retrying...");
+                should_retry = true;
                 continue;
             }
             _ => {
