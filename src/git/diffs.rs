@@ -38,7 +38,7 @@ pub struct DiffStrategy {
 }
 
 /// diff set
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Diffs {
     pub files: Vec<FileDiff>,
 }
@@ -54,7 +54,7 @@ pub struct HunkId {
     pub index: usize,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct FileDiff {
     pub path: String,
     pub hunks: Vec<Hunk>,
@@ -453,7 +453,7 @@ fn get_diff_raw<'a>(
 // diff per file then filter/process
 // todo process all diffs together
 // filter as you come acorss
-fn raw_diff_to_file_diff(
+pub fn raw_diff_to_file_diff(
     diff: &Diff,
     path: &str,
     work_dir: &Path,

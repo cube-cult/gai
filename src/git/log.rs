@@ -1,9 +1,11 @@
+use chrono::DateTime;
 use std::fmt;
 
-use chrono::DateTime;
-use git2::Repository;
-
-use crate::git::commit::get_commit_files;
+use super::{
+    GitRepo,
+    commit::{get_commit_diff, get_commit_files},
+    diffs::{Diffs, raw_diff_to_file_diff},
+};
 
 #[derive(Debug, Default)]
 pub struct Logs {
@@ -32,6 +34,8 @@ pub struct GitLog {
 
     /// filled with get_commit_files
     pub files: Vec<String>,
+
+    pub diffs: Diffs,
 }
 
 // parse a possible conventional commit
@@ -203,11 +207,13 @@ pub fn get_short_hash(git_log: &GitLog) -> String {
 }
 
 pub fn get_logs(
-    repo: &Repository,
+    git_repo: &GitRepo,
     files: bool,
+    diffs: bool,
     count: usize,
     reverse: bool,
 ) -> anyhow::Result<Logs> {
+    let repo = &git_repo.repo;
     let mut revwalk = repo.revwalk()?;
 
     if reverse {
@@ -251,6 +257,21 @@ pub fn get_logs(
                 .iter()
                 .map(|f| f.path.to_string())
                 .collect();
+
+            if diffs {
+                for file in &log.files {
+                    let raw = get_commit_diff(repo, oid)?;
+                    let file_diff = raw_diff_to_file_diff(
+                        &raw,
+                        file,
+                        &git_repo.workdir,
+                    )?;
+
+                    log.diffs
+                        .files
+                        .push(file_diff);
+                }
+            }
         }
 
         git_logs.push(log);
