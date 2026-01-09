@@ -140,8 +140,8 @@ pub struct LogArgs {
 #[derive(Debug, Args)]
 pub struct FindArgs {
     /// Max number of commits to query from
-    #[arg(short = 'n', long)]
-    pub number: Option<usize>,
+    #[arg(short = 'n', long, default_value_t = 50)]
+    pub number: usize,
 
     /// Reverse the order of commits
     #[arg(short = 'r', long)]

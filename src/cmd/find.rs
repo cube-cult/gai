@@ -4,7 +4,10 @@ use serde_json::Value;
 
 use crate::{
     args::{FindArgs, GlobalArgs},
-    git::log::get_logs,
+    git::{
+        checkout::{self, checkout_commit},
+        log::get_logs,
+    },
     print::{InputHistory, find::print, loading, print_query_prompt},
     providers::{extract_from_provider, provider::ProviderKind},
     requests::find::create_find_request,
@@ -19,9 +22,7 @@ pub fn run(
 ) -> anyhow::Result<()> {
     let mut state = State::new(None)?;
 
-    let count = args
-        .number
-        .unwrap_or_default();
+    let count = args.number;
 
     // todo add global args overrider
     if let Some(provider) = global.provider {
@@ -45,6 +46,18 @@ pub fn run(
         SchemaSettings::default().allow_min_max_ints(true)
     };
 
+    let mut log_strs = Vec::new();
+
+    for (idx, log) in logs
+        .git_logs
+        .iter()
+        .enumerate()
+    {
+        let item =
+            format!("CommitID:[{}]:CommitMessage:{}", idx, log.raw);
+        log_strs.push(item);
+    }
+
     let count = if logs.git_logs.len() > count {
         logs.git_logs.len() as u32
     } else {
@@ -52,7 +65,6 @@ pub fn run(
     };
 
     let schema = create_find_schema(schema_settings, count)?;
-
     let mut history = InputHistory::default();
 
     loop {
@@ -74,8 +86,9 @@ pub fn run(
 
         let loading = loading::Loading::new(&text, global.compact)?;
 
-        let req =
-            create_find_request(&state.settings, &logs.git_logs, &q);
+        let req = create_find_request(&state.settings, &log_strs, &q);
+
+        // println!("{:#?}", req);
 
         loading.start();
 
@@ -88,11 +101,12 @@ pub fn run(
         ) {
             Ok(r) => r,
             Err(e) => {
-                loading.stop();
-                println!(
+                let msg = format!(
                     "Done but Gai received an error from the provider: {:#}",
                     e
                 );
+
+                loading.stop_with_message(&msg);
 
                 if Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt("Retry?")
@@ -109,9 +123,30 @@ pub fn run(
 
         loading.stop();
 
-        let opt = print(result)?;
+        let log = logs.git_logs[result.commit_id as usize].to_owned();
 
-        println!("{opt}");
+        let opt = print(
+            &log,
+            &result.reasoning,
+            &result
+                .confidence
+                .to_string(),
+        )?;
+
+        match opt {
+            0 => {
+                println!("Checking out {}", log.commit_hash);
+                checkout_commit(&state.git.repo, &log.commit_hash)?;
+            }
+            1 => {
+                println!("Retrying...");
+                continue;
+            }
+            _ => {
+                println!("Exiting...");
+                break;
+            }
+        }
     }
 
     Ok(())

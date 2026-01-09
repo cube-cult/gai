@@ -1,36 +1,85 @@
-use console::Style;
+use console::{Color, Style, style};
 use dialoguer::{Select, theme::ColorfulTheme};
 
-use crate::schema::find::FindCommitSchema;
+use crate::git::log::GitLog;
 
 use super::tree::{Tree, TreeItem};
 
-pub fn print(commit: FindCommitSchema) -> anyhow::Result<usize> {
+pub fn print(
+    commit: &GitLog,
+    reasoning: &str,
+    confidence: &str,
+) -> anyhow::Result<usize> {
     let mut children = Vec::new();
 
-    let reason_item = TreeItem::new_leaf(
+    let date_item = TreeItem::new_leaf(
         commit
-            .reasoning
+            .date
             .to_owned(),
-        format!("Reason: {}", &commit.reasoning),
+        format!("Date: {}", commit.date),
     )
-    .style(Style::new().cyan());
+    .style(Style::new().dim());
 
-    children.push(reason_item);
+    children.push(date_item);
 
-    let confidence_item = TreeItem::new_leaf(
-        format!("{}", &commit.confidence),
-        format!("Confidence: {}", &commit.confidence),
+    let author_item = TreeItem::new_leaf(
+        commit
+            .author
+            .to_owned(),
+        format!("Author: {}", commit.author),
     )
-    .style(Style::new().green());
+    .style(Style::new().dim());
 
-    children.push(confidence_item);
+    children.push(author_item);
 
-    let tree = vec![TreeItem::new(
-        format!("{}", commit.commit_id),
-        format!("{}", commit.commit_id),
-        children,
-    )?];
+    let hash_item = TreeItem::new_leaf(
+        commit
+            .commit_hash
+            .to_owned(),
+        format!("[{}]", commit.commit_hash),
+    )
+    .style(Style::new().dim());
+
+    children.push(hash_item);
+
+    let (_, max_term_width) = console::Term::stderr().size();
+    let avail = (max_term_width as usize).saturating_sub(15);
+
+    let message: String = commit
+        .to_owned()
+        .into();
+
+    let truncated = if message.len() > avail {
+        format!("{}...", &message[..avail])
+    } else {
+        message
+    };
+
+    let prefix = commit
+        .prefix
+        .as_ref()
+        .map(|s| s.to_lowercase());
+
+    let color = match prefix.as_deref() {
+        Some("feat") => Color::Green,
+        Some("fix") => Color::Red,
+        Some("refactor") => Color::Color256(214),
+        Some("docs") => Color::Blue,
+        _ => Color::White,
+    };
+
+    let display = style(&truncated).fg(color);
+
+    let tree = vec![
+        TreeItem::new(
+            commit
+                .raw
+                .to_string(),
+            display.to_string(),
+            children,
+        )?
+        .style(Style::new()),
+    ];
 
     Tree::new(&tree)?.render();
 
