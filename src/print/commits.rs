@@ -5,6 +5,16 @@ use crate::schema::commit::{CommitSchema, PrefixType};
 
 use super::tree::{Tree, TreeItem};
 
+pub fn get_prefix_color(prefix: &PrefixType) -> Color {
+    match prefix {
+        PrefixType::Feat => Color::Green,
+        PrefixType::Fix => Color::Red,
+        //urange
+        PrefixType::Refactor => Color::Color256(214),
+        _ => Color::White,
+    }
+}
+
 /// display the responsecommits
 /// before converting to usable
 /// git commits
@@ -163,13 +173,7 @@ pub fn print_response_commits(
                 .to_lowercase(),
         };
 
-        let color = match commit.prefix {
-            PrefixType::Feat => Color::Green,
-            PrefixType::Fix => Color::Red,
-            //urange
-            PrefixType::Refactor => Color::Color256(214),
-            _ => Color::White,
-        };
+        let color = get_prefix_color(&commit.prefix);
 
         let commit_idx = style(format!("[{}]", i)).dim();
 
