@@ -1,4 +1,4 @@
-use crate::{git::log::GitLog, settings::Settings};
+use crate::settings::Settings;
 
 use super::Request;
 
@@ -6,23 +6,24 @@ use super::Request;
 /// takes in git logs and a query
 pub fn create_find_request(
     settings: &Settings,
-    logs: &[GitLog],
+    git_logs: &[String],
     query: &str,
 ) -> Request {
     let prompt = build_prompt(settings);
 
-    let logs: Vec<String> = logs
-        .iter()
-        .map(|l| l.raw.to_string())
-        .collect();
-
-    let query = format!("Query: {}", query);
+    let query = format!("Query:{}", query);
 
     Request::new(&prompt)
         .insert_content(&query)
-        .insert_contents(&logs)
+        .insert_contents(git_logs)
 }
 
 fn build_prompt(_cfg: &Settings) -> String {
-    String::new()
+    concat!(
+        "You are an assistant tasked on finding ",
+        "a Git Commit that matches the query. ",
+        "Ensure your input your reasoning as well as ",
+        "Confidence level to describe your choice.",
+    )
+    .to_string()
 }
