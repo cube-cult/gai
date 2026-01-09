@@ -27,7 +27,7 @@ impl Loading {
         } else {
             (
                 ProgressStyle::with_template(
-                    "{msg}\n{spinner:.red}",
+                    "[{msg}]\n{spinner:.red}",
                 )?
                 .tick_strings(TICK_LONG),
                 Duration::from_millis(500),

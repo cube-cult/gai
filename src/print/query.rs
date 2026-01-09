@@ -9,8 +9,11 @@ pub fn print_query_prompt(
     history: &mut InputHistory,
 ) -> anyhow::Result<Option<String>> {
     println!(
-        "Type {} or {} to exit. Press {} to show session queries.",
+        "Type {}/{}/{} to exit. Press {} to show session queries.",
         style("exit")
+            .red()
+            .bold(),
+        style("quit")
             .red()
             .bold(),
         style("q")
@@ -27,7 +30,7 @@ pub fn print_query_prompt(
         .interact_text()?
         .to_string();
 
-    if s == "exit" || s == "q" {
+    if s == "exit" || s == "q" || s == "quit" {
         Ok(None)
     } else {
         Ok(Some(s))
