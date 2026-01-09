@@ -3,11 +3,16 @@ use std::fmt;
 use chrono::DateTime;
 use git2::Repository;
 
+use crate::git::commit::get_commit_files;
+
 #[derive(Debug, Default)]
 pub struct Logs {
     pub git_logs: Vec<GitLog>,
 }
 
+/// represents a git commit in git logs
+/// technically redudant, might have to
+/// remove later
 #[derive(Clone, Debug, Default)]
 pub struct GitLog {
     pub prefix: Option<String>,
@@ -24,6 +29,9 @@ pub struct GitLog {
     pub date: String,
     pub author: String,
     pub commit_hash: String,
+
+    /// filled with get_commit_files
+    pub files: Vec<String>,
 }
 
 // parse a possible conventional commit
@@ -185,8 +193,18 @@ impl From<GitLog> for String {
     }
 }
 
+pub fn get_short_hash(git_log: &GitLog) -> String {
+    git_log.commit_hash[..7.min(
+        git_log
+            .commit_hash
+            .len(),
+    )]
+        .to_string()
+}
+
 pub fn get_logs(
     repo: &Repository,
+    files: bool,
     count: usize,
     reverse: bool,
 ) -> anyhow::Result<Logs> {
@@ -227,6 +245,13 @@ pub fn get_logs(
                 .to_string()
         })
         .unwrap_or_default();
+
+        if files {
+            log.files = get_commit_files(repo, oid, None)?
+                .iter()
+                .map(|f| f.path.to_string())
+                .collect();
+        }
 
         git_logs.push(log);
     }

@@ -1,14 +1,18 @@
 use console::{Color, Style, style};
 use dialoguer::{Select, theme::ColorfulTheme};
 
-use crate::git::log::GitLog;
+use crate::{
+    git::log::{GitLog, get_short_hash},
+    schema::find::Confidence,
+};
 
 use super::tree::{Tree, TreeItem};
 
 pub fn print(
     commit: &GitLog,
-    reasoning: &str,
-    confidence: &str,
+    files: bool,
+    reasoning: Option<&str>,
+    confidence: Confidence,
 ) -> anyhow::Result<usize> {
     let mut children = Vec::new();
 
@@ -32,15 +36,19 @@ pub fn print(
 
     children.push(author_item);
 
-    let hash_item = TreeItem::new_leaf(
-        commit
-            .commit_hash
-            .to_owned(),
-        format!("[{}]", commit.commit_hash),
-    )
-    .style(Style::new().dim());
+    if files {
+        let logs = commit
+            .files
+            .join(",");
 
-    children.push(hash_item);
+        let files_item = TreeItem::new_leaf(
+            "raw_files".to_string(),
+            format!("{}", logs),
+        )
+        .style(Style::new().dim());
+
+        children.push(files_item);
+    }
 
     let (_, max_term_width) = console::Term::stderr().size();
     let avail = (max_term_width as usize).saturating_sub(15);
@@ -48,6 +56,10 @@ pub fn print(
     let message: String = commit
         .to_owned()
         .into();
+
+    let short_hash = get_short_hash(commit);
+
+    let hash_display = style(format!("[{}]", short_hash)).dim();
 
     let truncated = if message.len() > avail {
         format!("{}...", &message[..avail])
@@ -68,7 +80,9 @@ pub fn print(
         _ => Color::White,
     };
 
-    let display = style(&truncated).fg(color);
+    let message = style(&truncated).fg(color);
+
+    let display = format!("{} {}", hash_display, message);
 
     let tree = vec![
         TreeItem::new(
@@ -80,6 +94,30 @@ pub fn print(
         )?
         .style(Style::new()),
     ];
+
+    let confidence_color = match confidence {
+        Confidence::Exact => Color::Green,
+        Confidence::Likely => Color::Color256(214),
+    };
+
+    println!(
+        "Found a Commit with \"{}\" confidence",
+        style(confidence.to_string())
+            .fg(confidence_color)
+            .bold()
+    );
+
+    if let Some(r) = reasoning {
+        println!(
+            "{}:\n{}",
+            style("Reasoning")
+                .bold()
+                .cyan(),
+            style(r)
+                .magenta()
+                .dim(),
+        );
+    }
 
     Tree::new(&tree)?.render();
 

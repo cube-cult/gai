@@ -2,7 +2,7 @@ use console::{Color, style};
 use dialoguer::{FuzzySelect, theme::Theme};
 use std::fmt;
 
-use crate::git::log::GitLog;
+use crate::git::log::{GitLog, get_short_hash};
 
 pub fn print_logs(
     git_logs: &[GitLog]
@@ -15,11 +15,8 @@ pub fn print_logs(
         // for in the raw when we implement selection
 
         // short hash
-        let short_hash = &git_log.commit_hash[..7.min(
-            git_log
-                .commit_hash
-                .len(),
-        )];
+        let short_hash = get_short_hash(git_log);
+
         let hash_display = style(format!("[{}]", short_hash)).dim();
 
         let message: String = git_log
