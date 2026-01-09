@@ -28,8 +28,13 @@ pub fn run(
             .provider = provider;
     }
 
-    let logs =
-        get_logs(&state.git.repo, args.files, count, args.reverse)?;
+    let logs = get_logs(
+        &state.git,
+        args.files,
+        args.diffs,
+        count,
+        args.reverse,
+    )?;
 
     let schema_settings = if matches!(
         state
@@ -54,15 +59,26 @@ pub fn run(
         if args.files {
             let files: String = log.files.join(",");
 
-            let item = format!(
-                "CommitID:[{}]:CommitMessage:{}\nFiles:{}",
-                idx, log.raw, files
-            );
+            let item = if args.diffs {
+                let diffs = log
+                    .diffs
+                    .to_string();
+
+                format!(
+                    "CommitID:[{}]\nCommitMessage:{}\nFiles:{}\nDiffs:{}",
+                    idx, log.raw, files, diffs,
+                )
+            } else {
+                format!(
+                    "CommitID:[{}]\nCommitMessage:{}\nFiles:{}",
+                    idx, log.raw, files
+                )
+            };
 
             log_strs.push(item);
         } else {
             let item = format!(
-                "CommitID:[{}]:CommitMessage:{}",
+                "CommitID:[{}]\nCommitMessage:{}",
                 idx, log.raw
             );
 
@@ -96,11 +112,14 @@ pub fn run(
                 .bold()
         );
 
-        let loading = loading::Loading::new(&text, global.compact)?;
-
         let req = create_find_request(&state.settings, &log_strs, &q);
 
-        // println!("{:#?}", req);
+        if args.diffs {
+            println!("{}", req);
+            break;
+        }
+
+        let loading = loading::Loading::new(&text, global.compact)?;
 
         loading.start();
 

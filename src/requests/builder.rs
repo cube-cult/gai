@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::fmt;
 
 /// request struct
 #[derive(Debug, Clone, Default)]
@@ -22,6 +23,30 @@ pub enum ContentPart {
     /// at the moment, since we're handling
     /// diffs, this should just be text ala string
     Text { text: String },
+}
+
+impl fmt::Display for Request {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        writeln!(f, "System: {}", self.system)?;
+        writeln!(f, "Content:")?;
+
+        for (i, part) in self
+            .content
+            .iter()
+            .enumerate()
+        {
+            match part {
+                ContentPart::Text { text } => {
+                    writeln!(f, "[{}] {}", i, text)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Request {
