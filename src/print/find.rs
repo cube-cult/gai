@@ -43,7 +43,7 @@ pub fn print(
 
         let files_item = TreeItem::new_leaf(
             "raw_files".to_string(),
-            format!("{}", logs),
+            logs.to_string(),
         )
         .style(Style::new().dim());
 
@@ -101,7 +101,7 @@ pub fn print(
     };
 
     println!(
-        "Found a Commit with \"{}\" confidence",
+        "Found a matching Commit with \"{}\" confidence.",
         style(confidence.to_string())
             .fg(confidence_color)
             .bold()
