@@ -144,11 +144,11 @@ pub struct FindArgs {
     pub number: usize,
 
     /// Reverse the order of commits
-    #[arg(short = 'r', long)]
+    #[arg(long)]
     pub reverse: bool,
 
     /// Show the reason for choosing this commit
-    #[arg(long)]
+    #[arg(short = 'r', long)]
     pub reasoning: bool,
 
     /// Send the file paths for each of the commits as
