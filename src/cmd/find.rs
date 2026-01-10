@@ -34,6 +34,9 @@ pub fn run(
         args.diffs,
         count,
         args.reverse,
+        args.from.as_deref(),
+        args.to.as_deref(),
+        args.since,
     )?;
 
     let schema_settings = if matches!(
@@ -123,10 +126,10 @@ pub fn run(
 
         let req = create_find_request(&state.settings, &log_strs, &q);
 
-        if args.diffs {
+        /* if args.since.is_some() {
             println!("{}", req);
             break;
-        }
+        } */
 
         let loading = loading::Loading::new(&text, global.compact)?;
 

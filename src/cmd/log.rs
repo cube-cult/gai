@@ -15,8 +15,16 @@ pub fn run(
         .number
         .unwrap_or_default();
 
-    let logs =
-        get_logs(&state.git, true, false, count, args.reverse)?;
+    let logs = get_logs(
+        &state.git,
+        true,
+        false,
+        count,
+        args.reverse,
+        None,
+        None,
+        None,
+    )?;
 
     match log::print_logs(&logs.git_logs)? {
         Some(s) => {

@@ -115,6 +115,9 @@ fn build_prompt(
             cfg.context
                 .log_amount as usize,
             false,
+            None,
+            None,
+            None,
         )
         .unwrap_or_default();
 
