@@ -43,7 +43,8 @@ fn auth_status() -> Result<()> {
         .read_json::<Status>()?;
 
     if let Some(date) = chrono::DateTime::from_timestamp(
-        resp.expiration.try_into()?,
+        resp.expiration
+            .try_into()?,
         0,
     ) {
         println!("Requests made: {}/10", resp.requests_made);
@@ -101,5 +102,7 @@ fn token_path() -> Result<PathBuf> {
                 anyhow::anyhow!("Can't find the config directory")
             })?;
 
-    Ok(cfg_dir.config_dir().join(".token"))
+    Ok(cfg_dir
+        .config_dir()
+        .join(".token"))
 }

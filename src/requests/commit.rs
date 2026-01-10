@@ -27,7 +27,10 @@ fn build_prompt(
 
     let rules = build_rules(&cfg.rules);
 
-    if let Some(sys_prompt) = &cfg.prompt.system_prompt {
+    if let Some(sys_prompt) = &cfg
+        .prompt
+        .system_prompt
+    {
         prompt.push_str(sys_prompt);
     } else {
         prompt.push_str(DEFAULT_SYS_PROMPT);
@@ -43,18 +46,27 @@ fn build_prompt(
         prompt.push('\n');
     }
 
-    if cfg.commit.only_staged {
+    if cfg
+        .commit
+        .only_staged
+    {
         prompt.push_str(PROMPT_ONLY_STAGED);
     }
 
     prompt.push_str(&rules);
     prompt.push('\n');
 
-    if let Some(commit_conv) = &cfg.prompt.commit_convention {
+    if let Some(commit_conv) = &cfg
+        .prompt
+        .commit_convention
+    {
         prompt.push_str(commit_conv);
     }
 
-    if cfg.context.include_convention {
+    if cfg
+        .context
+        .include_convention
+    {
         prompt.push_str(COMMIT_CONVENTION);
     }
 
@@ -67,13 +79,19 @@ fn build_prompt(
 
     prompt.push('\n');
 
-    if cfg.context.include_file_tree {
+    if cfg
+        .context
+        .include_file_tree
+    {
         prompt.push_str("Current File Tree: \n");
         //prompt.push_str(&git.get_repo_tree());
         prompt.push('\n');
     }
 
-    if cfg.context.include_git_status {
+    if cfg
+        .context
+        .include_git_status
+    {
         prompt.push_str("Current Git Status: \n");
         // todo impl separation when fmt::Display
         let staged =
@@ -86,17 +104,28 @@ fn build_prompt(
         prompt.push_str(&format!("WorkingDir\n{}", working_dir));
     }
 
-    if cfg.context.include_log {
+    if cfg
+        .context
+        .include_log
+    {
         let gai_logs = get_logs(
-            &repo.repo,
-            cfg.context.log_amount as usize,
+            repo,
+            true,
             false,
+            cfg.context
+                .log_amount as usize,
+            false,
+            None,
+            None,
+            None,
         )
         .unwrap_or_default();
 
         let log_str = format!(
             "{} Recent Git Logs:\n{}\n",
-            gai_logs.git_logs.len(),
+            gai_logs
+                .git_logs
+                .len(),
             gai_logs
         );
 

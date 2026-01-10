@@ -12,7 +12,7 @@ pub mod settings;
 pub mod state;
 pub mod utils;
 
-use crate::args::Commands::{Auth, Commit, Log, Status};
+use crate::args::Commands::{Auth, Commit, Find, Log, Status};
 
 fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
@@ -24,6 +24,7 @@ fn main() -> anyhow::Result<()> {
         Status(a) => cmd::status::run(a, &args.global)?,
         Commit(a) => cmd::commit::run(a, &args.global)?,
         Log(a) => cmd::log::run(a, &args.global)?,
+        Find(a) => cmd::find::run(a, &args.global)?,
     };
 
     Ok(())

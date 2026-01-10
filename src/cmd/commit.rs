@@ -19,7 +19,7 @@ use crate::{
     print::{commits, loading::Loading},
     providers::{extract_from_provider, provider::ProviderKind},
     requests::{Request, commit::create_commit_request},
-    responses::commit::{extract_from_schema, process_commit},
+    responses::commit::{parse_from_schema, process_commit},
     schema::{SchemaSettings, commit::create_commit_response_schema},
     settings::Settings,
     state::State,
@@ -29,19 +29,37 @@ pub fn run(
     args: &CommitArgs,
     global: &GlobalArgs,
 ) -> anyhow::Result<()> {
-    let mut state = State::new(global.config.as_deref())?;
+    let mut state = State::new(
+        global
+            .config
+            .as_deref(),
+    )?;
 
-    state.settings.prompt.hint = global.hint.to_owned();
+    state
+        .settings
+        .prompt
+        .hint = global
+        .hint
+        .to_owned();
 
     if args.staged {
-        state.settings.commit.only_staged = true;
+        state
+            .settings
+            .commit
+            .only_staged = true;
     }
 
     if let Some(provider) = global.provider {
-        state.settings.provider = provider;
+        state
+            .settings
+            .provider = provider;
     }
 
-    let status_strategy = if state.settings.commit.only_staged {
+    let status_strategy = if state
+        .settings
+        .commit
+        .only_staged
+    {
         StatusStrategy::Stage
     } else {
         StatusStrategy::default()
@@ -52,21 +70,29 @@ pub fn run(
         ..Default::default()
     };
 
-    if let Some(ref files_to_truncate) =
-        state.settings.context.truncate_files
+    if let Some(ref files_to_truncate) = state
+        .settings
+        .context
+        .truncate_files
     {
         diff_strategy.truncated_files = files_to_truncate.to_owned();
     }
 
-    if let Some(ref files_to_ignore) =
-        state.settings.context.ignore_files
+    if let Some(ref files_to_ignore) = state
+        .settings
+        .context
+        .ignore_files
     {
         diff_strategy.ignored_files = files_to_ignore.to_owned();
     }
 
     state.diffs = get_diffs(&state.git, &diff_strategy)?;
 
-    if state.diffs.files.is_empty() {
+    if state
+        .diffs
+        .files
+        .is_empty()
+    {
         println!(
             "{}",
             style("Repository does not have any known changes.")
@@ -77,24 +103,34 @@ pub fn run(
     }
 
     // openai seems like the only one that needs this
-    let schema_settings =
-        if matches!(state.settings.provider, ProviderKind::OpenAI) {
-            SchemaSettings::default().additional_properties(false)
-        } else {
-            SchemaSettings::default()
-        };
+    let schema_settings = if matches!(
+        state
+            .settings
+            .provider,
+        ProviderKind::OpenAI
+    ) {
+        SchemaSettings::default().additional_properties(false)
+    } else {
+        SchemaSettings::default()
+    };
 
     let schema = create_commit_response_schema(
         schema_settings,
         &state.settings,
-        &state.diffs.as_files(),
-        &state.diffs.as_hunks(),
+        &state
+            .diffs
+            .as_files(),
+        &state
+            .diffs
+            .as_hunks(),
     )?;
 
     let req = create_commit_request(
         &state.settings,
         &state.git,
-        &state.diffs.to_string(),
+        &state
+            .diffs
+            .to_string(),
     );
 
     /* println!("{}", serde_json::to_string_pretty(&schema)?);
@@ -125,7 +161,11 @@ fn run_commit(
     let provider_display = format!(
         "Generating Commits Using {}({})",
         style(&cfg.provider).blue(),
-        style(cfg.providers.get_model(&cfg.provider)).dim()
+        style(
+            cfg.providers
+                .get_model(&cfg.provider)
+        )
+        .dim()
     );
 
     loop {
@@ -158,7 +198,7 @@ fn run_commit(
         };
 
         let raw_commits =
-            extract_from_schema(result, &cfg.staging_type)?;
+            parse_from_schema(result, &cfg.staging_type)?;
 
         loading.stop();
 

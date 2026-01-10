@@ -6,11 +6,27 @@ use clap::{
 use crate::providers::provider::ProviderKind;
 
 pub const STYLING: styling::Styles = clap::builder::Styles::styled()
-    .header(AnsiColor::White.on_default().bold())
-    .usage(AnsiColor::BrightBlue.on_default().bold())
-    .literal(AnsiColor::Green.on_default().bold())
+    .header(
+        AnsiColor::White
+            .on_default()
+            .bold(),
+    )
+    .usage(
+        AnsiColor::BrightBlue
+            .on_default()
+            .bold(),
+    )
+    .literal(
+        AnsiColor::Green
+            .on_default()
+            .bold(),
+    )
     .placeholder(AnsiColor::Magenta.on_default())
-    .error(AnsiColor::Red.on_default().bold())
+    .error(
+        AnsiColor::Red
+            .on_default()
+            .bold(),
+    )
     .valid(AnsiColor::Green.on_default())
     .invalid(AnsiColor::Yellow.on_default());
 
@@ -61,11 +77,11 @@ pub enum Commands {
 
     /// Create commits from the diffs in the working tree
     Commit(CommitArgs),
-    /* /// Create a rebase plan for commits
-    Rebase,
 
     /// Find a specific commit
-    Find,
+    Find(FindArgs),
+    /* /// Create a rebase plan for commits
+    Rebase,
 
     /// Initiate interactive bisect
     Bisect, */
@@ -119,4 +135,46 @@ pub struct LogArgs {
     /// Reverse the order of commits
     #[arg(short = 'r', long)]
     pub reverse: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct FindArgs {
+    /// Max number of commits to query from
+    #[arg(short = 'n', long, default_value_t = 50)]
+    pub number: usize,
+
+    /// Reverse the order of commits
+    #[arg(long)]
+    pub reverse: bool,
+
+    /// Show the reason for choosing this commit
+    #[arg(short = 'r', long)]
+    pub reasoning: bool,
+
+    /// Send the file paths for each of the commits as
+    /// additional context.
+    #[arg(short = 'f', long, default_value_t = true)]
+    pub files: bool,
+
+    /// Send the diffs for each of the commits as
+    /// additional context.\n(NOT RECOMMENDED! - This may increase the
+    /// token count by a significant amount!)
+    #[arg(
+        long,
+        help = "Send the diffs for each of the commits as additional context.\n(NOT RECOMMENDED! - This may increases the token count by a significant amount!)"
+    )]
+    pub diffs: bool,
+
+    /// Starting commit range hash. Requires the full hash
+    #[arg(long)]
+    pub from: Option<String>,
+
+    /// Ending commit range, defaults to HEAD. Requires the full hash
+    #[arg(long)]
+    pub to: Option<String>,
+
+    // https://stackoverflow.com/a/72314001/17123405
+    /// Only search commits from this ago. ex. "1year", "1month", etc
+    #[arg(long, value_parser = humantime::parse_duration)]
+    pub since: Option<std::time::Duration>,
 }

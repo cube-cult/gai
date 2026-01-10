@@ -86,8 +86,10 @@ where
     where
         T: Into<String>,
     {
-        let identifiers: HashSet<_> =
-            children.iter().map(|item| &item.identifier).collect();
+        let identifiers: HashSet<_> = children
+            .iter()
+            .map(|item| &item.identifier)
+            .collect();
 
         if identifiers.len() != children.len() {
             return Err(std::io::Error::new(
@@ -135,14 +137,16 @@ where
         &self,
         index: usize,
     ) -> Option<&Self> {
-        self.children.get(index)
+        self.children
+            .get(index)
     }
 
     pub fn child_mut(
         &mut self,
         index: usize,
     ) -> Option<&mut Self> {
-        self.children.get_mut(index)
+        self.children
+            .get_mut(index)
     }
 }
 
@@ -184,7 +188,10 @@ where
     /// render tree
     /// using console-rs styling
     pub fn render(self) {
-        if self.items.is_empty() {
+        if self
+            .items
+            .is_empty()
+        {
             return;
         }
 
@@ -192,8 +199,13 @@ where
 
         for flat in flattened.iter() {
             let prefix = self.prefix(&flat.is_last_at_depth);
-            let prefix = self.style.apply_to(&prefix);
-            let text = flat.item.style.apply_to(&flat.item.text);
+            let prefix = self
+                .style
+                .apply_to(&prefix);
+            let text = flat
+                .item
+                .style
+                .apply_to(&flat.item.text);
 
             println!("{prefix}{text}");
         }
@@ -204,7 +216,10 @@ where
     /// should still apply Stylings
     /// using this instead a From<> impl
     pub fn as_string(self) -> String {
-        if self.items.is_empty() {
+        if self
+            .items
+            .is_empty()
+        {
             return String::new();
         }
 
@@ -213,8 +228,13 @@ where
 
         for flat in flattened.iter() {
             let prefix = self.prefix(&flat.is_last_at_depth);
-            let prefix = self.style.apply_to(&prefix);
-            let text = flat.item.style.apply_to(&flat.item.text);
+            let prefix = self
+                .style
+                .apply_to(&prefix);
+            let text = flat
+                .item
+                .style
+                .apply_to(&flat.item.text);
 
             s.push_str(&format!("{prefix}{text}\n"));
         }
@@ -330,7 +350,10 @@ where
     let mut flattened = Vec::new();
     let len = items.len();
 
-    for (i, item) in items.iter().enumerate() {
+    for (i, item) in items
+        .iter()
+        .enumerate()
+    {
         let is_last = i == len - 1;
 
         // Roots (depth 0) have empty is_last_at_depth (no prefix)

@@ -27,10 +27,10 @@ impl Loading {
         } else {
             (
                 ProgressStyle::with_template(
-                    "{msg}\n{spinner:.red}",
+                    "[{msg}]\n{spinner:.red}",
                 )?
                 .tick_strings(TICK_LONG),
-                Duration::from_millis(300),
+                Duration::from_millis(500),
             )
         };
 
@@ -52,15 +52,18 @@ impl Loading {
         &mut self,
         text: &str,
     ) {
-        self.bar.set_message(text.to_owned());
+        self.bar
+            .set_message(text.to_owned());
     }
 
     pub fn start(&self) {
-        self.bar.enable_steady_tick(self.interval);
+        self.bar
+            .enable_steady_tick(self.interval);
     }
 
     pub fn stop_clear(&self) {
-        self.bar.finish_and_clear();
+        self.bar
+            .finish_and_clear();
         //self.bar.reset();
     }
 
@@ -68,7 +71,8 @@ impl Loading {
         &self,
         text: &str,
     ) {
-        self.bar.finish_with_message(text.to_owned());
+        self.bar
+            .finish_with_message(text.to_owned());
     }
 
     pub fn stop(&self) {
@@ -80,89 +84,54 @@ pub const TICK_COMPACT: &[&str; 9] =
     &["⣼", "⣹", "⢻", "⠿", "⡟", "⣏", "⣧", "⣶", "⣿"];
 
 /// made with ascii-motion.app
+/// cat from https://www.messletters.com/en/text-art/
 const TICK_LONG: &[&str] = &[
     concat!(
-        " ||    ||            \n",
-        " | O  O |  |         \n",
-        " |  vv  |  |         \n",
-        " |      |__|         ",
+        "            .           \n",
+        "                   .    \n",
+        " ∧,,∧                   \n",
+        "( ̳•·•)                  \n",
+        "/   づ      .        .  \n",
+        "─────────               \n",
     ),
     concat!(
-        " ||    ||            \n",
-        " | -  - |  |         \n",
-        " |  vv  |  |         \n",
-        " |      |__|         ",
+        "            *           \n",
+        "                   *    \n",
+        " ∧,,∧      .            \n",
+        "( ̳•·•)づ          .     \n",
+        "/   づ      *        *  \n",
+        "─────────               \n",
     ),
     concat!(
-        " ||    ||            \n",
-        " | O  o |   /        \n",
-        " |  vv  |  /         \n",
-        " |      |_/          ",
+        "            ⟡           \n",
+        "                   ⟡    \n",
+        " ∧,,∧      *            \n",
+        "( ̳•·•)            *     \n",
+        "/   づ      ⟡        ⟡  \n",
+        "─────────               \n",
     ),
     concat!(
-        " ||    ||            \n",
-        " | ^  ^ |   /        \n",
-        " |  vv  |  /         \n",
-        " |      |_/  []      ",
+        "            *           \n",
+        "                   *    \n",
+        " ∧,,∧      ⟡            \n",
+        "( ̳•·•)づ          ⟡     \n",
+        "/   づ      *        *  \n",
+        "─────────               \n",
     ),
     concat!(
-        " ||    ||            \n",
-        " | o  O |  |         \n",
-        " |  vv  |  |  []     \n",
-        " |      |__|  []     ",
+        "            .           \n",
+        "                   .    \n",
+        " ∧,,∧      *            \n",
+        "( ̳•·•)            *     \n",
+        "/   づ      .        .  \n",
+        "─────────               \n",
     ),
     concat!(
-        " ||    ||            \n",
-        " | o  o |  |         \n",
-        " |  vv  |  | [][]    \n",
-        " |      |__| [][]    ",
-    ),
-    concat!(
-        " ||    ||            \n",
-        " | O  O |   /  []    \n",
-        " |  vv  |  / [][]    \n",
-        " |      |_/  [][]    ",
-    ),
-    concat!(
-        " ||    ||            \n",
-        " | >  < |  | [][]    \n",
-        " |  vv  |  | [][]    \n",
-        " |      |__| [][]    ",
-    ),
-    concat!(
-        " ||    ||      []    \n",
-        " | O  o |  | [][]    \n",
-        " |  ^^  |  | [][]    \n",
-        " |      |__| [][]    ",
-    ),
-    concat!(
-        " ||    ||    [][]    \n",
-        " | @  @ |   /[][]    \n",
-        " |  vv  |  / [][]    \n",
-        " |      |_/  [][]    ",
-    ),
-    concat!(
-        " ||    ||    [][]    \n",
-        " | o  o |  | [][]    \n",
-        " |  vv  |  | [][]    \n",
-        " |      |__| [][][]    ",
-    ),
-    concat!(
-        " ||    ||    [][]    \n",
-        " | ^  ^ |  | [][]    \n",
-        " |  uu  |  | [][][]  \n",
-        " |      |__| [][][]  ",
-    ),
-    concat!(
-        " ||    ||    [][]    \n",
-        " | O  O |   /[][][]  \n",
-        " |  uu  |  / [][][]  \n",
-        " |      |_/  [][][]  ",
-    ),
-    concat!(
-        " ||    ||    [][][]  \n",
-        " | ^  ^ |  v [][][]  \n",
-        " |  UU  |  | [][][]  \n",
-        " |      |__| [][][]  ",
+        "            *           \n",
+        "                   *    \n",
+        " ∧,,∧  <AllDone!>       \n",
+        "( ̳^·^)            *     \n",
+        "/ u u       *        *  \n",
+        "─────────               \n",
     ),
 ];

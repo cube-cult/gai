@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use strum::{EnumIter, IntoEnumIterator};
+use strum::{EnumIter, VariantNames};
 
 use crate::{
     git::StagingStrategy,
@@ -85,9 +85,16 @@ pub struct CommitSchema {
 
 /// conventional commit type prefix
 #[derive(
-    Clone, Debug, Serialize, Deserialize, EnumIter, strum::Display,
+    Clone,
+    Debug,
+    Serialize,
+    Deserialize,
+    EnumIter,
+    strum::Display,
+    strum::VariantNames,
 )]
 #[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
 pub enum PrefixType {
     Feat,
     Fix,
@@ -107,13 +114,6 @@ pub enum PrefixType {
     // create branches?
     //Merge,
     //Revert,
-}
-
-impl PrefixType {
-    /// get all enum variants as a Vec<String>
-    pub fn variants() -> Vec<String> {
-        Self::iter().map(|p| p.to_string().to_lowercase()).collect()
-    }
 }
 
 /// creates a schema for commits
@@ -186,14 +186,20 @@ pub fn create_commit_response_schema(
         "prefix",
         Some("conventional commit type"),
         true,
-        &PrefixType::variants(),
+        PrefixType::VARIANTS,
     );
 
-    if settings.commit.include_scope {
+    if settings
+        .commit
+        .include_scope
+    {
         builder.add_str("scope", Some("scope of the change"), true);
     }
 
-    if settings.commit.include_breaking {
+    if settings
+        .commit
+        .include_breaking
+    {
         builder.add_bool(
             "breaking",
             Some("is this a breaking change?"),
@@ -203,7 +209,10 @@ pub fn create_commit_response_schema(
 
     builder.add_str("header", Some("short commit description"), true);
 
-    if settings.rules.allow_body {
+    if settings
+        .rules
+        .allow_body
+    {
         builder.add_str("body", Some("extended description"), true);
     }
 

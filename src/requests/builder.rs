@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::fmt;
 
 /// request struct
 #[derive(Debug, Clone, Default)]
@@ -24,6 +25,30 @@ pub enum ContentPart {
     Text { text: String },
 }
 
+impl fmt::Display for Request {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        writeln!(f, "System: {}", self.system)?;
+        writeln!(f, "Content:")?;
+
+        for (i, part) in self
+            .content
+            .iter()
+            .enumerate()
+        {
+            match part {
+                ContentPart::Text { text } => {
+                    writeln!(f, "[{}] {}", i, text)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
 impl Request {
     /// create a new request
     /// with an existing system prompt
@@ -39,9 +64,10 @@ impl Request {
         mut self,
         text: &str,
     ) -> Self {
-        self.content.push(ContentPart::Text {
-            text: text.to_owned(),
-        });
+        self.content
+            .push(ContentPart::Text {
+                text: text.to_owned(),
+            });
         self
     }
 
