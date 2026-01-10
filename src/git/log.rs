@@ -1,4 +1,5 @@
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
+use git2::Oid;
 use std::fmt;
 
 use super::{
@@ -28,7 +29,10 @@ pub struct GitLog {
     // prefix, scope, or header
     pub raw: String,
 
+    /// might deprecate in favor of
+    /// raw timestamp
     pub date: String,
+
     pub author: String,
     pub commit_hash: String,
 
@@ -206,12 +210,16 @@ pub fn get_short_hash(git_log: &GitLog) -> String {
         .to_string()
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn get_logs(
     git_repo: &GitRepo,
     files: bool,
     diffs: bool,
     count: usize,
     reverse: bool,
+    from_hash: Option<&str>,
+    to_hash: Option<&str>,
+    since: Option<std::time::Duration>,
 ) -> anyhow::Result<Logs> {
     let repo = &git_repo.repo;
     let mut revwalk = repo.revwalk()?;
@@ -220,25 +228,66 @@ pub fn get_logs(
         revwalk.set_sorting(git2::Sort::REVERSE)?;
     }
 
-    revwalk.push_head()?;
+    match (from_hash, to_hash) {
+        // range exists
+        (Some(from), Some(to)) => {
+            revwalk.push_range(&format!("{}..{}", from, to))?;
+        }
+
+        // from: hide it, walk from HEAD
+        (Some(from), None) => {
+            let oid = Oid::from_str(from)?;
+            revwalk.hide(oid)?;
+            revwalk.push_head()?;
+        }
+
+        // to: walk from that commit
+        (None, Some(to)) => {
+            let oid = Oid::from_str(to)?;
+            revwalk.push(oid)?;
+        }
+
+        // if none just walk from HEAD
+        (None, None) => {
+            revwalk.push_head()?;
+        }
+    }
+
     let cont = if count == 0 { !0 } else { count };
     let revwalk = revwalk.take(cont);
 
     let mut git_logs = Vec::new();
 
+    let last_time = if let Some(since) = since {
+        Utc::now().timestamp() - since.as_secs() as i64
+    } else {
+        0
+    };
+
     for oid in revwalk {
         let oid = oid?;
         let commit = repo.find_commit(oid)?;
+
+        let timestamp = commit
+            .author()
+            .when()
+            .seconds();
+
+        if timestamp < last_time {
+            break;
+        }
 
         let mut log: GitLog = commit
             .message_bytes()
             .into();
 
         let author = commit.author();
+
         log.author = author
             .name()
             .unwrap_or("unknown author")
             .to_string();
+
         log.commit_hash = oid.to_string();
         log.date = DateTime::from_timestamp(
             author
