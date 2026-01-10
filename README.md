@@ -18,7 +18,6 @@ version control with the added benefit of a clean commit history.
 - [x] CLI [#8](https://github.com/cube-cult/gai/issues/8)
 - [x] Per Hunk Staging [#5](https://github.com/cube-cult/gai/issues/5)
 - [ ] Magic Rebasing [#6](https://github.com/cube-cult/gai/issues/6)
-- [ ] Magic Bisect [#12](https://github.com/cube-cult/gai/issues/12)
 - [x] Magic Find [#12](https://github.com/cube-cult/gai/issues/12)
 - [ ] Magic Sync [#29](https://github.com/cube-cult/gai/issues/29)
 - [ ] Recreate/Amend Existing Commits
