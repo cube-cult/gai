@@ -160,9 +160,21 @@ pub struct FindArgs {
     /// additional context.\n(NOT RECOMMENDED! - This may increase the
     /// token count by a significant amount!)
     #[arg(
-        short = 'd',
         long,
         help = "Send the diffs for each of the commits as additional context.\n(NOT RECOMMENDED! - This may increases the token count by a significant amount!)"
     )]
     pub diffs: bool,
+
+    /// Starting commit range hash. Requires the full hash
+    #[arg(long)]
+    pub from: Option<String>,
+
+    /// Ending commit range, defaults to HEAD. Requires the full hash
+    #[arg(long)]
+    pub to: Option<String>,
+
+    // https://stackoverflow.com/a/72314001/17123405
+    /// Only search commits from this ago. ex. "1year", "1month", etc
+    #[arg(long, value_parser = humantime::parse_duration)]
+    pub since: Option<std::time::Duration>,
 }
