@@ -98,6 +98,7 @@ pub fn print(
     let confidence_color = match confidence {
         Confidence::Exact => Color::Green,
         Confidence::Likely => Color::Color256(214),
+        Confidence::Ambiguous => Color::Yellow,
     };
 
     println!(

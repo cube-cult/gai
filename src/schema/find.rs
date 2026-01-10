@@ -44,6 +44,8 @@ pub enum Confidence {
     Exact,
     // pretty sure but needs checking
     Likely,
+    // not exact/likely but the closest
+    Ambiguous,
 }
 
 /// creates a schema for finding a specific

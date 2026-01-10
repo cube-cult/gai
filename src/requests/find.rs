@@ -18,12 +18,23 @@ pub fn create_find_request(
         .insert_contents(git_logs)
 }
 
+/* // this is absolutely the commit
+Exact,
+// pretty sure but needs checking
+Likely,
+// not exact/likely but the closest
+Ambiguous, */
+
 fn build_prompt(_cfg: &Settings) -> String {
     concat!(
         "You are an assistant tasked on finding ",
         "a Git Commit that matches the query. ",
         "Ensure your input your reasoning as well as ",
         "Confidence level to describe your choice.",
+        "Confidence should accurately describe your assessment. ",
+        "Choose Exact, if the commit matches EXACTLY, ",
+        "Choose Likely, if pretty sure but needs checking, ",
+        "Choose Ambiguous, if not exact/likely but the closest."
     )
     .to_string()
 }
